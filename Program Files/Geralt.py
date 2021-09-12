@@ -59,7 +59,7 @@ class EmbedHelp(commands.HelpCommand):
                     name = name, 
                     value = value,
                     inline = False)
-                emb.set_footer(text = 'Run ginfo for website and join our [support server](https://discord.gg/JXEu2AcV5Y)')
+                emb.set_footer(text = 'Run ginfo for website and join our')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await self.get_destination().send(embed = emb)
     
