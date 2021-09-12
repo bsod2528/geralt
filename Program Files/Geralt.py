@@ -28,7 +28,7 @@ from jishaku.features.baseclass import Feature
 from googleapiclient.discovery import build
 
 #---prefix---#      
-bot = commands.Bot(command_prefix = '.g', status = discord.Status.idle, activity = discord.Game(name = 'ghelp ; jls'))
+bot = commands.Bot(command_prefix = '.g', status = discord.Status.idle, activity = discord.Game(name = '.ghelp ; jls'))
 
 #---checks---#
 def av(ctx):
