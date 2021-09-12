@@ -72,8 +72,8 @@ class Admin(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
         emb = discord.Embed(
-            title = 'NO PERMS FOR YOU!',
-            description = f'You dont have and you wont have permissions to run this command {ctx.message.author.mention} <:linuskill:886606006761717760>',
+            title = '<:linuskill:886606006761717760>',
+            description = f'{ctx.message.author.mention} Well well, you think you can be more cool by shutting me down eh? SUFFER!',
             color = ctx.author.color) 
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await ctx.send(embed = emb)    
