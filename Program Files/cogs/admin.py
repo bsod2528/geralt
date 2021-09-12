@@ -114,5 +114,13 @@ class Admin(commands.Cog):
                 await asyncio.sleep(0.5)
             await ctx.send(embed=emb)
 
+#---restart---#
+    def restart_bot(): 
+        os.execv(sys.executable, ['python'] + sys.argv)
+
+    @commands.command(name= 'restart')
+    async def restart(ctx):
+        await ctx.send("Restarting bot...")
+    restart_bot()
 def setup(bot):
     bot.add_cog(Admin(bot))
