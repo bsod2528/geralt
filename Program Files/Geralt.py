@@ -48,7 +48,7 @@ class EmbedHelp(commands.HelpCommand):
             emb.description = description
 
         for cog, commands in mapping.items():
-            name = 'Essentials' if cog is None else cog.qualified_name
+            name = 'Essential' if cog is None else cog.qualified_name
             filtered = await self.filter_commands(commands, sort = True)
             if filtered:
                 value = '\u2002'.join(c.name for c in commands)
