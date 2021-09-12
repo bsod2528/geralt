@@ -1,0 +1,240 @@
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send('Please pass in all requirements :rolling_eyes:.')
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send('You dont have all the requirements :angry:')
+
+class newhelp(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        for page in self.paginator.pages:
+            emb = discord.Embed(
+                description = page)
+            await destination.send(embed = emb)
+
+bot.help_command = newhelp()
+
+
+jishaku 
+
+import discord
+from discord.ext import commands
+from jishaku.cog import Jishaku
+from jishaku.cog import STANDARD_FEATURES, OPTIONAL_FEATURES
+from jishaku.features.python import PythonFeature
+from jishaku.features.root_command import RootCommand
+from jishaku.features.baseclass import Feature
+
+class debugcog(*STANDARD_FEATURES, *OPTIONAL_FEATURES):
+    @Feature.commmand(
+        parent = 'jsk',
+        name = 'foobar')
+    async def jsk_fb(self, ctx: commands.Context):
+        await ctx.send('Hi')
+        
+
+
+
+def setup(bot: commands.bot):
+    bot.add_cog(Jishaku(bot))
+
+
+
+
+       #help command
+class newhelp(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        for page in self.paginator.pages:
+            emb = discord.Embed(
+                description = page)
+            await destination.send(embed = emb)
+
+class Admin(commands.Cog):
+    
+    def __init__(self, bot):
+            self.bot = bot
+            self.bot.help_command.cog = self
+    
+            help_command = newhelp()
+            help_command.cog = self
+            bot.help_command = help_command
+
+
+riggers
+@bot.event
+async def on_message(message):
+    bot = f'<@!873204919593730119>'
+    if message.content == bot:
+        await message.channel.send(f'Please use `ghelp` to get more info on my commands.')
+
+    if message.content == 'bruh':
+        await message.channel.send(f'<:bruh:876651203755409458>')
+    
+    if message.content == 'wtf':
+        await message.channel.send(f'bruh')
+
+    else:
+        return
+    await bot.process_commands(message)
+
+
+mama jokes
+your mama so hairy, bigfoot took pictures of her
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#dropdown
+class Dropdown(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label='Red', description='Your favourite colour is red', emoji='🟥'),
+            discord.SelectOption(label='Green', description='Your favourite colour is green', emoji='🟩'),
+            discord.SelectOption(label='Blue', description='Your favourite colour is blue', emoji='🟦')
+        ]
+        super().__init__(placeholder='Choose your favourite colour...', min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'Your favourite colour is {self.values[0]}')
+
+class DropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(Dropdown())
+     
+@bot.command()
+async def colour(ctx):
+    """Sends a message with our dropdown containing colours"""
+    view = DropdownView()
+    await ctx.send('Pick your favourite colour:', view=view)
+
+#empheral
+class Counter(discord.ui.View):
+
+    @discord.ui.button(label='0', style=discord.ButtonStyle.red)
+    async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = int(button.label) if button.label else 0
+        if number + 1 >= 5:
+            button.style = discord.ButtonStyle.green
+            button.disabled = True
+        button.label = str(number + 1)
+
+        await interaction.response.edit_message(view=self)
+
+class EphemeralCounter(discord.ui.View):
+    @discord.ui.button(label='Click', style=discord.ButtonStyle.blurple)
+    async def receive(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_message('Enjoy!', view=Counter(), ephemeral=True)
+
+
+
+@bot.command()
+async def counter(ctx: commands.Context):
+    """Starts a counter for pressing."""
+    await ctx.send('Press!', view=EphemeralCounter())
+
+    async def send_bot_help(self, mapping):
+        embed = discord.Embed(title='Bot Commands', colour=self.COLOUR)
+        description = self.context.bot.description
+        if description:
+            embed.description = description
+
+        for cog, commands in mapping.items():
+            name = 'No Category' if cog is None else cog.qualified_name
+            filtered = await self.filter_commands(commands, sort=True)
+            if filtered:
+                value = '\u2002'.join(c.name for c in commands)
+                if cog and cog.description:
+                    value = '{0}\n{1}'.format(cog.description, value)
+
+                embed.add_field(name=name, value=value)
+
+        embed.set_footer(text=self.get_ending_note())
+        await self.get_destination().send(embed=embed)
+
+
+
+
+#---help command---#
+class MyNewHelp(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        for page in self.paginator.pages:
+            emb = discord.Embed(
+                title = 'Geralt is Here for Help',
+                description = page,
+                color = 0x9b59b6)
+        await destination.send(embed = emb)
+bot.help_command = MyNewHelp()
+
+
+
+
+
+
+
+
+
+
+#---help command---#
+class Help(commands.Cog):
+    def __init__ (self, bot):
+        self.bot = bot
+class MyNewHelp(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        for page in self.paginator.pages:
+            emb = discord.Embed(
+                title = 'Geralt is Here for Help',
+                description = page,
+                color = 0x9b59b6)
+            await destination.send(embed = emb)
+    
+    async def admin(self, ctx):
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
+        color = 0x9b59b6
+        emb = discord.Embed(
+            title = 'ADMIN HELP',
+            description = 'These are commands specifically meant for the bot owner ➜ ADMIN. So yeah.',
+            color = color)
+        emb.add_field(
+            name = 'Load',
+            value = 'Takes care of the job of loading cogs into the help cmd, for - you know, using the commands.\n'
+                    'Use ➜ `gload [mention cog name]`',
+            inline = False)
+        emb.add_field(
+            name = 'Unload',
+            value = 'Well, the cog was loaded. Dont you want it to be unloaded again?\n'
+                    'Use ➜ `gunload [mention cog name]`',
+            inline = False)
+        emb.add_field(
+            name = 'LoadJSK',
+            value = 'Only used for loading `Jishaku` commands. What is Jishaku you may ask, google it.\n'
+                    'Use ➜ `gloadjsk`',
+            inline = False)
+        emb.add_field(
+            name = 
+        )
+
+
+
+
+
+
+
+
+Wait wha ? Is'nt Geralt a video game character you might ask. On the contrary, I am nothing like him. That guy is 
