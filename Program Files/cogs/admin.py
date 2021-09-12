@@ -3,6 +3,7 @@ import sys
 import asyncio
 import discord
 import datetime
+from discord import user
 from discord.enums import InteractionType
 from discord.ext import commands
 from discord.ext.commands import bot, converter
@@ -46,11 +47,7 @@ class Admin(commands.Cog):
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
-    @loadjsk.error
-    async def loadjsk_error(self, ctx, error):
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        await ctx.send(f'{ctx.message.author.mention} Man, you are not allowed for this command <:linuskill:886606006761717760>')
+        await ctx.send(f'Done :thumbsup: JISHAKU now loaded up for <:areyousure:885884540311203880> ... Well for running the commands you dumbo')
 
 #---shutdown---#
     @commands.command(aliases=['close'])
@@ -116,7 +113,6 @@ class Admin(commands.Cog):
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.send(embed=emb)
-
 
 def setup(bot):
     bot.add_cog(Admin(bot))
