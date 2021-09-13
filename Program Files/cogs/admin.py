@@ -63,8 +63,7 @@ class Admin(commands.Cog):
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await ctx.send(embed = emb)
         await self.bot.close()
-        await emb.add_reaction('🔪')
-            
+        
     @die.error
     async def die_error(self, ctx, error):
         async with ctx.typing():
@@ -119,7 +118,7 @@ class Admin(commands.Cog):
     @commands.command(hidden = True)
     @commands.is_owner()
     async def cs(self, ctx):
-        channel = self.bot.get_channel(881943092352151623)
+        channel = self.bot.get_channel(809632912227041282)
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await channel.send(f'<:sdemote:886958983775129600>')
