@@ -4,6 +4,7 @@ import asyncio
 import discord
 import datetime
 from discord import user
+from discord import channel
 from discord.enums import InteractionType
 from discord.ext import commands
 from discord.ext.commands import bot, converter
@@ -113,6 +114,15 @@ class Admin(commands.Cog):
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.send(embed=emb)
+
+#---channel send---#
+    @commands.command(hidden = True)
+    @commands.is_owner()
+    async def cs(self, ctx):
+        channel = self.bot.get_channel(881943092352151623)
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
+        await channel.send(f'<:sdemote:886958983775129600>')
 
 def setup(bot):
     bot.add_cog(Admin(bot))
