@@ -3,6 +3,7 @@ import sys
 import asyncio
 import discord
 import datetime
+import logging
 from discord import user
 from discord import channel
 from discord.enums import InteractionType
@@ -10,6 +11,7 @@ from discord.ext import commands
 from discord.ext.commands import bot, converter
 from discord.ext.commands.core import command, is_owner
 from discord.interactions import Interaction
+from logging import exception
 class Admin(commands.Cog):
 
     def __init__(self, bot):
@@ -26,9 +28,9 @@ class Admin(commands.Cog):
         try:
             self.bot.unload_extension(cog)
         except Exception as e:
-            await ctx.send(f'**`ERROR:`**{type(e).__name__} - {e}')
+            await ctx.reply(f'**`ERROR:`**{type(e).__name__} - {e}')
         else:
-            await ctx.send(f'**`Done`**')
+            await ctx.reply(f'**`Done`**')
 
 #---load cog---#
     @commands.command()
@@ -37,9 +39,9 @@ class Admin(commands.Cog):
         try:
             self.bot.load_extension(cog)
         except Exception as e:
-            await ctx.send(f'**`ERROR:`**{type(e).__name__} - {e}')
+            await ctx.reply(f'**`ERROR:`**{type(e).__name__} - {e}')
         else:
-            await ctx.send(f'**`Done`**')
+            await ctx.reply(f'**`Done`**')
 
 #---jishaku---#
     @commands.command(decription = 'Its in Admin, why you run it. Bruh')
@@ -48,7 +50,7 @@ class Admin(commands.Cog):
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
-        await ctx.send(f'Done :thumbsup: JISHAKU now loaded up for <:areyousure:885884540311203880> ... Well for running the commands you dumbo')
+        await ctx.reply(f'Done :thumbsup: JISHAKU now loaded up for <:areyousure:885884540311203880> ... Well for running the commands you dumbo')
 
 #---shutdown---#
     @commands.command(aliases=['close'])
@@ -61,7 +63,7 @@ class Admin(commands.Cog):
             description = f'Geralt is now going to die. Bye {ctx.message.author.mention} <a:pepedie:877054002599182397>',
             color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
         await self.bot.close()
         
     @die.error
@@ -73,7 +75,7 @@ class Admin(commands.Cog):
             description = f'{ctx.message.author.mention} Well well, you think you can be more cool by shutting me down eh? SUFFER!',
             color = ctx.author.color) 
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)    
+        await ctx.reply(embed = emb)    
 
 #---toggle---#
     @commands.command(name="toggle", description="Enable or disable a command!", alias = ['tg'])
@@ -90,7 +92,7 @@ class Admin(commands.Cog):
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.send(embed=emb)
+            await ctx.reply(embed=emb)
 
         elif ctx.command == command:
             emb = discord.Embed(
@@ -100,7 +102,7 @@ class Admin(commands.Cog):
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.send(embed=emb)
+            await ctx.reply(embed=emb)
 
         else:
             command.enabled = not command.enabled
@@ -112,7 +114,7 @@ class Admin(commands.Cog):
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.send(embed=emb)
+            await ctx.reply(embed=emb)
 
 #---channel send---#
     @commands.command(hidden = True)
@@ -121,7 +123,7 @@ class Admin(commands.Cog):
         channel = self.bot.get_channel(809632912227041282)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await channel.send(f'<:sdemote:886958983775129600>')
+        await channel.reply(f'<:sdemote:886958983775129600>')
 
 def setup(bot):
     bot.add_cog(Admin(bot))

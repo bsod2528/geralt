@@ -9,6 +9,8 @@ import random
 import sys
 import asyncio
 import datetime
+import logging
+import pathlib
 from discord import DMChannel
 from discord import Spotify
 from discord import message
@@ -28,7 +30,16 @@ from jishaku.features.baseclass import Feature
 from googleapiclient.discovery import build
 
 #---prefix---#      
-bot = commands.Bot(command_prefix = '.g', status = discord.Status.idle, activity = discord.Game(name = '.ghelp ; i hate my self'))
+bot = commands.Bot(command_prefix = '.g', status = discord.Status.do_not_disturb, activity = discord.Game(name = '.ghelp ; i hate my self'))
+rootdir = pathlib.Path(__file__).parent.resolve()
+
+#---log---#
+logger = logging.getLogger('Geralt')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename = f'{rootdir}/Geralt.log', encoding = 'utf-8', mode = 'w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(messages)s'))
+logger.addHandler(handler)
+logger.info('Geralt is ready for action')
 
 #---checks---#
 def av(ctx):
@@ -61,7 +72,7 @@ class EmbedHelp(commands.HelpCommand):
                     inline = False)
                 emb.set_footer(text = 'Run ginfo for website')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await self.get_destination().send(embed = emb)
+        await self.get_destination().reply(embed = emb)
     
     async def send_group_help(self, group):
         embed = discord.Embed(title = group.qualified_name)
@@ -72,7 +83,7 @@ class EmbedHelp(commands.HelpCommand):
             filtered = await self.filter_commands(group.commands, sort=True)
             for command in filtered:
                 embed.add_field(name=self.get_command_signature(command), value=command.short_doc or '...', inline=False)
-        await self.get_destination().send(embed=embed)
+        await self.get_destination().reply(embed=embed)
     send_command_help = send_group_help
 bot.help_command = EmbedHelp()
 
@@ -84,7 +95,7 @@ class GeraltLink(discord.ui.View):
         self.add_item(discord.ui.Button(label = 'GERALT | HOME', url = url, emoji = '<:me:881174571804409886>'))
 @bot.command(hidden = True)
 async def info(ctx :commands.Context):
-    await ctx.send(f'Here is my website. Please check it out to learn more !', view = GeraltLink())
+    await ctx.reply(f'Here is my website. Please check it out to learn more !', view = GeraltLink())
 
 #---boot---#
 @bot.event
@@ -92,7 +103,7 @@ async def on_ready():
     print('Geralt is ready for action')
 
 #---cogs setup---#
-for filename in os.listdir('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\cogs'):
+for filename in os.listdir(f'{rootdir}/cogs'):
     if filename.endswith('.py'):    
             bot.load_extension(f'cogs.{filename[:-3]}')
 

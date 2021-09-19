@@ -54,7 +54,7 @@ class Puns(commands.Cog):
                 description = (f'{member.mention} {random.choice(roast)}'),
                 color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
     
     @friendsburn.error
     async def roastfriends_error(self, ctx, error):
@@ -64,7 +64,7 @@ class Puns(commands.Cog):
             title = 'CMD Syntax Error',
             description = f'{ctx.message.author.mention} Please use `grf` or `groastfriend` and mention someone. <:bruh:875764342862282803>',
             color = ctx.author.color)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
     
 #---tech roast your friends---#
     @commands.command(aliases = ['tb'], description = 'En number of technical insults to roast your friends with.  They wont understand lol.')
@@ -97,7 +97,7 @@ class Puns(commands.Cog):
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await asyncio.sleep(0.5)    
-        send = await ctx.send(embed = emb)
+        send = await ctx.reply(embed = emb)
         await send.add_reaction('🔥')
     
     @techburn.error
@@ -109,7 +109,7 @@ class Puns(commands.Cog):
             description = f'{ctx.message.author.mention} Please mention a user to electricute them :cloud_lightning:. Get it, cos its gonna be technical :fire:',
             color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 #---dad jokes---#
     @commands.command(aliases = ['dj'], description = 'Spice up your day with DADJOKES!')
@@ -227,7 +227,7 @@ class Puns(commands.Cog):
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await asyncio.sleep(0.5)
-        send = await ctx.send(embed = emb)
+        send = await ctx.reply(embed = emb)
         await send.add_reaction('🤌')
 
 def setup(bot):

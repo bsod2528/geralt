@@ -28,7 +28,7 @@ class Mod(commands.Cog):
     async def yeet(self, ctx, member : discord.Member, *, reason = None, alias = ['kick']):
         async with ctx.typing():        
             await asyncio.sleep(0.5)
-            await ctx.send(f'**{member}** has been yeeted by **{ctx.message.author.mention}** from the server. <a:die:877059852306886696>')
+            await ctx.reply(f'**{member}** has been yeeted by **{ctx.message.author.mention}** from the server. <a:die:877059852306886696>')
         await member.kick(reason = reason)
 #---yeet error---#
     @yeet.error
@@ -41,7 +41,7 @@ class Mod(commands.Cog):
                 description = f'{ctx.message.author.mention} I - <:leave:882101241067474984>',
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)                
-            await ctx.send(embed = emb)
+            await ctx.reply(embed = emb)
         else:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
@@ -50,7 +50,7 @@ class Mod(commands.Cog):
                 description = f'{ctx.message.author.mention} <:tf:877056779131953173> You dont have perms',
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-            await ctx.send(embed = emb)
+            await ctx.reply(embed = emb)
             
 #---ban---#
     @commands.command(description = 'Let the Ban Hammer speak for its self')
@@ -60,7 +60,7 @@ class Mod(commands.Cog):
     async def ban(self, ctx, member : discord.Member, *, reason = None):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.send(f'Ban Hammer has spoken on **{member}** from the server. <a:pepeban:877057982133833748> ')
+        await ctx.reply(f'Ban Hammer has spoken on **{member}** from the server. <a:pepeban:877057982133833748> ')
         await member.ban(reason = reason)
         
 #---ban error---#
@@ -74,7 +74,7 @@ class Mod(commands.Cog):
                 description = f'{ctx.message.author.mention} I - <:leave:882101241067474984>',
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-            await ctx.send(embed = emb)
+            await ctx.reply(embed = emb)
         else:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
@@ -83,7 +83,7 @@ class Mod(commands.Cog):
                 description = f'{ctx.message.author.mention} <:tf:877056779131953173> You dont have perms',
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-            await ctx.send(embed = emb)
+            await ctx.reply(embed = emb)
             
 #---unban---#
     @commands.command(decription = 'You bring the devil back into your server.')
@@ -100,7 +100,7 @@ class Mod(commands.Cog):
 
             if (user.name, user.discriminator) --(member_name, member_discriminator):
                 await ctx.guild.unban(user)
-                await ctx.send(f'Sucessfully unbanned {user.Mention}')
+                await ctx.reply(f'Sucessfully unbanned {user.Mention}')
                 return
 
 #---purge---#
@@ -110,7 +110,7 @@ class Mod(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
             await ctx.channel.purge(limit = amount)
-        await ctx.send(f'Sucessesfuly purged {amount} messages. Peace {ctx.message.author.mention}')
+        await ctx.reply(f'Sucessesfuly purged {amount} messages. Peace {ctx.message.author.mention}')
 #---purge error---#
     @clear.error
     async def clear_error(self, ctx, error):
@@ -122,7 +122,7 @@ class Mod(commands.Cog):
             color = ctx.author.color
         )
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 def setup(bot): 
     bot.add_cog(Mod(bot))

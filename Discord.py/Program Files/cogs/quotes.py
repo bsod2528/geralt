@@ -29,7 +29,7 @@ class Quotes(commands.Cog):
             title = 'Pieace',
             description = f'{ctx.message.author.mention} {random.choice(peace)}',
             color = ctx.author.color)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 #---bts quotes---#
     @commands.command(aliases = ['bq'])
@@ -137,7 +137,7 @@ class Quotes(commands.Cog):
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
     @btsq.error
     async def quotes_error(self, ctx, error):
         async with ctx.typing():
@@ -146,6 +146,7 @@ class Quotes(commands.Cog):
             title = 'Syntax Error',
             description = '{ctx.message.author.mention} its `gquotes` or `gbtsi`.',
             color = ctx.author.color)
+        await ctx.reply(embed = emb)
     
 #---anime quotes---#
     @commands.command(aliases = ['aq'])
@@ -254,7 +255,7 @@ class Quotes(commands.Cog):
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 def setup(bot):
     bot.add_cog(Quotes(bot))

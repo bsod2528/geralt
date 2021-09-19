@@ -18,7 +18,7 @@ class Fun(commands.Cog):
     async def dm(self, ctx, user : discord.User, *, msg):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-            await ctx.send(f'Done <:good:877497098612924416>')
+            await ctx.reply(f'Done <:good:877497098612924416>')
         await user.send(f'{msg}')
         
 #---ghost ping---#
@@ -37,7 +37,7 @@ class Fun(commands.Cog):
             description = f'{ctx.author.mention} YO! <:linuskill:886606006761717760> \n Use `ggp` or `gghost` and mention someone.',
             color = ctx.author.color)
         emb.timestamp = datetime.datetime.utcnow()
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 #---choose---#
     @commands.command(description='For when you wanna settle the score some other way')
@@ -49,7 +49,7 @@ class Fun(commands.Cog):
             description = f'{ctx.message.author.mention} {random.choice(choices)}',
             color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
     
     @choose.error
     async def choose_error(self, ctx, error):
@@ -60,7 +60,7 @@ class Fun(commands.Cog):
             description = f'{ctx.message.author.mention} What do you want me to choose from, blank space <:broo:877044811402735638> !',
             color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 #---emojify---#
     @commands.command(description = 'Send emphasised emoji based texts')
@@ -79,13 +79,13 @@ class Fun(commands.Cog):
                     emojis.append(s)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-            await ctx.send(''.join(emojis))
+            await ctx.reply(''.join(emojis))
     
     @emojify.error
     async def emojify_error(self, ctx, error):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.send(f'{ctx.message.author.mention} Bruh, type something for me to make into an emoji. <:tf:877056779131953173>')
+        await ctx.reply(f'{ctx.message.author.mention} Bruh, type something for me to make into an emoji. <:tf:877056779131953173>')
         
 #---8 Ball---#
     @commands.command(aliases = ['8ball'], description = 'The Classic 8Ball! Test you luck ')
@@ -118,7 +118,7 @@ class Fun(commands.Cog):
             )
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await asyncio.sleep(0.5)      
-        send = await ctx.send(embed = emb)
+        send = await ctx.reply(embed = emb)
         await send.add_reaction('🎱')
 
 def setup(bot):

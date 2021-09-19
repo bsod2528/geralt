@@ -19,13 +19,8 @@ class Utility(commands.Cog, discord.ui.View):
     async def ping(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = 'LATENCY',
-            description = f'{ctx.message.author.mention} Pong! My latency {self.bot.latency*1000:,.0f}ms.',
-            color = ctx.author.color)
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)    
-        await emb.add_reaction('🏓')    
+        await ctx.reply(f'Pong! My latency `{self.bot.latency*1000:,.0f}`ms.')    
+        await ctx.add_reaction('🏓')    
 
 #---search pic---#
     @commands.command()
@@ -39,7 +34,7 @@ class Utility(commands.Cog, discord.ui.View):
             color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         emb.set_image(url = url)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
 
 #---web search---#
     @commands.command()
@@ -62,7 +57,7 @@ class Utility(commands.Cog, discord.ui.View):
                 description = f"List:\n{strsAPPEND}",
                 color = ctx.author.color,
             )
-        await ctx.send(embed=embed1)
+        await ctx.reply(embed=embed1)
 
 #---nice---#
     @commands.command(aliases = ['69'])
@@ -77,10 +72,7 @@ class Utility(commands.Cog, discord.ui.View):
             name = '42069',
             value = '42069')
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.send(embed = emb)
+        await ctx.reply(embed = emb)
     
-
-
-
 def setup(bot):
     bot.add_cog(Utility(bot))
