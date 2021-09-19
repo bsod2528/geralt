@@ -15,7 +15,7 @@ class Utility(commands.Cog, discord.ui.View):
         self.bot = bot
     
 #---latency---#
-    @commands.command()
+    @commands.command(name = 'ping', help = 'Sends out bot latency!', brief = 'Well, nvm!')
     async def ping(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -23,7 +23,7 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.add_reaction('🏓')    
 
 #---search pic---#
-    @commands.command()
+    @commands.command(name = 'pic', help = 'Wanna show an example?', brief = 'Get an image from Google Images!')
     async def pic(self, ctx, *search):
         ran = random.randint(0,9)
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
@@ -37,7 +37,7 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed = emb)
 
 #---web search---#
-    @commands.command()
+    @commands.command(name = 'web', help = 'Wanna find something quickly?', brief = 'Searches Google for you!')
     async def web(self, ctx,*search):
         page = 3
         resource = build("customsearch", "v1", developerKey=api_key).cse()
@@ -60,7 +60,7 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed=embed1)
 
 #---nice---#
-    @commands.command(aliases = ['69'])
+    @commands.command(name = '69', help = 'Nice', brief = 'Nice')
     async def nice(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)

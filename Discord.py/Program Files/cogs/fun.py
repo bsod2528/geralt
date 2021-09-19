@@ -14,7 +14,7 @@ class Fun(commands.Cog):
         return ctx.author.id == 750979369001811982
 
 #---dm---#    
-    @commands.command()
+    @commands.command(name = 'dm', help = 'Sends out my latency', brief = 'Well well well, Im slow')
     async def dm(self, ctx, user : discord.User, *, msg):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -22,7 +22,7 @@ class Fun(commands.Cog):
         await user.send(f'{msg}')
         
 #---ghost ping---#
-    @commands.command(aliases = ['gp'])
+    @commands.command(alias = ['gp'], help = 'Have fun pinging your friends', brief = 'Use it to ghost ping!')
     async def ghost(self, ctx, member : discord.Member):
         async with ctx.typing():
             await asyncio.sleep(0.1)
@@ -63,7 +63,7 @@ class Fun(commands.Cog):
         await ctx.reply(embed = emb)
 
 #---emojify---#
-    @commands.command(description = 'Send emphasised emoji based texts')
+    @commands.command(name = 'emojify', help = 'Bold texts', brief = 'Send emphasised texts')
     async def emojify(self,ctx, *, text):
         emojis = []
         for s in text:
@@ -88,7 +88,7 @@ class Fun(commands.Cog):
         await ctx.reply(f'{ctx.message.author.mention} Bruh, type something for me to make into an emoji. <:tf:877056779131953173>')
         
 #---8 Ball---#
-    @commands.command(aliases = ['8ball'], description = 'The Classic 8Ball! Test you luck ')
+    @commands.command(alias = ['8ball'], help = '8ball is here to ruin your life!', brief = 'The Classic 8Ball! Test you luck')
     async def magicball(self, ctx):
         response = ['It is Certain.',
                     'It is decidedly so.',

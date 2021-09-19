@@ -22,8 +22,9 @@ class Admin(commands.Cog):
         return ctx.author.id == 750979369001811982 , 760823877034573864
 
 #---unload cog---#
-    @commands.command()
+    @commands.command(name = 'unload', help = 'Unload Cogs in a fraction!', brief = 'Unload dem!')
     @commands.check(av)
+    @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
         try:
             self.bot.unload_extension(cog)
@@ -33,8 +34,9 @@ class Admin(commands.Cog):
             await ctx.reply(f'**`Done`**')
 
 #---load cog---#
-    @commands.command()
+    @commands.command(name = 'load', help = 'Load Cogs faster than Mcqueen!', brief = 'Load em')
     @commands.check(av)
+    @commands.is_owner()
     async def load(self, ctx, *, cog : str):
         try:
             self.bot.load_extension(cog)
@@ -44,16 +46,24 @@ class Admin(commands.Cog):
             await ctx.reply(f'**`Done`**')
 
 #---jishaku---#
-    @commands.command(decription = 'Its in Admin, why you run it. Bruh')
+    @commands.command(name = 'jsk', help = 'Its in Admin, why you run it. Bruh')
     @commands.check(av)
+    @commands.is_owner()
     async def loadjsk(self, ctx):
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
         await ctx.reply(f'Done :thumbsup: JISHAKU now loaded up for <:areyousure:885884540311203880> ... Well for running the commands you dumbo')
+#---jsk error---#
+    @loadjsk.error
+    async def loadjsk_error(self, ctx):
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
+        await ctx.reply(f'{ctx.message.author.mention} YOO! This is for bot dev, not you <:leave:882101241067474984>')
+
 
 #---shutdown---#
-    @commands.command(aliases=['close'])
+    @commands.command(name = 'die', help = 'Shuts the bot down!')
     @commands.is_owner()
     async def die(self, ctx):
         async with ctx.typing():
@@ -70,12 +80,7 @@ class Admin(commands.Cog):
     async def die_error(self, ctx, error):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = '<:linuskill:886606006761717760>',
-            description = f'{ctx.message.author.mention} Well well, you think you can be more cool by shutting me down eh? SUFFER!',
-            color = ctx.author.color) 
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.reply(embed = emb)    
+        await ctx.reply(f' <:linuskill:886606006761717760>\n {ctx.message.author.mention} Well well, you think you can be more cool by shutting me down eh? SUFFER!')    
 
 #---toggle---#
     @commands.command(name="toggle", description="Enable or disable a command!", alias = ['tg'])

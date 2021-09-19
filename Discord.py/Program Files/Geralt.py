@@ -72,7 +72,7 @@ class EmbedHelp(commands.HelpCommand):
                     inline = False)
                 emb.set_footer(text = 'Run ginfo for website')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await self.get_destination().reply(embed = emb)
+        await self.get_destination().send(embed = emb)
     
     async def send_group_help(self, group):
         embed = discord.Embed(title = group.qualified_name)

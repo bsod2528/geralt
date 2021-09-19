@@ -1,4 +1,5 @@
 import asyncio
+from os import name
 import discord
 import random
 import datetime
@@ -11,7 +12,7 @@ class Puns(commands.Cog):
         self.bot = bot
 
 #---roast your friends---#
-    @commands.command(aliases = ['fb'], description = 'Roast your friends with amazing insults. They will cry :evilelmo:')
+    @commands.command(alias = ['fb'], help = 'Roast your friends with amazing insults. They will cry :evilelmo:')
     async def friendsburn(self, ctx, member: discord.Member):
         roast = ['You are more disappointing than an unsalted pretzel.',
                 'You have so many gaps in your teeth it looks like your tongue is in jail.',
@@ -67,7 +68,7 @@ class Puns(commands.Cog):
         await ctx.reply(embed = emb)
     
 #---tech roast your friends---#
-    @commands.command(aliases = ['tb'], description = 'En number of technical insults to roast your friends with.  They wont understand lol.')
+    @commands.command(alias = ['tb'], help = 'En number of technical insults to roast your friends with.  They wont understand lol.')
     async def techburn(self, ctx, member : discord.Member):
         techroast = ['My CPU cores are faster than your brain registering what I just said',
                      'Honestly, DDR1 is better than you! Go suck on that punk.',
@@ -112,7 +113,7 @@ class Puns(commands.Cog):
         await ctx.reply(embed = emb)
 
 #---dad jokes---#
-    @commands.command(aliases = ['dj'], description = 'Spice up your day with DADJOKES!')
+    @commands.command(alias = ['dj'], help = 'Spice up your day with DADJOKES!')
     async def dadjoke(self,ctx):
         jokes = ['To whoever stole my copy of Microsoft Office, I will find you.You have my Word!',
                  'Q: Why did the coffee file a police report? A: It got mugged.',
@@ -221,13 +222,8 @@ class Puns(commands.Cog):
                  '<a:randomkekw:877960373611954176>',
                  '<:good:877497098612924416>']
         async with ctx.typing():
-            emb = discord.Embed(
-                title = '**Dad Jokes**',
-                description = f'{ctx.message.author.mention} {random.choice(jokes)} {random.choice(emote)}',
-                color = ctx.author.color)
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await asyncio.sleep(0.5)
-        send = await ctx.reply(embed = emb)
+            await asyncio.sleep(0.5)
+        send = await ctx.reply(f'{ctx.message.author.mention} {random.choice(jokes)} {random.choice(emote)}')
         await send.add_reaction('🤌')
 
 def setup(bot):

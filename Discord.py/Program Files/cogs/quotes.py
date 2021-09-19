@@ -1,3 +1,4 @@
+from os import name
 import discord
 import random
 import datetime
@@ -9,7 +10,7 @@ class Quotes(commands.Cog):
         self.bot = bot
 
 #---pattani---#
-    @commands.command()
+    @commands.command(name = 'pieace', help = 'Enjoy some piease')
     async def pieace(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -32,7 +33,7 @@ class Quotes(commands.Cog):
         await ctx.reply(embed = emb)
 
 #---bts quotes---#
-    @commands.command(aliases = ['bq'])
+    @commands.command(alias = ['bq'], help = 'Motivation !!', brief = 'Get motivated with the best quotes from BTS!')
     async def btsq(self, ctx):
         quote = ['Hark work will never betray you - KIM TAEHYUNG',
                  'Go on your path, even if you live only for a day - JIMIN',
@@ -149,7 +150,7 @@ class Quotes(commands.Cog):
         await ctx.reply(embed = emb)
     
 #---anime quotes---#
-    @commands.command(aliases = ['aq'])
+    @commands.command(alias = ['aq'], help = 'Love Anime?', brief = 'Relate to the best anime quotes out there!')
     async def animeq(self, ctx):
         quote = ['The world isn’t perfect. But it’s there for us, doing the best it can, that’s what makes it so damn beautiful. – Roy Mustang',
                  'Knowing you’re different is only the beginning. If you accept these differences you’ll be able to get past them and grow even closer. – Miss Kobayashi',

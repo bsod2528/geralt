@@ -22,7 +22,7 @@ class Mod(commands.Cog):
         return ctx.author.id == 750979369001811982 , 760823877034573864
 
 #---yeet---#
-    @commands.command(description = 'Yeet User from Server')
+    @commands.command(name = 'yeet', help = 'Mod your server with yeet!', brief = 'Yeet User from Server')
     @commands.has_guild_permissions(administrator = True)
     @commands.check(is_it_me)
     async def yeet(self, ctx, member : discord.Member, *, reason = None, alias = ['kick']):
@@ -53,10 +53,9 @@ class Mod(commands.Cog):
             await ctx.reply(embed = emb)
             
 #---ban---#
-    @commands.command(description = 'Let the Ban Hammer speak for its self')
+    @commands.command(name = 'ban', help = 'Get rid of toxic peeps forever!', brief = 'Let the Ban Hammer speak for its self')
     @commands.has_guild_permissions(administrator = True)
     @commands.has_permissions(ban_members = True)
-    @commands.check(is_it_me)
     async def ban(self, ctx, member : discord.Member, *, reason = None):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -104,7 +103,7 @@ class Mod(commands.Cog):
                 return
 
 #---purge---#
-    @commands.command(description = 'Deletes messages on any scale.')
+    @commands.command(name = 'clear', help = 'Having a Genocide Plan! Delete it on a mass scale!', brief = 'Deletes messages on any scale.')
     @commands.has_permissions(administrator = True, manage_messages = True)
     async def clear(self, ctx, amount: int):
         async with ctx.typing():
@@ -114,15 +113,25 @@ class Mod(commands.Cog):
 #---purge error---#
     @clear.error
     async def clear_error(self, ctx, error):
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = 'Purge Undergone',
-            description = f'{ctx.message.author.mention} How many messages do you want to delete. Specify particularly.',
-            color = ctx.author.color
-        )
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.reply(embed = emb)
+        if isinstance(error, commands.BotMissingPermissions):
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            emb = discord.Embed(
+                title = 'No Perms for Me',
+                description = f'{ctx.message.author.mention} I - <:leave:882101241067474984>',
+                color = ctx.author.color)
+            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            await ctx.reply(embed = emb)
+        else:
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            emb = discord.Embed(
+                title = 'Purge Undergone',
+                description = f'{ctx.message.author.mention} How many messages do you want to delete. Specify particularly.',
+                color = ctx.author.color
+            )
+            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            await ctx.reply(embed = emb)
 
 def setup(bot): 
     bot.add_cog(Mod(bot))
