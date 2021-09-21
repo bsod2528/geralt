@@ -68,7 +68,7 @@ class Admin(commands.Cog):
     async def die(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f'Geralt is now going to die. Bye <a:pepedie:877054002599182397>')
+        await ctx.reply(f'Imma kill ma self. Bye! <a:pepedie:877054002599182397>')
         await self.bot.close()
         
     @die.error

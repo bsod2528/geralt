@@ -70,7 +70,7 @@ class EmbedHelp(commands.HelpCommand):
                     name = name, 
                     value = value,
                     inline = False)
-                emb.set_footer(text = 'Run ginfo for website')
+                emb.set_footer(text = 'Run .ginfo for website')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await self.get_destination().send(embed = emb)
     
