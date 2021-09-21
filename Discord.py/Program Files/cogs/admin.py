@@ -46,7 +46,7 @@ class Admin(commands.Cog):
             await ctx.reply(f'**`Done`**')
 
 #---jishaku---#
-    @commands.command(name = 'jsk', help = 'Its in Admin, why you run it. Bruh')
+    @commands.command(name = 'loadjsk', help = 'Its in Admin, why you run it. Bruh')
     @commands.check(av)
     @commands.is_owner()
     async def loadjsk(self, ctx):
@@ -68,12 +68,7 @@ class Admin(commands.Cog):
     async def die(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = 'Gonna Kill my Self',
-            description = f'Geralt is now going to die. Bye {ctx.message.author.mention} <a:pepedie:877054002599182397>',
-            color = ctx.author.color)
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.reply(embed = emb)
+        await ctx.reply(f'Geralt is now going to die. Bye <a:pepedie:877054002599182397>')
         await self.bot.close()
         
     @die.error
@@ -90,36 +85,21 @@ class Admin(commands.Cog):
         command = self.bot.get_command(command)
 
         if command is None:
-            emb = discord.Embed(
-                title = 'ERROR', 
-                description = 'I cant find a command with that name!', 
-                color = ctx.author.color)
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed=emb)
+            await ctx.reply('<:frogworry:887502713976410165> I cant find a command with that name!')
 
         elif ctx.command == command:
-            emb = discord.Embed(
-                title = 'ERROR', 
-                description = 'You cannot disable this command.', 
-                color =ctx.author.color)
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed=emb)
+            await ctx.reply('You cannot disable this command')
 
         else:
             command.enabled = not command.enabled
             ternary = "enabled" if command.enabled else "disabled"
-            emb = discord.Embed(
-                title = 'Toggle',
-                description = f'I have {ternary} {command.qualified_name} for you!',
-                color = ctx.author.color)
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed=emb)
+            await ctx.reply(f'I have {ternary} {command.qualified_name} for you!',)
 
 #---channel send---#
     @commands.command(hidden = True)
