@@ -59,7 +59,8 @@ class Mod(commands.Cog):
     async def ban(self, ctx, member : discord.Member, *, reason = None):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f'Ban Hammer has spoken on **{member}** from the server. <a:pepeban:877057982133833748> ')
+        await ctx.reply(f'Ban Hammer has spoken on **{member}** from the server.')
+        await ctx.send(f'<a:pepeban:877057982133833748>')
         await member.ban(reason = reason)
         
 #---ban error---#
