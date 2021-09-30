@@ -3,6 +3,7 @@ import webbrowser
 import time
 import random
 from discord import channel, mentions, user
+from discord.flags import Intents
 import requests
 import discord
 import random
@@ -11,6 +12,7 @@ import asyncio
 import datetime
 import logging
 import pathlib
+import json
 from discord import DMChannel
 from discord import Spotify
 from discord import message
@@ -30,8 +32,9 @@ from jishaku.features.baseclass import Feature
 from googleapiclient.discovery import build
 
 #---prefix---#      
-bot = commands.Bot(command_prefix = '.g', status = discord.Status.do_not_disturb, activity = discord.Game(name = '.ghelp ; i hate my self'))
+bot = commands.Bot(command_prefix = '.g', status = discord.Status.do_not_disturb, activity = discord.Game(name = '.ghelp ; i hate my self'), Intents = discord.Intents.all)
 rootdir = pathlib.Path(__file__).parent.resolve()
+emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
 
 #---log---#
 logger = logging.getLogger('Geralt')
@@ -70,32 +73,27 @@ class EmbedHelp(commands.HelpCommand):
                     name = name, 
                     value = value,
                     inline = False)
-                emb.set_footer(text = 'Run .ginfo for website')
+                emb.set_footer(
+                    text = 'Run .ginfo for website')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await self.get_destination().send(embed = emb)
     
     async def send_group_help(self, group):
-        embed = discord.Embed(title = group.qualified_name)
+        embed = discord.Embed(
+            title = group.qualified_name)
         if group.help:
             embed.description = group.help
 
         if isinstance(group, commands.Group):
-            filtered = await self.filter_commands(group.commands, sort=True)
+            filtered = await self.filter_commands(group.commands, sort = True)
             for command in filtered:
-                embed.add_field(name=self.get_command_signature(command), value=command.short_doc or '...', inline=False)
+                embed.add_field(
+                    name = self.get_command_signature(command), 
+                    value = command.short_doc or '...', 
+                    inline = False)
         await self.get_destination().reply(embed=embed)
     send_command_help = send_group_help
 bot.help_command = EmbedHelp()
-
-#---button---#
-class GeraltLink(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        url = f'https://bsod2528.wixsite.com/geralt'
-        self.add_item(discord.ui.Button(label = 'GERALT | HOME', url = url, emoji = '<:me:881174571804409886>'))
-@bot.command(hidden = True)
-async def info(ctx :commands.Context):
-    await ctx.reply(f'Here is my website. Please check it out to learn more !', view = GeraltLink())
 
 #---boot---#
 @bot.event
