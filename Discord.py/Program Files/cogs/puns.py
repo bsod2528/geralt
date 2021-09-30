@@ -1,8 +1,11 @@
 import asyncio
 from os import name
 import discord
+import json
 import random
 import datetime
+from discord import reaction
+from discord import mentions
 from discord.colour import Color
 from discord.ext import commands
 
@@ -12,7 +15,7 @@ class Puns(commands.Cog):
         self.bot = bot
 
 #---roast your friends---#
-    @commands.command(alias = ['fb'], help = 'Roast your friends with amazing insults. They will cry :evilelmo:')
+    @commands.command(aliases    = ['fb'], help = 'Roast your friends with amazing insults. They will cry :evilelmo:')
     async def friendsburn(self, ctx, member: discord.Member):
         roast = ['You are more disappointing than an unsalted pretzel.',
                 'You have so many gaps in your teeth it looks like your tongue is in jail.',
@@ -50,25 +53,32 @@ class Puns(commands.Cog):
                 'Beauty is only skin deep, but ugly goes clean to the bone and your an example.',
                 'Well, the jerk store called. They’re running out of you.',
                 'Mirrors cant talk. Lucky for you they cant laugh either']
+        emote = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
+        emotte = [f'{emote["lesgo"]}',
+                 f'{emote["yeaboi"]}',
+                 f'{emote["pokisalute"]}',
+                 f'{emote["whyme"]}',
+                 f'{emote["linusfb"]}',
+                 f'{emote["pepespace"]}',
+                 f'{emote["kekw"]}',
+                 f'{emote["Oo"]}',
+                 f'{emote["trumpclap"]}']
         emb = discord.Embed(
                 title = '**Roast Your Friends**',
-                description = (f'{member.mention} {random.choice(roast)}'),
+                description = f'{member.mention} {random.choice(roast)} {random.choice(emotte)}',
                 color = ctx.author.color)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.reply(embed = emb)
+        await ctx.send(embed = emb)
     
     @friendsburn.error
     async def roastfriends_error(self, ctx, error):
+        emote = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = 'CMD Syntax Error',
-            description = f'{ctx.message.author.mention} Please use `grf` or `groastfriend` and mention someone. <:bruh:875764342862282803>',
-            color = ctx.author.color)
-        await ctx.reply(embed = emb)
+        await ctx.reply(f'Please use `.gfb` or `.gfriendsburn` and mention someone {emote["worryrun"]}')
     
 #---tech roast your friends---#
-    @commands.command(alias = ['tb'], help = 'En number of technical insults to roast your friends with.  They wont understand lol.')
+    @commands.command(name = 'techburn', aliases = ['tb'], help = 'En number of technical insults to roast your friends with.  They wont understand lol.')
     async def techburn(self, ctx, member : discord.Member):
         techroast = ['My CPU cores are faster than your brain registering what I just said',
                      'Honestly, DDR1 is better than you! Go suck on that punk.',
@@ -85,35 +95,36 @@ class Puns(commands.Cog):
                      '01111001 01101111 01110101 00100000 01101000 01100001 01110110 01100101 00100000 01101110 01101111 00100000 01101100 01101001 01100110 01100101 00001010',
                      'You really need to improve your BRAIN architecture, cos its slower than the 1st ever CPU to be ever made.',
                      'Your like Bulldozer architecture from AMD, looks good on the outside. But we all knew it sucked on the inside, your just like that.']
-        emote = ['<a:roasted:877964516216938517>',
-                 '<a:pepeyea:877960711425388624>',
-                 '<a:pepehehe:877959535137026059>',
-                 '<:yeaboi:877057224260853760>',
-                 '<a:randomkekw:877960373611954176>',
-                 '<:good:877497098612924416']
+        emote = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
+        reaction = ([f'{emote["lesgo"]}',
+                 f'{emote["yeaboi"]}',
+                 f'{emote["pokisalute"]}',
+                 f'{emote["whyme"]}',
+                 f'{emote["linusfb"]}',
+                 f'{emote["pepespace"]}',
+                 f'{emote["kekw"]}',
+                 f'{emote["Oo"]}',
+                 f'{emote["trumpclap"]}'])
         async with ctx.typing():
             emb = discord.Embed(
                 title = '**Roast Your Friends, but Technically**',
-                description = f'{member.mention} {random.choice(techroast)} {random.choice(emote)} ', 
+                description = f'{member.mention} {random.choice(techroast)} {random.choice(reaction)}', 
                 color = ctx.author.color)
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await asyncio.sleep(0.5)    
-        send = await ctx.reply(embed = emb)
+        send = await ctx.send(embed = emb)
         await send.add_reaction('🔥')
-    
+        
     @techburn.error
     async def tr_error(self, ctx, error):
+        emote = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = 'CMD Syntax Error',
-            description = f'{ctx.message.author.mention} Please mention a user to electricute them :cloud_lightning:. Get it, cos its gonna be technical :fire:',
-            color = ctx.author.color)
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        await ctx.reply(embed = emb)
-
+        await ctx.reply(f'Frick sake {emote["linuspain"]} Use `.gtb` or `.gtechburn` and mention someone {emote["sd"]}')
+    
+   
 #---dad jokes---#
-    @commands.command(alias = ['dj'], help = 'Spice up your day with DADJOKES!')
+    @commands.command(aliases = ['dj'], help = 'Spice up your day with DADJOKES!')
     async def dadjoke(self,ctx):
         jokes = ['To whoever stole my copy of Microsoft Office, I will find you.You have my Word!',
                  'Q: Why did the coffee file a police report? A: It got mugged.',
@@ -216,14 +227,19 @@ class Puns(commands.Cog):
                  'Why did the raisin go out with the prune? Because he couldn’t find a date.',
                  'I want to go on record that I support farming. As a matter of fact, you could call me protractor.',
                  'Can February March? No, but April May.']
-        emote = ['<a:pepeyea:877960711425388624>',
-                 '<a:pepehehe:877959535137026059>',
-                 '<:yeaboi:877057224260853760>',
-                 '<a:randomkekw:877960373611954176>',
-                 '<:good:877497098612924416>']
+        emote = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
+        emote = [f'{emote["pepeyea"]}',
+                 f'{emote["trumpclap"]}',
+                 f'{emote["kekw"]}',
+                 f'{emote["pepehehe"]}',
+                 f'{emote["yeaboi"]}']
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        send = await ctx.reply(f'{ctx.message.author.mention} {random.choice(jokes)} {random.choice(emote)}')
+        emb = discord.Embed(
+            title = 'Dad Jokes! He He',
+            description = f'{random.choice(jokes)} {random.choice(emote)}',
+            color = ctx.author.color)
+        send = await ctx.reply(embed = emb)
         await send.add_reaction('🤌')
 
 def setup(bot):

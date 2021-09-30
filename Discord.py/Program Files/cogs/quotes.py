@@ -1,5 +1,6 @@
 from os import name
 import discord
+import json
 import random
 import datetime
 import asyncio
@@ -8,6 +9,7 @@ from discord.ext import commands
 class Quotes(commands.Cog):
     def __init__ (self, bot):
         self.bot = bot
+    emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
 
 #---pattani---#
     @commands.command(name = 'pieace', help = 'Enjoy some piease')
@@ -33,7 +35,7 @@ class Quotes(commands.Cog):
         await ctx.reply(embed = emb)
 
 #---bts quotes---#
-    @commands.command(alias = ['bq'], help = 'Motivation !!', brief = 'Get motivated with the best quotes from BTS!')
+    @commands.command(aliases = ['bq'], help = 'Motivation !!', brief = 'Get motivated with the best quotes from BTS!')
     async def btsq(self, ctx):
         quote = ['Hark work will never betray you - KIM TAEHYUNG',
                  'Go on your path, even if you live only for a day - JIMIN',
@@ -150,7 +152,7 @@ class Quotes(commands.Cog):
         await ctx.reply(embed = emb)
     
 #---anime quotes---#
-    @commands.command(alias = ['aq'], help = 'Love Anime?', brief = 'Relate to the best anime quotes out there!')
+    @commands.command(aliases = ['aq'], help = 'Love Anime?', brief = 'Relate to the best anime quotes out there!')
     async def animeq(self, ctx):
         quote = ['The world isn’t perfect. But it’s there for us, doing the best it can, that’s what makes it so damn beautiful. – Roy Mustang',
                  'Knowing you’re different is only the beginning. If you accept these differences you’ll be able to get past them and grow even closer. – Miss Kobayashi',

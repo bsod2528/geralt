@@ -4,6 +4,7 @@ import asyncio
 import discord
 import datetime
 import logging
+import json
 from discord import user
 from discord import channel
 from discord.enums import InteractionType
@@ -12,6 +13,7 @@ from discord.ext.commands import bot, converter
 from discord.ext.commands.core import command, is_owner
 from discord.interactions import Interaction
 from logging import exception
+
 class Admin(commands.Cog):
 
     def __init__(self, bot):
@@ -47,68 +49,68 @@ class Admin(commands.Cog):
 
 #---jishaku---#
     @commands.command(name = 'loadjsk', help = 'Its in Admin, why you run it. Bruh')
-    @commands.check(av)
     @commands.is_owner()
     async def loadjsk(self, ctx):
+        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
-        await ctx.reply(f'Done :thumbsup: JISHAKU now loaded up for <:areyousure:885884540311203880> ... Well for running the commands you dumbo')
+        await ctx.reply(f'Done! JISHAKU now loaded up for {emote["areyousure"]} ... Well for running the commands you dumbo')
 #---jsk error---#
     @loadjsk.error
     async def loadjsk_error(self, ctx):
+        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f'{ctx.message.author.mention} YOO! This is for bot dev, not you <:leave:882101241067474984>')
-
+        await ctx.reply(f'YOO! This is for bot dev, not you {emote["leave"]}')
 
 #---shutdown---#
     @commands.command(name = 'die', help = 'Shuts the bot down!')
     @commands.is_owner()
     async def die(self, ctx):
+        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f'Imma kill ma self. Bye! <a:pepedie:877054002599182397>')
+        await ctx.reply(f'Imma kill ma self. Bye! {emote["pepedie"]}')
         await self.bot.close()
         
     @die.error
     async def die_error(self, ctx, error):
+        emote = json
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f' <:linuskill:886606006761717760>\n {ctx.message.author.mention} Well well, you think you can be more cool by shutting me down eh? SUFFER!')    
+        await ctx.reply(f'{ctx.message.author.mention} {emote["linuskill"]}')    
 
 #---toggle---#
-    @commands.command(name="toggle", description="Enable or disable a command!", alias = ['tg'])
-    @commands.check(av)
+    @commands.command(name="toggle", description="Enable or disable a command!", aliases = ['tg'])
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
+        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         command = self.bot.get_command(command)
 
         if command is None:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply('<:frogworry:887502713976410165> I cant find a command with that name!')
+            await ctx.reply(f'{emote["worryrun"]} I cant find a command with that name!')
 
         elif ctx.command == command:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply('You cannot disable this command')
+            await ctx.reply(f'{emote["trigger"]}You cannot disable this command')
 
         else:
             command.enabled = not command.enabled
             ternary = "enabled" if command.enabled else "disabled"
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(f'I have {ternary} {command.qualified_name} for you!',)
+            await ctx.reply(f'I have {ternary} {command.qualified_name} for you! {emote["pray"]}',)
 
 #---channel send---#
-    @commands.command(hidden = True)
-    @commands.is_owner()
-    async def cs(self, ctx):
-        channel = self.bot.get_channel(809632912227041282)
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        await channel.reply(f'<:sdemote:886958983775129600>')
+    #commands.command(hidden = True)
+    #commands.is_owner()
+    #async def cs(self, ctx, *, args):
+    #   channel = self.bot.get_channel(args)
+    #   await channel.send(f'<:sdemote:886958983775129600>')
 
 def setup(bot):
     bot.add_cog(Admin(bot))
