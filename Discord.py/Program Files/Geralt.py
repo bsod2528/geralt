@@ -31,10 +31,25 @@ from jishaku.features.root_command import RootCommand
 from jishaku.features.baseclass import Feature
 from googleapiclient.discovery import build
 
-#---prefix---#      
-bot = commands.Bot(command_prefix = '.g', status = discord.Status.do_not_disturb, activity = discord.Game(name = '.ghelp ; i hate my self'), Intents = discord.Intents.all)
+#---constructor class---#      
+class Bot(commands.Bot):
+    def __init__(self, **kwargs):
+        super().__init__(command_prefix = ['.g'], status = discord.Status.do_not_disturb, intents = discord.Intents.all(), activity = discord.Game(name = '.ghelp ; i hate my self'))
+    
+    async def on_ready(self):
+        print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
+        total_members = list(bot.get_all_members())
+        total_channels = sum(1 for x in bot.get_all_channels())
+        print(f'Number of Guilds : {len(bot.guilds)}')
+        print(f'Number of Large Guilds : {sum(g.large for g in bot.guilds)}')
+        print(f'Number of Chunked Guilds : {sum(g.chunked for g in bot.guilds)}')
+        print(f'Count of Total Members : {len(total_members)}')
+        print(f'Channels Im In : {total_channels}')
+        print(f'Message Cache Size : {len(bot.cached_messages)}\n')
+        print(f'Geralt is ready for action !')
+bot = Bot()
+
 rootdir = pathlib.Path(__file__).parent.resolve()
-emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
 
 #---log---#
 logger = logging.getLogger('Geralt')
@@ -56,7 +71,7 @@ class EmbedHelp(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         emb = discord.Embed(
             title = 'Geralt is Here to Help', 
-            color = 0x9b59b6)
+            color = discord.Color.from_rgb(117, 128, 219))
         description = self.context.bot.description
         if description:
             emb.description = description
@@ -94,11 +109,6 @@ class EmbedHelp(commands.HelpCommand):
         await self.get_destination().reply(embed=embed)
     send_command_help = send_group_help
 bot.help_command = EmbedHelp()
-
-#---boot---#
-@bot.event
-async def on_ready():
-    print('Geralt is ready for action')
 
 #---cogs setup---#
 for filename in os.listdir(f'{rootdir}/cogs'):
