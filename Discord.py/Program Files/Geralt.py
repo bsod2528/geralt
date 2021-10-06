@@ -129,5 +129,8 @@ async def on_message(message: discord.Message):
         await channel.send(embed = emb)
     await bot.process_commands(message)
 
+
+
+
 token = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\config.json'))
 bot.run(f'{token["TOKEN"]}')

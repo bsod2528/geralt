@@ -31,7 +31,7 @@ class Quotes(commands.Cog):
         emb = discord.Embed(
             title = 'Pieace',
             description = f'{ctx.message.author.mention} {random.choice(peace)}',
-            color = ctx.author.color)
+            color = discord.Color.from_rgb(117, 128, 219))
         await ctx.reply(embed = emb)
 
 #---bts quotes---#
