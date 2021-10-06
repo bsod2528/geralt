@@ -37,17 +37,24 @@ class Utility(commands.Cog, discord.ui.View):
         view.add_item(discord.ui.Button(
             style = discord.ButtonStyle.link, 
             url = 'https://bsod2528.wixsite.com/geralt', 
-            label = "Geralt | Home", 
-            emoji = "<:aww:893334504482172979>"))
+            label = 'Geralt | Home', 
+            emoji = f'{emote["panda"]["cool"]}'))
         view.add_item(discord.ui.Button(
             style = discord.ButtonStyle.link,
             label = 'Geralt | Support',
             url = 'https://discord.gg/JXEu2AcV5Y',
-            emoji = '<:roolessgoo:886952527625609267>'))
+            emoji = f'{emote["panda"]["clap"]}'))
+        view.add_item(discord.ui.Button(
+            style = discord.ButtonStyle.link,
+            label = 'Source | Github',
+            url = 'https://github.com/BSOD2528/Geralt',
+            emoji = f'{emote["panda"]["blob"]}'))
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
         await ctx.send(embed = embed, view = view)
 
 #---latency---#
-    @commands.command(name = 'ping', help = 'Sends out bot latency!', brief = 'Well, nvm!')
+    @commands.command(name = 'ping', help = 'Sends out bot latency!', brief = 'Well, Im slow')
     async def ping(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -90,6 +97,8 @@ class Utility(commands.Cog, discord.ui.View):
                 description = f"List:\n{strsAPPEND}",
                 color = ctx.author.color,
             )
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
         await ctx.reply(embed=embed1)
 
 #---nice---#

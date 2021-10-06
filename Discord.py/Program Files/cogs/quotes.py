@@ -18,7 +18,7 @@ class Quotes(commands.Cog):
             await asyncio.sleep(0.5)
         peace = ['Pieace Homies',
                  'Be calm and pieacefull :pray: Things will go your way',
-                 '<:jp:879708834820661270>',
+                 '<:pieace:893715324258619412>',
                  'https://en.wikipedia.org/wiki/Pea',
                  'Pieacefullness is something everyone requires in their lives. On the contrary, no one has it.',
                  'https://www.google.com/search?q=peas&source=lnms&tbm=isch&sa=X&ved=2ahUKEwjPsbuD2cnyAhXFmeYKHV_FAzgQ_AUoAXoECAEQAw&biw=1366&bih=649',
@@ -27,7 +27,7 @@ class Quotes(commands.Cog):
                  'PIEACE = PEACE + PIECE --> Its no where related to peas, but yeah it just popped up.',
                  'You know Hitler hated Peas <:broo:877044811402735638>',
                  'If you say peace ever again, your <:linuskill:886606006761717760>',
-                 '<:jp2:879720666167918633>']
+                 '"<:jaipattani:893715313189847041>']
         emb = discord.Embed(
             title = 'Pieace',
             description = f'{ctx.message.author.mention} {random.choice(peace)}',
@@ -133,22 +133,22 @@ class Quotes(commands.Cog):
                  'It’s okay to shed the tears / But don’t you tear yourself – MOONCHILD - RM',
                  'You can’t just come into someone’s life, make them feel special, and then leave. – TAEHYUNG',
                  'If you can’t respect, don’t even open your mouth. – KIM NAMJOON']
+        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))   
+        beta = [f'{emote["panda"]["aww"]}',
+                   f'{emote["panda"]["cry"]}',
+                   f'{emote["panda"]["blob"]}',
+                   f'{emote["panda"]["cool"]}',
+                   f'{emote["panda"]["clap"]}',
+                   f'{emote["panda"]["awwshake"]}',
+                   f'{emote["panda"]["duckdance"]}',
+                   f'{emote["panda"]["cat"]}']
         emb = discord.Embed(
             title = 'FAMOUS QUOTES FROM BTS',
-            description = f'{ctx.message.author.mention} {random.choice(quote)}',
-            color = ctx.author.color)
+            description = f'{ctx.message.author.mention} {random.choice(quote)} {random.choice(beta)}',
+            color = discord.Color.from_rgb(117, 128, 219))
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed = emb)
-    @btsq.error
-    async def quotes_error(self, ctx, error):
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        emb = discord.Embed(
-            title = 'Syntax Error',
-            description = '{ctx.message.author.mention} its `gquotes` or `gbtsi`.',
-            color = ctx.author.color)
         await ctx.reply(embed = emb)
     
 #---anime quotes---#
@@ -251,10 +251,19 @@ class Quotes(commands.Cog):
                  'To act is not necessarily compassion. True compassion sometimes comes from inaction. – Hinata Miyake',
                  'It’s impossible to work hard for something you don’t enjoy. – Silica',
                  'Life is not a game of luck. If you wanna win, work hard. – Sora']
+        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))   
+        gamma   =   [f'{emote["panda"]["aww"]}',
+                    f'{emote["panda"]["cry"]}',
+                    f'{emote["panda"]["blob"]}',
+                    f'{emote["panda"]["cool"]}',
+                    f'{emote["panda"]["clap"]}',
+                    f'{emote["panda"]["awwshake"]}',
+                    f'{emote["panda"]["duckdance"]}',
+                    f'{emote["panda"]["cat"]}']
         emb = discord.Embed(
             title = 'Anime Quote For Ya',
-            description = f'{ctx.message.author.mention} "{random.choice(quote)}"',
-            color = ctx.author.color)
+            description = f'{ctx.message.author.mention} {random.choice(quote)} {random.choice(gamma)}',
+            color = discord.Color.from_rgb(117, 128, 219))
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)

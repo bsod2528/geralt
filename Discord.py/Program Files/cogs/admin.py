@@ -56,13 +56,6 @@ class Admin(commands.Cog):
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
         await ctx.reply(f'Done! JISHAKU now loaded up for {emote["areyousure"]} ... Well for running the commands you dumbo')
-#---jsk error---#
-    @loadjsk.error
-    async def loadjsk_error(self, ctx):
-        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        await ctx.reply(f'YOO! This is for bot dev, not you {emote["leave"]}')
 
 #---shutdown---#
     @commands.command(name = 'die', help = 'Shuts the bot down!')
@@ -71,15 +64,8 @@ class Admin(commands.Cog):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f'Imma kill ma self. Bye! {emote["pepedie"]}')
-        await self.bot.close()
-        
-    @die.error
-    async def die_error(self, ctx, error):
-        emote = json
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        await ctx.reply(f'{ctx.message.author.mention} {emote["linuskill"]}')    
+        await ctx.reply(f'Imma kill ma self. Bye! {emote["panda"]["snap"]}')
+        await self.bot.close()  
 
 #---toggle---#
     @commands.command(name="toggle", description="Enable or disable a command!", aliases = ['tg'])
@@ -91,19 +77,19 @@ class Admin(commands.Cog):
         if command is None:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(f'{emote["worryrun"]} I cant find a command with that name!')
+            await ctx.reply(f'{emote["frog"]["worryrun"]} I cant find a command with that name!')
 
         elif ctx.command == command:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(f'{emote["trigger"]}You cannot disable this command')
+            await ctx.reply(f'{emote["anxiety"]["trigger"]}You cannot disable this command')
 
         else:
             command.enabled = not command.enabled
             ternary = "enabled" if command.enabled else "disabled"
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(f'I have {ternary} {command.qualified_name} for you! {emote["pray"]}',)
+            await ctx.reply(f'I have {ternary} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
 
 #---channel send---#
     #commands.command(hidden = True)

@@ -15,28 +15,28 @@ class Fun(commands.Cog):
         return ctx.author.id == 750979369001811982
 
 #---dm---#    
-    @commands.command(name = 'dm', help = 'Sends out my latency', brief = 'Well well well, Im slow')
+    @commands.command(name = 'dm', help = 'What can you not understand by the term', brief = 'DM')
     async def dm(self, ctx, user : discord.User, *, msg):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-            await ctx.reply(f'Done <:good:877497098612924416>')
+            await ctx.send('Done')
         await user.send(f'{msg}')
         
 #---ghost ping---#
     @commands.command(aliases = ['gp'], help = 'Have fun pinging your friends', brief = 'Use it to ghost ping!')
     async def ghost(self, ctx, member : discord.Member):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))   
+        alpha = [f'{emote["linus"]["kill"]}',
+                 f'{emote["linus"]["focboi"]}',
+                 f'{emote["linus"]["bruh"]}',
+                 f'{emote["peep"]["space"]}',
+                 f'{emote["peep"]["tf"]}',
+                 f'{emote["peep"]["xtremhmm"]}',
+                 f'{emote["random_themed"]["pokikill"]}']
         async with ctx.typing():
             await asyncio.sleep(0.1)
-        await ctx.send(f'{member.mention} {emote["linuskill"]}')
+        await ctx.send(f'{member.mention} {random.choice(alpha)}')
         await ctx.channel.purge(limit = 2)
-    
-    @ghost.error
-    async def ghost_error(self, ctx, error):
-        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        await ctx.reply(f'{emote["trigger"]} Its `.ggp` or `.gghost` and mention the user {emote["linusfb"]}')
 
 #---choose---#
     @commands.command(description='For when you wanna settle the score some other way')
@@ -45,13 +45,6 @@ class Fun(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(f'Well, I choose {random.choice(choices)}')
-    
-    @choose.error
-    async def choose_error(self, ctx, error):
-        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        await ctx.reply(f'You asked me to fricking choose something! Apparently I cant find any items to choose from {emote["hmm"]}')
 
 #---emojify---#
     @commands.command(help = 'Bold texts', brief = 'Send emphasised texts')
@@ -71,20 +64,6 @@ class Fun(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
             await ctx.send(''.join(emojis))
-    
-    @emojify.error
-    async def emojify_error(self, ctx, error):
-        emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        emoticon = [f'{emote["linusbruh"]}',
-                    f'{emote["worryrun"]}',
-                    f'{emote["whyme"]}',
-                    f'{emote["yoo"]}',
-                    f'{emote["frogworry"]}',
-                    f'{emote["trigger"]}',
-                    f'{emote["linuskill"]}']
-        await ctx.reply(f'Bruh, type something for me to make into an emoji. {random.choice(emoticon)}')
         
 #---8 Ball---#
     @commands.command(aliases = ['8ball'], help = '8ball is here to ruin your life!', brief = 'The Classic 8Ball! Test you luck')
