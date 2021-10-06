@@ -70,7 +70,7 @@ class Utility(commands.Cog, discord.ui.View):
         url = result['items'][ran]['link']
         emb = discord.Embed(
             title = f'Here is your Image',
-            color = ctx.author.color)
+            color = discord.Color.from_rgb(117, 128, 219))
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         emb.set_image(url = url)
         await ctx.reply(embed = emb)
@@ -95,7 +95,7 @@ class Utility(commands.Cog, discord.ui.View):
             embed1 = discord.Embed(
                 title = f"Here your web list ",
                 description = f"List:\n{strsAPPEND}",
-                color = ctx.author.color,
+                color = discord.Color.from_rgb(117, 128, 219),
             )
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -109,7 +109,7 @@ class Utility(commands.Cog, discord.ui.View):
         emb = discord.Embed(
             title = '42069',
             description = '42069',
-        color = ctx.author.color)
+        color = discord.Color.from_rgb(117, 128, 219))
         emb.add_field(
             name = '42069',
             value = '42069')
