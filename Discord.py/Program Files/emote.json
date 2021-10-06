@@ -1,37 +1,86 @@
 {
-    "frogworry" : "<:frogworry:887502713976410165>",
-    "linusbruh" : "<:linusbruh:885886169320140880>",
-    "linuskill" : "<:linuskill:886606006761717760>",
-    "linusfb" : "<:linusfocboi:885886954078625793>",
-    "yeaboi" : "<:yeaboi:877057224260853760>",
-    "good" : "<:good:877497098612924416>",
-    "Oo" : "<:oo:847545509924044808>",
-    "broo" : "<:broo:877044811402735638>",
-    "pokisalute" : "<:imanesalute:890561439209783296>",
-    "linuspain" : "<:linuspain:885124579729735721>",
-    "areyousure" : "<:areyousure:885884540311203880>",
-    "sedcet" : "<:sedcet:886951870483017758>",
-    "lesgo" : "<:roolessgoo:886952527625609267>",
-    "me" : "<:me:881174571804409886>",
-    "whyme" : "<:mswhyme:887175076473106482>",
-    "susyou" : "<:sussyeyes:887175885390749716>",
-    "tf" : "<:tf:877056779131953173>",
-    "yoo" : "<:xtrembro:886938707628802069>",
-    "thobama" : "<:thobama:880432386989518899>",
-    "pray" : "<:prayage:885885817887797280>",
-    "sd" : "<:sdemote:886958983775129600>",
-    "trigger" : "<a:triggered:888055446282309632>",
-    "pepedie" : "<a:pepedie:877054002599182397>",
-    "trumpclap" : "<a:trumpisclap:887740398020223006>",
-    "roasted" : "<a:roasted:877964516216938517>",
-    "pepeyea" : "<a:pepeyea:877960711425388624>",
-    "pepehehe" : "<a:pepehehe:877959535137026059>",
-    "kekw" : "<a:randomkekw:877960373611954176>",
-    "worryrun" : "<a:frogworrydisaster:887741294301036574>",
-    "die" : "<a:die:877059852306886696>",
-    "noway" : "<a:bronoo:886951739050315836>",
-    "pepespace" : "<a:pepespace:882098332640616468>",
-    "ban" : "<a:pepeban:877057982133833748>",
-    "leave" : "<a:peepleave:886950503374815312>",
-    "hmm" : "<a:froghmm:892957320273870919>"
+    "peep"          :
+    
+    {
+        "yeaboi"    :   "<:peepyeaboi:893715233401602078>",
+        "prayage"   :   "<:prayage:893715245292462080>",  
+        "xtremhmm"  :   "<:peepxtremhmm:893715203882123275>",
+        "tf"        :   "<:peeptf:893715180024922192>",  
+        "exit"      :   "<:peepexit:893715131496804353>",
+        "walk"      :   "<a:peepwalk:893715193744470027>",
+        "space"     :   "<a:peepspace:893715167332925512>", 
+        "sadsip"    :   "<a:peepsadsip:893715149934985216>",
+        "ban"       :   "<a:peepban:893715118548979762>"
+    },
+
+    "panda"         :       
+    
+    {
+        "aww"       :   "<:pandaww:893714886553636925>",
+        "think"     :   "<:pandathink:893718498776350770>",
+        "construct" :   "<:pandaconstruct:893714750926622730>",
+        "cry"       :   "<:pandacry:893714803665821746>",
+        "lesgo"     :   "<:pandalesgo:893714821231542273>",
+        "blob"      :   "<a:pandablob:893714704197898260>",
+        "snap"      :   "<a:pandasnap:893715060822786048>",
+        "cool"      :   "<a:pandacool:893714777661136916>",
+        "clap"      :   "<a:pandaclap:893714731330838549>",
+        "slide"     :   "<a:pandaslide:894381444376457256>",
+        "duckdance" :   "<a:pandaduckdance:894527231802622002>",
+        "cat"       :   "<a:pandacat:894527320021430273>",
+        "awwshake"  :   "<a:pandawwshake:894526903829012521>"
+    },
+    
+    "linus"         :   
+    
+    {
+        "pain"      :   "<:lttpain:893714668663734284>",
+        "bruh"      :   "<:lttbruh:893714586669285386>",
+        "kill"      :   "<:lttkill:893714637097422908>",
+        "focboi"    :   "<:lttfocboi:893714599025713192>",
+        "oo"        :   "<:lttoo:893714652041732166>"
+    },
+    
+    "frog"          :   
+    
+    {
+        "heart"     :   "<:frogheart:893714471132995597>",
+        "worry"     :   "<:frogworry:893714509166936134>",
+        "hmm"       :   "<a:froghmm:893714493740294224>",
+        "infinite"  :   "<a:froginfinite:893714529094094848>",
+        "worryrun"  :   "<a:frogworryrun:893714543245672468>"
+    },
+    
+    "anxiety"       :   
+    
+    {
+        "sus"       :   "<:suseyes:893715490239823953>",
+        "shit"      :   "<:shiteyes:893715479728893983>",
+        "triggered" :   "<a:triggered:893715398028050472>",
+        "wtf"       :   "<a:browtf:893715467238264903>"
+    },
+
+    "sed"           :
+    
+    {
+        "whyme"     :   "<:whyonlyme:893715413412769812>",
+        "sd"        :   "<:sdemote:893715360128303155>",
+        "cet"       :   "<:sedcet:893715372811890688>",
+        "thobama"   :   "<:thobama:893715383113101342>"
+    },
+
+    "random_themed" : 
+    
+    {
+        "wha"       :   "<:wha:893715503024078879>",
+        "me"        :   "<:me:893715578869678130>",
+        "salute"    :   "<:imanesalute:893715283729059863>",
+        "jai"       :   "<:jaipattani:893715313189847041>",
+        "pieace"    :   "<:pieace:893715324258619412>",
+        "kek"       :   "<a:fuedkek:893715569239543849>",
+        "pokikill"  :   "<a:imanekill:893715269963382794>",
+        "ehe"       :   "<:ehe:894097825514790983>",
+        "trumpclap" :   "<a:trumpclap:772645489987289098>"
+    }
 }
+
