@@ -124,7 +124,7 @@ async def on_message(message: discord.Message):
         emb = discord.Embed(
             title = 'My DMs',
             description = f'{message.author.mention} sent ➜ \n " *{message.content}* "' ,
-            color = 0x9b59b6)
+            color = discord.Color.from_rgb(117, 128, 219))
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await channel.send(embed = emb)
     await bot.process_commands(message)
