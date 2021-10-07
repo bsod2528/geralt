@@ -65,7 +65,7 @@ def av(ctx):
 
 #---help command---#
 class EmbedHelp(commands.HelpCommand):
-    def get_command_signature(self, command):
+    def get_command_signature(self, command, ctx):
         return '{0.qualified_name} {0.signature}'.format(command)
 
     async def send_bot_help(self, mapping):
@@ -89,7 +89,7 @@ class EmbedHelp(commands.HelpCommand):
                     value = value,
                     inline = False)
                 emb.set_footer(
-                    text = '.gabout for dashboard')
+                    text = 'Run .ginfo for dashboard')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await self.get_destination().send(embed = emb)
     
@@ -100,7 +100,7 @@ class EmbedHelp(commands.HelpCommand):
 
         filtered = await self.filter_commands(cog.get_commands(), sort=True)
         for command in filtered:
-            embed.add_field(name=self.get_command_signature(command), value=command.short_doc or 'Command usage not provided', inline=False)
+            embed.add_field(name=self.get_command_signature(command), value=command.short_doc or '...', inline=False)
 
         embed.set_footer(text=self.get_ending_note())
         await self.get_destination().send(embed=embed)
@@ -119,7 +119,7 @@ class EmbedHelp(commands.HelpCommand):
             for command in filtered:
                 embed.add_field(
                     name = self.get_command_signature(command), 
-                    value = command.short_doc or 'Command usage not provided', 
+                    value = command.short_doc or '...', 
                     inline = False)
         await self.get_destination().send(embed=embed)
     send_command_help = send_group_help

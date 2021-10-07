@@ -16,13 +16,12 @@ class Utility(commands.Cog, discord.ui.View):
         self.bot = bot
 
 #---about me---#
-    @commands.command(
-        name = "about", 
+    @commands.command( 
         help = f"```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`", 
         brief = "Get Bot Info", 
-        aliases = ['info', "botinfo"])
+        aliases = ['about', "botinfo"])
     @commands.guild_only()
-    async def about(self, ctx):
+    async def info(self, ctx):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
@@ -55,7 +54,7 @@ class Utility(commands.Cog, discord.ui.View):
             emoji = f'{emote["panda"]["blob"]}'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.send(embed = embed, view = view)
+        await ctx.reply(embed = embed, view = view)
 
 #---latency---#
     @commands.command(
@@ -69,11 +68,11 @@ class Utility(commands.Cog, discord.ui.View):
 
 #---search pic---#
     @commands.command(
-        name = 'images', 
+        name = 'image', 
         help = f'```ini\n[ Syntax : .gimages <image keyword> ]\n```\n>>> **USE :** Search Google images\n**AKA :** `.gpic`', 
         brief = 'Get an image from Google Images!',
         aliases = ['pic'])
-    async def images(self, ctx, *search):
+    async def image (self, ctx, *search):
         apikey = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\config.json'))
         ran = random.randint(0,9)
         resource = build('customsearch', 'v1', developerKey = api_key).cse()

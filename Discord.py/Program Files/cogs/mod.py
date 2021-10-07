@@ -23,7 +23,10 @@ class Mod(commands.Cog):
         return ctx.author.id == 750979369001811982 , 760823877034573864
 
 #---yeet---#
-    @commands.command(name = 'yeet', help = 'Mod your server with yeet!', brief = 'Yeet User from Server')
+    @commands.command(
+        name = 'yeet', 
+        help = f'```ini\n[ Syntax : .gyeet <user> ]\n```\n>>> **USE :** Yeet pests out of your server\n**AKA :** No aliases present ;)', 
+        brief = 'Yeet User from Server')
     @commands.has_guild_permissions(kick_members = True)
     @commands.check(is_it_me)
     async def yeet(self, ctx, member : discord.Member, *, reason = None, alias = ['kick']):
@@ -35,7 +38,10 @@ class Mod(commands.Cog):
         
 
 #---ban---#
-    @commands.command(name = 'ban', help = 'Get rid of toxic peeps forever!', brief = 'Let the Ban Hammer speak for its self')
+    @commands.command(
+        name = 'ban', 
+        help = f'```ini\n[ Syntax : .gban <user> ]\n```\n>>> **USE :** Get rid of toxic peeps forever by banning them!\n**AKA :** No aliases present ;)', 
+        brief = 'Let the Ban Hammer speak for its self')
     @commands.guild_only()
     @commands.has_permissions(ban_members = True)
     async def ban(self, ctx, member: discord.Member, *, reason = None):
@@ -46,7 +52,10 @@ class Mod(commands.Cog):
         await ctx.send(f'{emote["peep"]["ban"]}')
         
 #---purge---#
-    @commands.command(name = 'clear', help = 'Having a Genocide Plan! Delete it on a mass scale!', brief = 'Deletes messages on any scale.')
+    @commands.command(
+        name = 'clear', 
+        help = f'```ini\n[ Syntax : .gclear <no. of messages> ]\n```\n>>> **USE :** Having a Genocide Plan! Delete messages on a mass scale!\n**AKA :** No aliases present ;)', 
+        brief = 'Deletes messages on any scale.')
     @commands.has_permissions(manage_messages = True)
     async def clear(self, ctx, amount: int):
         await ctx.channel.purge(limit = amount)

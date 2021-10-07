@@ -77,6 +77,7 @@ class Admin(commands.Cog):
             await asyncio.sleep(0.5)
         await ctx.reply(f'Imma kill ma self. Bye! {emote["panda"]["snap"]}')
         await self.bot.close()  
+    
 
 #---toggle---#
     @commands.command(
@@ -104,6 +105,8 @@ class Admin(commands.Cog):
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(f'I have {ternary} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
+
+#---quick resoruces--#
 
 #---channel send---#
     #commands.command(hidden = True)
