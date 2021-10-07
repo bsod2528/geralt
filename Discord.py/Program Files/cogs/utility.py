@@ -16,7 +16,11 @@ class Utility(commands.Cog, discord.ui.View):
         self.bot = bot
 
 #---about me---#
-    @commands.command(name = "about", help = "View some info about the bot", brief = "Get Bot Info", aliases = ['info', "botinfo"])
+    @commands.command(
+        name = "about", 
+        help = f"```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`", 
+        brief = "Get Bot Info", 
+        aliases = ['info', "botinfo"])
     @commands.guild_only()
     async def about(self, ctx):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
@@ -54,15 +58,22 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.send(embed = embed, view = view)
 
 #---latency---#
-    @commands.command(name = 'ping', help = 'Sends out bot latency!', brief = 'Well, Im slow')
+    @commands.command(
+        name = 'ping', 
+        help = f'```ini\n[ Syntax : .gping ]\n```\n>>> **USE :** Sends out my latency!\n**AKA :** No aliases present ;)', 
+        brief = 'Well, Im slow')
     async def ping(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(f'Pong! My latency `{self.bot.latency*1000:,.0f}ms`.')      
 
 #---search pic---#
-    @commands.command(name = 'pic', help = 'Wanna show an example?', brief = 'Get an image from Google Images!')
-    async def pic(self, ctx, *search):
+    @commands.command(
+        name = 'images', 
+        help = f'```ini\n[ Syntax : .gimages <image keyword> ]\n```\n>>> **USE :** Search Google images\n**AKA :** `.gpic`', 
+        brief = 'Get an image from Google Images!',
+        aliases = ['pic'])
+    async def images(self, ctx, *search):
         apikey = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\config.json'))
         ran = random.randint(0,9)
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
@@ -76,7 +87,11 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed = emb)
 
 #---web search---#
-    @commands.command(name = 'web', help = 'Wanna find something quickly?', brief = 'Searches Google for you!')
+    @commands.command(
+        name = 'web', 
+        help = f'```ini\n[ Syntax : .gweb <search keyword> ]\n```\n>>> **USE :** Wanna find something quickly? Search Google!\n**AKA :** `.gsearch` `.ggoogle`', 
+        brief = 'Searches Google for you!',
+        aliases = ['search','google'])
     async def web(self, ctx,*search):
         apikeyy = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\config.json'))
         page = 3
@@ -102,7 +117,9 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed=embed1)
 
 #---nice---#
-    @commands.command(name = '69', help = 'Nice', brief = 'Nice')
+    @commands.command(
+        name = 'nice', 
+        help = f'```ini\[ Syntax : .gnice ]\n```\n>>> **USE :** Nice\n**AKA :** `.g69`', brief = 'Nice')
     async def nice(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)

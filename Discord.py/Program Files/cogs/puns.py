@@ -15,7 +15,9 @@ class Puns(commands.Cog):
         self.bot = bot
 
 #---roast your friends---#
-    @commands.command(aliases   =   ['fb'], help    =   'Roast your friends with amazing insults. They will cry *evilelmo*')
+    @commands.command(
+        aliases   =   ['fb', 'friendsb'], 
+        help = '```ini\n[ Syntax : .gfriendsburn <user> ]\n```\n>>> **USE : **Roast your friends with amazing insults.\n**AKA :** `.gfb` `.gfriendsb`')
     async def friendsburn(self, ctx, member: discord.Member):
         roast = ['You are more disappointing than an unsalted pretzel.',
                 'You have so many gaps in your teeth it looks like your tongue is in jail.',
@@ -75,7 +77,10 @@ class Puns(commands.Cog):
         await ctx.send(embed = emb)
     
 #---tech roast your friends---#
-    @commands.command(name = 'techburn', aliases = ['tb'], help = 'En number of technical insults to roast your friends with.  They wont understand lol.')
+    @commands.command(
+        name = 'techburn', 
+        aliases = ['tb', 'techb'], 
+        help = f'```ini\n[ Syntax : .gtechburn <user> ]\n```\n>>> **USE :** En number of technical insults to roast your friends with.\n**AKA :** `.gtb` `.gtechb`')
     async def techburn(self, ctx, member : discord.Member):
         techroast = ['My CPU cores are faster than your brain registering what I just said',
                      'Honestly, DDR1 is better than you! Go suck on that punk.',
@@ -118,7 +123,9 @@ class Puns(commands.Cog):
 
    
 #---dad jokes---#
-    @commands.command(aliases = ['dj'], help = 'Spice up your day with DADJOKES!')
+    @commands.command(
+        aliases = ['dj', 'dad'], 
+        help = f'```ini\n[ Syntax : .gdadjoke ]\n```\n>>> **USE :** Spice up your day with DADJOKES!\n**AKA :** `.gdj` `dad`')
     async def dadjoke(self,ctx):
         jokes = ['To whoever stole my copy of Microsoft Office, I will find you.You have my Word!',
                  'Q: Why did the coffee file a police report? A: It got mugged.',

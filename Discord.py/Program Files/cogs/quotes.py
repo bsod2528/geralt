@@ -12,7 +12,9 @@ class Quotes(commands.Cog):
     emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
 
 #---pattani---#
-    @commands.command(name = 'pieace', help = 'Enjoy some piease')
+    @commands.command(
+        name = 'pieace', 
+        help = f'```ini\n [ Syntax : .gpieace ]\n```\n>>> **USE :**Enjoy some pieace\n**AKA :** No aliases present')
     async def pieace(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -35,8 +37,11 @@ class Quotes(commands.Cog):
         await ctx.reply(embed = emb)
 
 #---bts quotes---#
-    @commands.command(aliases = ['bq'], help = 'Motivation !!', brief = 'Get motivated with the best quotes from BTS!')
-    async def btsq(self, ctx):
+    @commands.command(
+        aliases = ['bq', 'btsq', 'bts'], 
+        help = f'```ini\n[ Syntax : .gbtsquotes ]\n```\n>>> **USE :** Motivation from the BTS crew themselves !!\n**AKA :** `.gbq` `.gbtsq` `.gbts`', 
+        brief = 'Get motivated with the best quotes from BTS!')
+    async def btsquotes(self, ctx):
         quote = ['Hark work will never betray you - KIM TAEHYUNG',
                  'Go on your path, even if you live only for a day - JIMIN',
                  'Take off the mask and face yourself - BTS',
@@ -152,8 +157,11 @@ class Quotes(commands.Cog):
         await ctx.reply(embed = emb)
     
 #---anime quotes---#
-    @commands.command(aliases = ['aq'], help = 'Love Anime?', brief = 'Relate to the best anime quotes out there!')
-    async def animeq(self, ctx):
+    @commands.command(
+        aliases = ['animeq','aq', 'anime' ], 
+        help = f'```ini\n[ Syntax : .ganimequotes ]\n```\n>>> **USE :** Love Anime? Relate to best anime quotes\n**AKA :** `.ganimeq` `.ganime` `.gaq`', 
+        brief = 'Relate to the best anime quotes out there!')
+    async def animequotes(self, ctx):
         quote = ['The world isn’t perfect. But it’s there for us, doing the best it can, that’s what makes it so damn beautiful. – Roy Mustang',
                  'Knowing you’re different is only the beginning. If you accept these differences you’ll be able to get past them and grow even closer. – Miss Kobayashi',
                  'Even if I die, you keep living okay? Live to see the end of this world, and to see why it was born. Live to see why a weak girl like me ended up here… And the reason you and I met. – Sachi',

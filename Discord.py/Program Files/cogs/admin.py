@@ -24,7 +24,10 @@ class Admin(commands.Cog):
         return ctx.author.id == 750979369001811982 , 760823877034573864
 
 #---unload cog---#
-    @commands.command(name = 'unload', help = 'Unload Cogs in a fraction!', brief = 'Unload dem!')
+    @commands.command(
+        name = 'unload', 
+        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
+        brief = 'Unload dem!')
     @commands.check(av)
     @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
@@ -36,7 +39,10 @@ class Admin(commands.Cog):
             await ctx.reply(f'**`Done`**')
 
 #---load cog---#
-    @commands.command(name = 'load', help = 'Load Cogs faster than Mcqueen!', brief = 'Load em')
+    @commands.command(
+        name = 'load', 
+        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
+        brief = 'Load em')
     @commands.check(av)
     @commands.is_owner()
     async def load(self, ctx, *, cog : str):
@@ -48,7 +54,9 @@ class Admin(commands.Cog):
             await ctx.reply(f'**`Done`**')
 
 #---jishaku---#
-    @commands.command(name = 'loadjsk', help = 'Its in Admin, why you run it. Bruh')
+    @commands.command(
+        name = 'loadjsk', 
+        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
     @commands.is_owner()
     async def loadjsk(self, ctx):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
@@ -58,7 +66,10 @@ class Admin(commands.Cog):
         await ctx.reply(f'Done! JISHAKU now loaded up for {emote["areyousure"]} ... Well for running the commands you dumbo')
 
 #---shutdown---#
-    @commands.command(name = 'die', help = 'Shuts the bot down!')
+    @commands.command(
+        name = 'die',
+        aliases = ['snap'],
+        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`')
     @commands.is_owner()
     async def die(self, ctx):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))
@@ -68,7 +79,10 @@ class Admin(commands.Cog):
         await self.bot.close()  
 
 #---toggle---#
-    @commands.command(name="toggle", description="Enable or disable a command!", aliases = ['tg'])
+    @commands.command(
+        name="toggle", 
+        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
+        aliases = ['tog'])
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
         emote = json.load(open('D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\emote.json'))

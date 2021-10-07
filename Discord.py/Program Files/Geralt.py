@@ -35,7 +35,7 @@ from googleapiclient.discovery import build
 class Bot(commands.Bot):
     def __init__(self, **kwargs):
         super().__init__(command_prefix = ['.g'], status = discord.Status.do_not_disturb, intents = discord.Intents.all(), activity = discord.Game(name = '.ghelp ; i hate my self'))
-    
+        
     async def on_ready(self):
         print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
         total_members = list(bot.get_all_members())
@@ -89,13 +89,28 @@ class EmbedHelp(commands.HelpCommand):
                     value = value,
                     inline = False)
                 emb.set_footer(
-                    text = 'Run .ginfo for website')
+                    text = '.gabout for dashboard')
                 emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await self.get_destination().send(embed = emb)
     
+    async def send_cog_help(self, cog):
+        embed = discord.Embed(title='{0.qualified_name} Commands'.format(cog), colour=discord.Color.from_rgb(117, 128, 219))
+        if cog.description:
+            embed.description = cog.description
+
+        filtered = await self.filter_commands(cog.get_commands(), sort=True)
+        for command in filtered:
+            embed.add_field(name=self.get_command_signature(command), value=command.short_doc or 'Command usage not provided', inline=False)
+
+        embed.set_footer(text=self.get_ending_note())
+        await self.get_destination().send(embed=embed)
+
     async def send_group_help(self, group):
         embed = discord.Embed(
-            title = group.qualified_name)
+            title = f'__Command : *{group.qualified_name}*__',
+            color = discord.Color.from_rgb(117, 128, 219))
+        embed.set_footer(
+            text = '.ghelp [command] for more info on each command')
         if group.help:
             embed.description = group.help
 
@@ -104,9 +119,9 @@ class EmbedHelp(commands.HelpCommand):
             for command in filtered:
                 embed.add_field(
                     name = self.get_command_signature(command), 
-                    value = command.short_doc or '...', 
+                    value = command.short_doc or 'Command usage not provided', 
                     inline = False)
-        await self.get_destination().reply(embed=embed)
+        await self.get_destination().send(embed=embed)
     send_command_help = send_group_help
 bot.help_command = EmbedHelp()
 
@@ -128,8 +143,6 @@ async def on_message(message: discord.Message):
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         await channel.send(embed = emb)
     await bot.process_commands(message)
-
-
 
 
 token = json.load(open(r'D:\AV\PC\Coding\Discord Bot\Geralt\Discord.py\Program Files\config.json'))
