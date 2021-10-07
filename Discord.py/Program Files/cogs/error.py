@@ -98,6 +98,7 @@ class ErrorHandler(commands.Cog):
                 value = f'{ctx.author.mention} did this in <#{ctx.channel.id}> in `{ctx.guild.name}`\n```py\n{traceback}\n```')
             emb.timestamp = emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             await channel.send(embed = emb)
+            await ctx.reply(embed = emb)
 
 def setup(bot):
     bot.add_cog(ErrorHandler(bot))
