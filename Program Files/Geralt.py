@@ -52,11 +52,9 @@ rootdir = pathlib.Path(__file__).parent.resolve()
 
 logger = logging.getLogger('Geralt')
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename = f'{rootdir}/Geralt.log', encoding = 'utf-8', mode = 'w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(messages)s'))
+handler = logging.FileHandler(filename='Geralt.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
-logger.info('Geralt is ready for action')
-
 def av(ctx):
     return ctx.author.id == 750979369001811982 , 760823877034573864
 
@@ -140,5 +138,5 @@ async def on_message(message: discord.Message):
         await channel.send(embed = emb)
     await bot.process_commands(message)
 
-token = json.load(open(r"Geralt\Discord.py\Program Files\config.json"))
+token = json.load(open(r'Geralt\Program Files\config.json'))
 bot.run(f'{token["TOKEN"]}')

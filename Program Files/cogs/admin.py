@@ -56,7 +56,7 @@ class Admin(commands.Cog):
         help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
     @commands.is_owner()
     async def loadjsk(self, ctx):
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))    
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
@@ -68,7 +68,7 @@ class Admin(commands.Cog):
         help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`')
     @commands.is_owner()
     async def die(self, ctx):
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))    
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(f'Imma kill ma self. Bye! {emote["panda"]["snap"]}')
@@ -80,7 +80,7 @@ class Admin(commands.Cog):
         aliases = ['tog'])
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json')) 
+        emote = json.load(open('Geralt\Program Files\emote.json')) 
         command = self.bot.get_command(command)
 
         if command is None:

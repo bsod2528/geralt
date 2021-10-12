@@ -10,7 +10,6 @@ class Quotes(commands.Cog):
     def __init__ (self, bot):
         self.bot = bot
     
-#---pattani---#
     @commands.command(
         name = 'pieace', 
         help = f'```ini\n [ Syntax : .gpieace ]\n```\n>>> **USE :**Enjoy some pieace\n**AKA :** No aliases present')
@@ -35,7 +34,6 @@ class Quotes(commands.Cog):
             color = discord.Color.from_rgb(117, 128, 219))
         await ctx.reply(embed = emb)
 
-#---bts quotes---#
     @commands.command(
         aliases = ['bq', 'btsq', 'bts'], 
         help = f'```ini\n[ Syntax : .gbtsquotes ]\n```\n>>> **USE :** Motivation from the BTS crew themselves !!\n**AKA :** `.gbq` `.gbtsq` `.gbts`', 
@@ -137,7 +135,7 @@ class Quotes(commands.Cog):
                  'It’s okay to shed the tears / But don’t you tear yourself – MOONCHILD - RM',
                  'You can’t just come into someone’s life, make them feel special, and then leave. – TAEHYUNG',
                  'If you can’t respect, don’t even open your mouth. – KIM NAMJOON']
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))   
         beta = [f'{emote["panda"]["aww"]}',
                    f'{emote["panda"]["cry"]}',
                    f'{emote["panda"]["blob"]}',
@@ -154,8 +152,7 @@ class Quotes(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(embed = emb)
-    
-#---anime quotes---#
+
     @commands.command(
         aliases = ['animeq','aq', 'anime' ], 
         help = f'```ini\n[ Syntax : .ganimequotes ]\n```\n>>> **USE :** Love Anime? Relate to best anime quotes\n**AKA :** `.ganimeq` `.ganime` `.gaq`', 
@@ -258,7 +255,7 @@ class Quotes(commands.Cog):
                  'To act is not necessarily compassion. True compassion sometimes comes from inaction. – Hinata Miyake',
                  'It’s impossible to work hard for something you don’t enjoy. – Silica',
                  'Life is not a game of luck. If you wanna win, work hard. – Sora']
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))    
         gamma   =   [f'{emote["panda"]["aww"]}',
                     f'{emote["panda"]["cry"]}',
                     f'{emote["panda"]["blob"]}',

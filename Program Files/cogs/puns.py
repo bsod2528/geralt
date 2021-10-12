@@ -54,7 +54,7 @@ class Puns(commands.Cog):
                 'Beauty is only skin deep, but ugly goes clean to the bone and your an example.',
                 'Well, the jerk store called. They’re running out of you.',
                 'Mirrors cant talk. Lucky for you they cant laugh either']
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))    
         delta   =   [f'{emote["panda"]["lesgo"]}',
                     f'{emote["peep"]["yeaboi"]}',
                     f'{emote["random_themed"]["salute"]}',
@@ -95,7 +95,7 @@ class Puns(commands.Cog):
                      '01111001 01101111 01110101 00100000 01101000 01100001 01110110 01100101 00100000 01101110 01101111 00100000 01101100 01101001 01100110 01100101 00001010',
                      'You really need to improve your BRAIN architecture, cos its slower than the 1st ever CPU to be ever made.',
                      'Your like Bulldozer architecture from AMD, looks good on the outside. But we all knew it sucked on the inside, your just like that.']
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))    
         epsilon =   [f'{emote["panda"]["lesgo"]}',
                     f'{emote["peep"]["yeaboi"]}',
                     f'{emote["random_themed"]["salute"]}',
@@ -224,7 +224,7 @@ class Puns(commands.Cog):
                  'Why did the raisin go out with the prune? Because he couldn’t find a date.',
                  'I want to go on record that I support farming. As a matter of fact, you could call me protractor.',
                  'Can February March? No, but April May.']
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))   
         zeta    =   [f'{emote["panda"]["aww"]}',
                     f'{emote["panda"]["lesgo"]}',
                     f'{emote["panda"]["blob"]}',

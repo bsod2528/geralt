@@ -29,7 +29,7 @@ class Fun(commands.Cog):
         help = f'```ini\n[ Syntax : .gghost <mention user> ]\n```\n>>> **USE :**Have fun ghost pinging your friends\n**AKA :** `gping` `gp`', 
         brief = 'Use it to ghost ping!')
     async def ghost(self, ctx, member : discord.Member):
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))    
         alpha = [f'{emote["linus"]["kill"]}',
                  f'{emote["linus"]["focboi"]}',
                  f'{emote["linus"]["bruh"]}',

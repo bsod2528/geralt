@@ -21,7 +21,7 @@ class Utility(commands.Cog, discord.ui.View):
         aliases = ['about', "botinfo"])
     @commands.guild_only()
     async def info(self, ctx):
-        emote = json.load(open('Geralt\Discord.py\Program Files\emote.json'))   
+        emote = json.load(open('Geralt\Program Files\emote.json'))   
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
         embed = discord.Embed(title = "Geralt : The Bot", description = f"Geralt is a simple moderation + fun bot to have in your discord server ! You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b", colour = colour)
