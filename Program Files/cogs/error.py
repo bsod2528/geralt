@@ -13,7 +13,7 @@ class ErrorHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
-        emote = json.load(open('Geralt\Program Files\emote.json'))    
+        emote = json.load(open('Program Files\emote.json'))    
         if hasattr(ctx.command, 'on_error'):
             return
 

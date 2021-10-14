@@ -4,6 +4,7 @@ import datetime
 import asyncio
 import random
 import json
+import threading
 from discord import interactions
 from googleapiclient.discovery import build
 from discord.ext import commands
@@ -11,24 +12,37 @@ from discord.ext import commands
 api_key = 'AIzaSyBEed4XMr_rS8y6LcdEFBmw3CCR7oLALXk'
 
 class Utility(commands.Cog, discord.ui.View):
+    
 
     def __init__ (self, bot):
         self.bot = bot
 
+    @commands.command()
+    async def avatar(self, ctx, *, user : discord.Member = None):
+        emb = discord.Embed()
+        user = user or ctx.author
+        avatar = user.display_avatar.with_static_format('png')
+        color = discord.Color.from_rgb(117, 128, 219)
+        emb.set_author(
+            name = str(user), 
+            url = avatar)
+        emb.set_image(url = avatar)
+        await ctx.send(embed = emb)
+    
     @commands.command( 
         help = f"```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`", 
         brief = "Get Bot Info", 
         aliases = ['about', "botinfo"])
     @commands.guild_only()
     async def info(self, ctx):
-        emote = json.load(open('Geralt\Program Files\emote.json'))   
+        emote = json.load(open('Program Files\emote.json'))   
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
         embed = discord.Embed(title = "Geralt : The Bot", description = f"Geralt is a simple moderation + fun bot to have in your discord server ! You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b", colour = colour)
         embed.set_thumbnail(url = ctx.me.avatar)
         embed.add_field(
             name = "Coded in:",
-            value=f"**Language:** **[`python 3.9.7`](https://www.python.org/)**\n**Library:** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)**\nㅤㅤㅤㅤ\U00002514 Master Branch")
+            value=f"**Language:** **[`python 3.10.0`](https://www.python.org/)**\n**Library:** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)**\nㅤㅤㅤㅤ\U00002514 Master Branch")
         embed.add_field(
             name = "Statistics:",
             value=f"**Servers:** `{len([g.id for g in self.bot.guilds])}`\n**Users:** `{len([g.id for g in self.bot.users])}`", inline = True)
@@ -51,13 +65,17 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed = embed, view = view)
 
     @commands.command(
-        name = 'ping', 
+        name = 'stats', 
         help = f'```ini\n[ Syntax : .gping ]\n```\n>>> **USE :** Sends out my latency!\n**AKA :** No aliases present ;)', 
         brief = 'Well, Im slow')
     async def ping(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f'Pong! My latency `{self.bot.latency*1000:,.0f}ms`.')      
+        message = await ctx.reply(f'`Checking .` <a:load:897385055398281226>')      
+        await message.edit(content = f'`Checking . .` <a:load:897385055398281226>')
+        await message.edit(content = f'`Checking . . .` <a:load:897385055398281226>')
+        await message.edit(content = f'`Checking . . . .` <a:load:897385055398281226>')
+        await message.edit(content = f'`Websocket - {self.bot.latency*1000:,.0f}ms`\n`CPU Usage - {self.process.cpu_perent() / psutil.cpu_count()}`\n`RAM Used - {self.process.memory_full_info().uss / 1024 ** 2}')
 
     @commands.command(
         name = 'image', 
@@ -65,7 +83,7 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Get an image from Google Images!',
         aliases = ['pic'])
     async def image (self, ctx, *search):
-        apikey = json.load(open('Geralt\Discord.py\Program Files\config.json'))   
+        apikey = json.load(open('Program Files\config.json'))   
 
         ran = random.randint(0,9)
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
@@ -84,7 +102,7 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Searches Google for you!',
         aliases = ['search','google'])
     async def web(self, ctx,*search):
-        apikeyy = json.load(open('Geralt\Discord.py\Program Files\config.json'))   
+        apikeyy = json.load(open('Geralt\Program Files\config.json'))   
         page = 3
         resource = build("customsearch", "v1", developerKey=api_key).cse()
         images = []
