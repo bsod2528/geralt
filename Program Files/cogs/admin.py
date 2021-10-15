@@ -50,6 +50,19 @@ class Admin(commands.Cog):
             await ctx.reply(f'**`ERROR:`**{type(e).__name__} - {e}')
         else:
             await ctx.reply(f'**`Done`**')
+    
+    @commands.command(
+        name = 'reload',
+        help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
+    @commands.is_owner()
+    async def reload(self, ctx, *, cog : str):
+        try:
+            self.bot.unload_extension(cog)
+            self.bot.load_extension(cog)
+        except Exception as e:
+            await ctx.reply(f'**`ERROR:`~~{type(e).__name__} - {e}')
+        else:
+            await ctx.reply(f'**`DONE`**')
 
     @commands.command(
         name = 'loadjsk', 
@@ -65,7 +78,8 @@ class Admin(commands.Cog):
     @commands.command(
         name = 'die',
         aliases = ['snap'],
-        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`')
+        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
+        brief = 'kills da bot')
     @commands.is_owner()
     async def die(self, ctx):
         emote = json.load(open('Program Files\emote.json'))    
@@ -99,10 +113,10 @@ class Admin(commands.Cog):
 
         else:
             command.enabled = not command.enabled
-            ternary = "enabled" if command.enabled else "disabled"
+            cmdstat = "enabled" if command.enabled else "disabled"
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(f'I have {ternary} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
+            await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
 
 def setup(bot):
     bot.add_cog(Admin(bot))

@@ -65,7 +65,7 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed = embed, view = view)
 
     @commands.command(
-        name = 'stats', 
+        name = 'ping', 
         help = f'```ini\n[ Syntax : .gping ]\n```\n>>> **USE :** Sends out my latency!\n**AKA :** No aliases present ;)', 
         brief = 'Well, Im slow')
     async def ping(self, ctx):
@@ -75,7 +75,7 @@ class Utility(commands.Cog, discord.ui.View):
         await message.edit(content = f'`Checking . .` <a:load:897385055398281226>')
         await message.edit(content = f'`Checking . . .` <a:load:897385055398281226>')
         await message.edit(content = f'`Checking . . . .` <a:load:897385055398281226>')
-        await message.edit(content = f'`Websocket - {self.bot.latency*1000:,.0f}ms`\n`CPU Usage - {self.process.cpu_perent() / psutil.cpu_count()}`\n`RAM Used - {self.process.memory_full_info().uss / 1024 ** 2}')
+        await message.edit(content = f'`Websocket - {self.bot.latency*1000:,.0f}ms`')
 
     @commands.command(
         name = 'image', 
@@ -102,7 +102,7 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Searches Google for you!',
         aliases = ['search','google'])
     async def web(self, ctx,*search):
-        apikeyy = json.load(open('Geralt\Program Files\config.json'))   
+        apikeyy = json.load(open('Program Files\config.json'))   
         page = 3
         resource = build("customsearch", "v1", developerKey=api_key).cse()
         images = []
