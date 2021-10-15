@@ -38,17 +38,20 @@ class Utility(commands.Cog, discord.ui.View):
         emote = json.load(open('Program Files\emote.json'))   
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
-        embed = discord.Embed(title = "Geralt : The Bot", description = f"Geralt is a simple moderation + fun bot to have in your discord server ! You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b", colour = colour)
+        embed = discord.Embed(
+            title = "Geralt : The Bot <:WinGIT:898591166864441345>", 
+            description = f"Geralt is a simple moderation + fun bot to have in your discord server <:AkkoDab:898610956895154288> You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b", 
+            colour = colour)
         embed.set_thumbnail(url = ctx.me.avatar)
         embed.add_field(
             name = "Coded in:",
-            value=f"**Language:** **[`python 3.10.0`](https://www.python.org/)**\n**Library:** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)**\nㅤㅤㅤㅤ\U00002514 Master Branch")
+            value=f"**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ\U00002514 Master Branch")
         embed.add_field(
             name = "Statistics:",
-            value=f"**Servers:** `{len([g.id for g in self.bot.guilds])}`\n**Users:** `{len([g.id for g in self.bot.users])}`", inline = True)
+            value=f"**Servers :** `{len([g.id for g in self.bot.guilds])}`\n**Users :** `{len([g.id for g in self.bot.users])}`", inline = True)
         embed.add_field(
-            name = "On Discord Since:",
-            value=f"<t:{round(ctx.me.created_at.timestamp())}:D>")
+            name = "On Discord Since :",
+            value=f"<t:{round(ctx.me.created_at.timestamp())}:D> <:WinBlush:898571239755489330>")
         view = discord.ui.View()
         view.add_item(discord.ui.Button(
             style = discord.ButtonStyle.link, 
@@ -65,16 +68,17 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed = embed, view = view)
 
     @commands.command(
-        name = 'ping', 
-        help = f'```ini\n[ Syntax : .gping ]\n```\n>>> **USE :** Sends out my latency!\n**AKA :** No aliases present ;)', 
+        name = 'ping',
+        aliases = ['pong'],
+        help = f'```ini\n[ Syntax : .gping ]\n```\n>>> **USE :** Sends out my latency!\n**AKA :** `.gpong`', 
         brief = 'Well, Im slow')
     async def ping(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        message = await ctx.reply(f'`Checking .` <a:load:897385055398281226>')      
-        await message.edit(content = f'`Checking . .` <a:load:897385055398281226>')
-        await message.edit(content = f'`Checking . . .` <a:load:897385055398281226>')
-        await message.edit(content = f'`Checking . . . .` <a:load:897385055398281226>')
+        message = await ctx.reply(f'`Checking .` <a:WinLoad:898571559265001513>')      
+        await message.edit(content = f'`Checking . .` <a:WinLoad:898571559265001513>')
+        await message.edit(content = f'`Checking . . .` <a:WinLoad:898571559265001513>')
+        await message.edit(content = f'`Checking . . . .` <a:WinLoad:898571559265001513>')
         await message.edit(content = f'`Websocket - {self.bot.latency*1000:,.0f}ms`')
 
     @commands.command(
@@ -127,7 +131,8 @@ class Utility(commands.Cog, discord.ui.View):
 
     @commands.command(
         name = 'nice', 
-        help = f'```ini\[ Syntax : .gnice ]\n```\n>>> **USE :** Nice\n**AKA :** `.g69`', brief = 'Nice')
+        help = f'```ini\[ Syntax : .gnice ]\n```\n>>> **USE :** Nice\n**AKA :** `.g69`', 
+        brief = 'Nice')
     async def nice(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
