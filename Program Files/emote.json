@@ -81,6 +81,31 @@
         "pokikill"  :   "<a:imanekill:893715269963382794>",
         "ehe"       :   "<:ehe:894097825514790983>",
         "trumpclap" :   "<a:trumpclap:772645489987289098>"
+    },
+
+    "Win"        :
+    
+    {
+        "win11"     :   "<:Win11:898571063594745856>",
+        "filebruh"  :   "<:WinFileBruh:898571301986373692>",
+        "cmd"       :   "<:WinCMD:898572428379299880>",
+        "success"   :   "<:WinSuccess:898571689623978054>",
+        "critical"  :   "<:WinCritical:898571769114406942>",
+        "arrow"     :   "<:WinArrow:898572481156247602>",
+        "blush"     :   "<:WinBlush:898571239755489330>",
+        "nope"      :   "<a:WinNope:898571432362131456>",
+        "sleep"     :   "<a:WinSleep:898571381820768277>",
+        "worry"     :   "<a:WinWorry:898571856301412372>",
+        "load"      :   "<a:WinLoad:898571559265001513>",
+        "gworry"    :   "<:Worry:898571153776447569>",
+        "todo"      :   "<:WinTodo:898572324490604605>", 
+        "todont"    :   "<:WinToDont:898572376147623956>",
+        "okay"      :   "<:WinTokoOkay:898572221839204352>",
+        "madobe"    :   "<:WinTokoMadobe:898572122002178088>",
+        "surprised" :   "<:WinTokoSurprised:898572012878962688>"
+
     }
+
+
 }
 
