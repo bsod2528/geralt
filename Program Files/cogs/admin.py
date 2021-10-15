@@ -5,6 +5,7 @@ import discord
 import datetime
 import logging
 import json
+import random
 from discord import user
 from discord import channel
 from discord.enums import InteractionType
@@ -30,12 +31,22 @@ class Admin(commands.Cog):
     @commands.check(av)
     @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
+        emote = json.load(open('Program Files\emote.json'))
         try:
             self.bot.unload_extension(cog)
         except Exception as e:
-            await ctx.reply(f'**`ERROR:`**{type(e).__name__} - {e}')
+            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
         else:
-            await ctx.reply(f'**`Done`**')
+            unload  =   [f'Please wait, unloading cog set to happen in background {emote["Girl"]["okay"]}',
+                        f'Cog is being unloaded, please wait {emote["Girl"]["laugh"]}',
+                        f'Your selection of cog is being unloaded mate {emote["Girl"]["laugh"]}',
+                        f'{emote["Girl"]["okay"]}']
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            message = await ctx.reply(f'{random.choice(unload)}')
+            await asyncio.sleep(2)
+            await message.edit(f'{emote["Win"]["check"]} Cog Unloaded ')
+    
 
     @commands.command(
         name = 'load', 
@@ -44,26 +55,43 @@ class Admin(commands.Cog):
     @commands.check(av)
     @commands.is_owner()
     async def load(self, ctx, *, cog : str):
+        emote = json.load(open('Program Files\emote.json'))
         try:
             self.bot.load_extension(cog)
         except Exception as e:
-            await ctx.reply(f'**`ERROR:`**{type(e).__name__} - {e}')
+            await ctx.replyt(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
         else:
-            await ctx.reply(f'**`Done`**')
+            load    =   [f'Just a second, I am loading the cog {emote["Girl"]["laugh"]}',
+                        f'Cog being loaded, please wait {emote["Girl"]["okay"]}',
+                        f'The cog of your choice is being loaded {emote["Girl"]["okay"]}']
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            message = await ctx.reply(f'{random.choice(load)}')
+            await asyncio.sleep(2)
+            await message.edit(f'{emote["Win"]["check"]} Cog Loaded ')
     
     @commands.command(
         name = 'reload',
         help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
     @commands.is_owner()
     async def reload(self, ctx, *, cog : str):
+        emote = json.load(open('Program Files\emote.json'))
         try:
-            self.bot.unload_extension(cog)
-            self.bot.load_extension(cog)
+            self.bot.reload_extension(cog)
         except Exception as e:
-            await ctx.reply(f'**`ERROR:`~~{type(e).__name__} - {e}')
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
         else:
-            await ctx.reply(f'**`DONE`**')
-
+            reload  =   [f'Reloading Cog {emote["Girl"]["okay"]}',
+                        f'The cog is being reloaded, please wait {emote["Girl"]["okay"]}',
+                        f'BOOM {emote["Girl"]["okay"]}']
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            message = await ctx.reply(f'{random.choice(reload)}')
+            await asyncio.sleep(2)
+            await message.edit(f'{emote["Win"]["check"]} Cog reloaded succesfully')
+        
     @commands.command(
         name = 'loadjsk', 
         help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
@@ -86,9 +114,9 @@ class Admin(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
         message = await ctx.reply(f'`Time to go`')
-        await message.edit(content = f'`Dying in 1 .` <a:load:897385055398281226>')
-        await message.edit(content = f'`Dying in 2 . .` <a:load:897385055398281226>')
-        await message.edit(content = f'`Dying in 3 . . .` <a:load:897385055398281226>')
+        await message.edit(content = f'`Dying in 1 .` <a:G_WinLoad:898571559265001513>')
+        await message.edit(content = f'`Dying in 2 . .` <a:G_WinLoad:898571559265001513>')
+        await message.edit(content = f'`Dying in 3 . . .` <a:G_WinLoad:898571559265001513>')
         await message.edit(content = f'Imma kill ma self. Bye! {emote["panda"]["snap"]}')
         await self.bot.close()  
     

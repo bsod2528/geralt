@@ -93,7 +93,7 @@ class EmbedHelp(commands.HelpCommand):
 					value = '{0}\n{1}'.format(cog.description, value)
 
 				emb.add_field(
-					name = f'*{name}*', 
+					name = f'{name}', 
 					value = f'{value}',
 					inline = False)
 				emb.set_footer(
