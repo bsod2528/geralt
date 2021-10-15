@@ -29,7 +29,7 @@ class Mod(commands.Cog):
     @commands.has_guild_permissions(kick_members = True)
     @commands.check(is_it_me)
     async def yeet(self, ctx, member : discord.Member, *, reason = None, alias = ['kick']):
-        emote = json.load(open('Program Files\emote.json')) 
+        emote = json.load(open('Program Files\Emotes.json')) 
         async with ctx.typing():        
             await asyncio.sleep(0.5)
         await member.kick(reason = reason)
@@ -42,7 +42,7 @@ class Mod(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(ban_members = True)
     async def ban(self, ctx, member: discord.Member, *, reason = None):
-        emote = json.load(open('Program Files\emote.json'))   
+        emote = json.load(open('Program Files\Emotes.json'))   
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await member.ban(reason = reason)

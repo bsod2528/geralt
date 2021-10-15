@@ -35,7 +35,7 @@ class Utility(commands.Cog, discord.ui.View):
         aliases = ['about', "botinfo"])
     @commands.guild_only()
     async def info(self, ctx):
-        emote = json.load(open('Program Files\emote.json'))   
+        emote = json.load(open('Program Files\Emotes.json'))   
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
         embed = discord.Embed(

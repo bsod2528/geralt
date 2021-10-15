@@ -15,7 +15,7 @@ from discord.ext.commands.core import command, is_owner
 from discord.interactions import Interaction
 from logging import exception
 
-class Admin(commands.Cog):
+class Owner(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -31,7 +31,7 @@ class Admin(commands.Cog):
     @commands.check(av)
     @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
-        emote = json.load(open('Program Files\emote.json'))
+        emote = json.load(open('Program Files\Emotes.json'))
         try:
             self.bot.unload_extension(cog)
         except Exception as e:
@@ -55,7 +55,7 @@ class Admin(commands.Cog):
     @commands.check(av)
     @commands.is_owner()
     async def load(self, ctx, *, cog : str):
-        emote = json.load(open('Program Files\emote.json'))
+        emote = json.load(open('Program Files\Emotes.json'))
         try:
             self.bot.load_extension(cog)
         except Exception as e:
@@ -75,7 +75,7 @@ class Admin(commands.Cog):
         help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
     @commands.is_owner()
     async def reload(self, ctx, *, cog : str):
-        emote = json.load(open('Program Files\emote.json'))
+        emote = json.load(open('Program Files\Emotes.json'))
         try:
             self.bot.reload_extension(cog)
         except Exception as e:
@@ -97,7 +97,7 @@ class Admin(commands.Cog):
         help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
     @commands.is_owner()
     async def loadjsk(self, ctx):
-        emote = json.load(open('Program Files\emote.json'))    
+        emote = json.load(open('Program Files\Emotes.json'))    
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
@@ -110,7 +110,7 @@ class Admin(commands.Cog):
         brief = 'kills da bot')
     @commands.is_owner()
     async def die(self, ctx):
-        emote = json.load(open('Program Files\emote.json'))    
+        emote = json.load(open('Program Files\Emotes.json'))    
         async with ctx.typing():
             await asyncio.sleep(0.5)
         message = await ctx.reply(f'`Time to go`')
@@ -126,7 +126,7 @@ class Admin(commands.Cog):
         aliases = ['tog'])
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
-        emote = json.load(open('Program Files\emote.json')) 
+        emote = json.load(open('Program Files\Emotes.json')) 
         command = self.bot.get_command(command)
 
         if command is None:
@@ -147,4 +147,4 @@ class Admin(commands.Cog):
             await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
 
 def setup(bot):
-    bot.add_cog(Admin(bot))
+    bot.add_cog(Owner(bot))
