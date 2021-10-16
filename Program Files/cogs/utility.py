@@ -31,28 +31,28 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.send(embed = emb)
     
     @commands.command( 
-        help = f"```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`", 
-        brief = "Get Bot Info", 
-        aliases = ['about', "botinfo"])
+        help = f'```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`', 
+        brief = 'Get Bot Info', 
+        aliases = ['about', 'botinfo'])
     @commands.guild_only()
     async def info(self, ctx):
         emote = json.load(open('Program Files\Emotes.json'))   
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
-        embed = discord.Embed(
+        emb = discord.Embed(
             title = "Geralt : Da Bot <:WinGIT:898591166864441345>", 
-            description = f"Geralt is a simple moderation + fun bot to have in your discord server <:AkkoDab:898610956895154288> You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b", 
+            description = f'Geralt is a simple moderation + fun bot to have in your discord server <:AkkoDab:898610956895154288> You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b', 
             colour = colour)
-        embed.set_thumbnail(url = ctx.me.avatar)
-        embed.add_field(
-            name = "Coded in:",
-            value=f"**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ\U00002514 Master Branch")
-        embed.add_field(
-            name = "Statistics:",
-            value=f"**Servers :** `{len([g.id for g in self.bot.guilds])}`\n**Users :** `{len([g.id for g in self.bot.users])}`", inline = True)
-        embed.add_field(
+        emb.set_thumbnail(url = ctx.me.avatar)
+        emb.add_field(
+            name = 'Coded in:',
+            value=f'**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ<:reply:897151692737486949> Master Branch')
+        emb.add_field(
+            name = 'Statistics:',
+            value=f'**Servers :** `{len([g.id for g in self.bot.guilds])}`\n**Users :** `{len([g.id for g in self.bot.users])}`', inline = True)
+        emb.add_field(
             name = "On Discord Since :",
-            value=f"<t:{round(ctx.me.created_at.timestamp())}:D> <:WinBlush:898571239755489330>")
+            value=f'<t:{round(ctx.me.created_at.timestamp())}:D> <:WinBlush:898571239755489330>')
         view = discord.ui.View()
         view.add_item(discord.ui.Button(
             style = discord.ButtonStyle.link, 
@@ -66,7 +66,7 @@ class Utility(commands.Cog, discord.ui.View):
             emoji = f'{emote["panda"]["clap"]}'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed = embed, view = view)
+        await ctx.reply(embed = emb, view = view)
 
     @commands.command(
         name = 'ping',
@@ -88,14 +88,14 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Get an image from Google Images!',
         aliases = ['pic'])
     async def image (self, ctx, *search):
-        apikey = json.load(open('Program Files\config.json'))   
+        apikey = json.load(open('Program Files\Key.json'))   
 
         ran = random.randint(0,9)
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
         result = resource.list(q = f'{search}', cx = f'{apikey["API"]}', searchType = 'image').execute()
         url = result['items'][ran]['link']
         emb = discord.Embed(
-            title = f'Here is your Image',
+            title = f'Your Choice of Image',
             color = discord.Color.from_rgb(117, 128, 219))
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         emb.set_image(url = url)
@@ -109,26 +109,29 @@ class Utility(commands.Cog, discord.ui.View):
     async def web(self, ctx,*search):
         apikeyy = json.load(open('Program Files\Key.json'))   
         page = 3
-        resource = build("customsearch", "v1", developerKey=api_key).cse()
+        resource = build('customsearch', 'v1', developerKey = api_key).cse()
         images = []
         strsAPPEND = ""
         for i in range(1, page, 5):
-            result=resource.list(q=f"{search}", cx=f'{apikeyy["API"]}',start=i).execute()
+            result=resource.list(
+                q = f'{search}', 
+                cx = f'{apikeyy["API"]}',
+                start = i).execute()
             images += result["items"]
     
         for item in images:
     
             imagesNEW = " \n+ " + item["title"]
-            link = "{0} : {1}".format(imagesNEW, item["link"])
-            strsAPPEND += link
-            embed1 = discord.Embed(
-                title = f"Here your web list ",
-                description = f"List:\n{strsAPPEND}",
-                color = discord.Color.from_rgb(117, 128, 219),
-            )
+            link = '{0} : {1}'.format(imagesNEW, item["link"])
+            strsAPPEND += f'{link}'
+            emb = discord.Embed(
+                title = f'Your search results below',
+                description = f'List:\n{strsAPPEND}',
+                color = discord.Color.from_rgb(117, 128, 219))
+            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed=embed1)
+        await ctx.reply(embed=emb)
 
     @commands.command(
         name = 'nice', 

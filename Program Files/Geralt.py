@@ -36,9 +36,13 @@ from typing import Coroutine, Optional, Union
 from discord import ui, Interaction, SelectOption, ButtonStyle, Embed
 from discord.ext.commands import Cog, Command, Group, DefaultHelpCommand
 	
-class Bot(commands.Bot):
+class Geralt(commands.Bot):
 	def __init__(self, **kwargs):
-		super().__init__(command_prefix = ['.g'], status = discord.Status.do_not_disturb, intents = discord.Intents.all(),activity = discord.Game(name = f'.ghelp ; i hate myself'))
+		super().__init__(
+			command_prefix = ['.g'], 
+			status = discord.Status.do_not_disturb, 
+			intents = discord.Intents.all(),
+			activity = discord.Game(name = f'.ghelp ; i hate myself'))
 		
 	async def on_ready(self):
 		print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
@@ -51,8 +55,7 @@ class Bot(commands.Bot):
 		print(f'Channels Im In : {total_channels}')
 		print(f'Message Cache Size : {len(bot.cached_messages)}\n')
 		print(f'Geralt is ready for action !')
-		
-bot = Bot()
+bot = Geralt()
 
 rootdir = pathlib.Path(__file__).parent.resolve()
 
