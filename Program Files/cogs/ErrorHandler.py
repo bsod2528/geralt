@@ -4,8 +4,11 @@ import random
 import json
 import traceback
 import datetime
+import asyncpg
 import sys
+from discord import user
 from discord.ext import commands
+from discord.ext.commands.errors import MissingPermissions
 
 class ErrorHandler(commands.Cog):
     def __init__(self, bot):
@@ -44,8 +47,8 @@ class ErrorHandler(commands.Cog):
                 title = 'OOP -',
                 color = color)
             emb.add_field(
-                name = f'__***{ctx.command}***__',
-                value = f'```ini\n[ This command has been disabled ]\n```\n```diff\n- {error}\n```')
+                name = f'__***Command: {ctx.command}***__',
+                value = f'```py\n{error}\n```')
             emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
@@ -56,8 +59,8 @@ class ErrorHandler(commands.Cog):
                 title = 'Thats Depressing -',
                 color = color)
             emb.add_field(
-                name = f'__***{ctx.command}***__',
-                value = f'```ini\n[ Permissions are absent ]\n```\n```diff\n- {error}\n```')
+                name = f'__***Command: {ctx.command}***__',
+                value = f'```py\n{error}\n```')
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(embed = emb)
@@ -67,14 +70,23 @@ class ErrorHandler(commands.Cog):
                 title = 'OOPS!',
                 color = color)
             emb.add_field(
-                name = f'__***{ctx.command}***__  {random.choice(mu)}',
-                value = f'```ini\n[ You lack the power ]\n```\n```diff\n- {error} \n```\n'
+                name = f'__***Command: {ctx.command}***__  {random.choice(mu)}',
+                value = f'```py\n{error} \n```\n'
             )
             emb.timestamp = emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(embed = emb)
 
+        if isinstance(error, commands.NotOwner):
+            emb = discord.Embed(
+                title = 'Suck on That',
+                color = color)
+            emb.add_field(
+                name = f'__***Command: {ctx.command}***__ {random.choice(mu)}',
+                value = f'```py\n {error}\n```')
+            emb.timestamp = emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            await ctx.reply(embed = emb)
         else:
             errorsend = 894957830375899157
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)

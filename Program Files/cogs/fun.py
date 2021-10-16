@@ -3,6 +3,7 @@ import discord
 import random
 import aiohttp
 import datetime
+import asyncpg
 import json
 from discord.embeds import Embed
 from discord.ext import commands

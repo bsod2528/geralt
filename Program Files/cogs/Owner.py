@@ -6,6 +6,7 @@ import datetime
 import logging
 import json
 import random
+import asyncpg
 from discord import user
 from discord import channel
 from discord.enums import InteractionType
@@ -15,7 +16,7 @@ from discord.ext.commands.core import command, is_owner
 from discord.interactions import Interaction
 from logging import exception
 
-class Owner(commands.Cog):
+class AV(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -26,7 +27,7 @@ class Owner(commands.Cog):
 
     @commands.command(
         name = 'unload', 
-        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
+        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
         brief = 'Unload dem!')
     @commands.check(av)
     @commands.is_owner()
@@ -50,7 +51,7 @@ class Owner(commands.Cog):
 
     @commands.command(
         name = 'load', 
-        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
+        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
         brief = 'Load em')
     @commands.check(av)
     @commands.is_owner()
@@ -72,7 +73,7 @@ class Owner(commands.Cog):
     
     @commands.command(
         name = 'reload',
-        help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
+        help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
     @commands.is_owner()
     async def reload(self, ctx, *, cog : str):
         emote = json.load(open('Program Files\Emotes.json'))
@@ -94,7 +95,7 @@ class Owner(commands.Cog):
         
     @commands.command(
         name = 'loadjsk', 
-        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
+        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
     @commands.is_owner()
     async def loadjsk(self, ctx):
         emote = json.load(open('Program Files\Emotes.json'))    
@@ -106,7 +107,7 @@ class Owner(commands.Cog):
     @commands.command(
         name = 'die',
         aliases = ['snap'],
-        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
+        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
         brief = 'kills da bot')
     @commands.is_owner()
     async def die(self, ctx):
@@ -122,7 +123,7 @@ class Owner(commands.Cog):
     
     @commands.command(
         name="toggle", 
-        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
+        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
         aliases = ['tog'])
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
@@ -147,4 +148,4 @@ class Owner(commands.Cog):
             await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
 
 def setup(bot):
-    bot.add_cog(Owner(bot))
+    bot.add_cog(AV(bot))

@@ -6,6 +6,7 @@ import random
 import datetime
 from discord import reaction
 from discord import mentions
+import asyncpg
 from discord.colour import Color
 from discord.ext import commands
 

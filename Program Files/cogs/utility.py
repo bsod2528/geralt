@@ -5,6 +5,7 @@ import asyncio
 import random
 import json
 import threading
+import asyncpg
 from discord import interactions
 from googleapiclient.discovery import build
 from discord.ext import commands
@@ -39,7 +40,7 @@ class Utility(commands.Cog, discord.ui.View):
         dev = self.bot.get_user(750979369001811982)
         colour = discord.Color.from_rgb(117, 128, 219)
         embed = discord.Embed(
-            title = "Geralt : The Bot <:WinGIT:898591166864441345>", 
+            title = "Geralt : Da Bot <:WinGIT:898591166864441345>", 
             description = f"Geralt is a simple moderation + fun bot to have in your discord server <:AkkoDab:898610956895154288> You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b", 
             colour = colour)
         embed.set_thumbnail(url = ctx.me.avatar)
@@ -106,7 +107,7 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Searches Google for you!',
         aliases = ['search','google'])
     async def web(self, ctx,*search):
-        apikeyy = json.load(open('Program Files\config.json'))   
+        apikeyy = json.load(open('Program Files\Key.json'))   
         page = 3
         resource = build("customsearch", "v1", developerKey=api_key).cse()
         images = []

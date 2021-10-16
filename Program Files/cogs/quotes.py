@@ -3,6 +3,7 @@ import discord
 import json
 import random
 import datetime
+import asyncpg
 import asyncio
 from discord.ext import commands
 

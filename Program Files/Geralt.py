@@ -15,6 +15,7 @@ import datetime
 import logging
 import pathlib
 import json
+import asyncpg
 from discord import DMChannel
 from discord import message
 from discord.enums import ContentFilter, T
@@ -63,10 +64,9 @@ logger.addHandler(handler)
 def av(ctx):
 	return ctx.author.id == 750979369001811982 , 760823877034573864
 
-Entity = Optional[Union[Cog, Command]]
-class EmbedHelp(commands.HelpCommand):
+class Help(commands.HelpCommand):
 	def get_command_signature(self, command, ctx):
-		return '{0.qualified_name} {0.signature}'.format(command)
+    		return '{0.qualified_name} {0.signature}'.format(command)
 
 	async def send_bot_help(self, mapping):
 		emb = discord.Embed(
@@ -130,7 +130,7 @@ class EmbedHelp(commands.HelpCommand):
 		if isinstance(error, commands.BadArgument):
 			embed = discord.Embed(title="Error", description=str(error))
 			await ctx.send(embed=embed)
-bot.help_command = EmbedHelp()
+bot.help_command = Help()
 
 
 for filename in os.listdir(f'{rootdir}/cogs'):

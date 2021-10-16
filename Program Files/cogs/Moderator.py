@@ -6,6 +6,7 @@ import random
 import asyncio
 import datetime 
 import json
+import asyncpg
 from discord import client
 from discord import user
 from discord.abc import _Overwrites
