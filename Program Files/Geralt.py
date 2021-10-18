@@ -16,6 +16,7 @@ import logging
 import pathlib
 import json
 import asyncpg
+import Utils.HelpCommand as help
 from discord import DMChannel
 from discord import message
 from discord.enums import ContentFilter, T
@@ -80,13 +81,12 @@ class Help(commands.HelpCommand):
 			emb.description = description
 
 		for cog, commands in mapping.items():
-			name = 'Essential' if cog is None else cog.qualified_name
+			name = '<:reply:897151692737486949>Essential' if cog is None else f'<:reply:897151692737486949>{cog.qualified_name}'
 			filtered = await self.filter_commands(commands, sort = True)
 			if filtered:
 				value = '\u2002'.join(c.name for c in commands)
 				if cog and cog.description:
 					value = '{0}\n{1}'.format(cog.description, value)
-
 				emb.add_field(
 					name = f'{name}', 
 					value = f'{value}',
@@ -105,9 +105,9 @@ class Help(commands.HelpCommand):
 		for command in filtered:
 			embed.add_field(
 				name = self.get_command_signature(command), 
-				value=command.short_doc or 'Short Documentation yet to be provided', 
-				inline=False)
-			embed.set_footer(text=self.get_ending_note())
+				value = command.short_doc or 'Short Documentation yet to be provided', 
+				inline = False)
+			embed.set_footer(text = self.get_ending_note())
 		await self.get_destination().send(embed=embed)
 
 	async def send_group_help(self, group):
@@ -136,9 +136,9 @@ class Help(commands.HelpCommand):
 bot.help_command = Help()
 
 
-for filename in os.listdir(f'{rootdir}/cogs'):
+for filename in os.listdir(f'{rootdir}/Cogs'):
 	if filename.endswith('.py'):    
-			bot.load_extension(f'cogs.{filename[:-3]}')
+			bot.load_extension(f'Cogs.{filename[:-3]}')
 
 received = 880128519110262794
 @bot.event

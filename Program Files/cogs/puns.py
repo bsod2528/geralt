@@ -14,6 +14,9 @@ class Puns(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        self.json = json.load(open('Program Files\Emotes.json'))   
 
     @commands.command(
         aliases   =   ['fb', 'friendsb'], 
@@ -55,7 +58,7 @@ class Puns(commands.Cog):
                 'Beauty is only skin deep, but ugly goes clean to the bone and your an example.',
                 'Well, the jerk store called. They’re running out of you.',
                 'Mirrors cant talk. Lucky for you they cant laugh either']
-        emote = json.load(open('Program Files\Emotes.json'))    
+        emote = self.json
         delta   =   [f'{emote["panda"]["lesgo"]}',
                     f'{emote["peep"]["yeaboi"]}',
                     f'{emote["random_themed"]["salute"]}',
@@ -72,8 +75,8 @@ class Puns(commands.Cog):
         emb = discord.Embed(
                 title = '**Roast Your Friends**',
                 description = f'{member.mention} {random.choice(roast)} {random.choice(delta)} ',
-                color = discord.Color.from_rgb(117, 128, 219))
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+                color = self.color)
+        emb.timestamp = self.timestamp
         await ctx.send(embed = emb)
     
     @commands.command(
@@ -96,7 +99,7 @@ class Puns(commands.Cog):
                      '01111001 01101111 01110101 00100000 01101000 01100001 01110110 01100101 00100000 01101110 01101111 00100000 01101100 01101001 01100110 01100101 00001010',
                      'You really need to improve your BRAIN architecture, cos its slower than the 1st ever CPU to be ever made.',
                      'Your like Bulldozer architecture from AMD, looks good on the outside. But we all knew it sucked on the inside, your just like that.']
-        emote = json.load(open('Program Files\Emotes.json'))    
+        emote = self.json
         epsilon =   [f'{emote["panda"]["lesgo"]}',
                     f'{emote["peep"]["yeaboi"]}',
                     f'{emote["random_themed"]["salute"]}',
@@ -114,8 +117,8 @@ class Puns(commands.Cog):
             emb = discord.Embed(
                 title = '**Roast Your Friends, but Technically**',
                 description = f'{member.mention} {random.choice(techroast)} {random.choice(epsilon)}', 
-                color = discord.Color.from_rgb(117, 128, 219))
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+                color = self.color)
+            emb.timestamp = self.timestamp
         await asyncio.sleep(0.5)    
         send = await ctx.send(embed = emb)
         await send.add_reaction('🔥')
@@ -225,7 +228,7 @@ class Puns(commands.Cog):
                  'Why did the raisin go out with the prune? Because he couldn’t find a date.',
                  'I want to go on record that I support farming. As a matter of fact, you could call me protractor.',
                  'Can February March? No, but April May.']
-        emote = json.load(open('Program Files\Emotes.json'))   
+        emote = self.json
         zeta    =   [f'{emote["panda"]["aww"]}',
                     f'{emote["panda"]["lesgo"]}',
                     f'{emote["panda"]["blob"]}',
@@ -239,7 +242,8 @@ class Puns(commands.Cog):
         emb = discord.Embed(
             title = 'Dad Jokes! He He',
             description = f'{random.choice(jokes)} {random.choice(zeta)}',
-            color = discord.Color.from_rgb(117, 128, 219))
+            color = self.color)
+        emb.timestamp = self.timestamp
         send = await ctx.reply(embed = emb)
         await send.add_reaction('🤌')
 

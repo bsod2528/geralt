@@ -19,6 +19,9 @@ class Mod(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        self.json = json.load(open('Program Files\Emotes.json'))   
 
     def is_it_me(ctx):
         return ctx.author.id == 750979369001811982 , 760823877034573864
@@ -30,7 +33,7 @@ class Mod(commands.Cog):
     @commands.has_guild_permissions(kick_members = True)
     @commands.check(is_it_me)
     async def yeet(self, ctx, member : discord.Member, *, reason = None, alias = ['kick']):
-        emote = json.load(open('Program Files\Emotes.json')) 
+        emote = self.json
         async with ctx.typing():        
             await asyncio.sleep(0.5)
         await member.kick(reason = reason)
@@ -43,7 +46,7 @@ class Mod(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(ban_members = True)
     async def ban(self, ctx, member: discord.Member, *, reason = None):
-        emote = json.load(open('Program Files\Emotes.json'))   
+        emote = self.json
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await member.ban(reason = reason)

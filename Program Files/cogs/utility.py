@@ -17,17 +17,25 @@ class Utility(commands.Cog, discord.ui.View):
 
     def __init__ (self, bot):
         self.bot = bot
-
-    @commands.command()
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.emote = json.load(open('Program Files\Emotes.json'))   
+    
+    @commands.command(
+        name = 'avatar',
+        aliases = ['pfp'],
+        help = f'```ini\n[ Syntax : .gavatar [member mention/id] ]\n```\n>>> **USE :** Gets the Avatar of a user or you!\n**AKA :** `.gpfp`'
+    )
     async def avatar(self, ctx, *, user : discord.Member = None):
-        emb = discord.Embed()
+        emb = discord.Embed(
+            color = self.color)
         user = user or ctx.author
         avatar = user.display_avatar.with_static_format('png')
-        color = discord.Color.from_rgb(117, 128, 219)
         emb.set_author(
-            name = str(user), 
+            name = f'PFP of - {str(user)}', 
             url = avatar)
         emb.set_image(url = avatar)
+        emb.timestamp = self.timestamp
         await ctx.send(embed = emb)
     
     @commands.command( 
@@ -36,13 +44,11 @@ class Utility(commands.Cog, discord.ui.View):
         aliases = ['about', 'botinfo'])
     @commands.guild_only()
     async def info(self, ctx):
-        emote = json.load(open('Program Files\Emotes.json'))   
         dev = self.bot.get_user(750979369001811982)
-        colour = discord.Color.from_rgb(117, 128, 219)
         emb = discord.Embed(
             title = "Geralt : Da Bot <:WinGIT:898591166864441345>", 
             description = f'Geralt is a simple moderation + fun bot to have in your discord server <:AkkoDab:898610956895154288> You can invite me to your server by going to my website, and join my support server. This bot is made and maintained by **[{dev}]({dev.avatar})**\n\u200b', 
-            colour = colour)
+            colour = self.color)
         emb.set_thumbnail(url = ctx.me.avatar)
         emb.add_field(
             name = 'Coded in:',
@@ -53,17 +59,18 @@ class Utility(commands.Cog, discord.ui.View):
         emb.add_field(
             name = "On Discord Since :",
             value=f'<t:{round(ctx.me.created_at.timestamp())}:D> <:WinBlush:898571239755489330>')
+        emb.timestamp = self.timestamp
         view = discord.ui.View()
         view.add_item(discord.ui.Button(
             style = discord.ButtonStyle.link, 
             url = 'https://bsod2528.wixsite.com/geralt', 
             label = 'Geralt | Home', 
-            emoji = f'{emote["panda"]["cool"]}'))
+            emoji = f'{self.emote["panda"]["cool"]}'))
         view.add_item(discord.ui.Button(
             style = discord.ButtonStyle.link,
             label = 'Geralt | Support',
             url = 'https://discord.gg/JXEu2AcV5Y',
-            emoji = f'{emote["panda"]["clap"]}'))
+            emoji = f'{self.emote["panda"]["clap"]}'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(embed = emb, view = view)
@@ -96,8 +103,8 @@ class Utility(commands.Cog, discord.ui.View):
         url = result['items'][ran]['link']
         emb = discord.Embed(
             title = f'Your Choice of Image',
-            color = discord.Color.from_rgb(117, 128, 219))
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            color = self.color)
+        emb.timestamp = self.timestamp
         emb.set_image(url = url)
         await ctx.reply(embed = emb)
 
@@ -121,14 +128,14 @@ class Utility(commands.Cog, discord.ui.View):
     
         for item in images:
     
-            imagesNEW = " \n+ " + item["title"]
+            imagesNEW = '\n<:reply:897151692737486949>' + item["title"]
             link = '{0} : {1}'.format(imagesNEW, item["link"])
             strsAPPEND += f'{link}'
             emb = discord.Embed(
                 title = f'Your search results below',
-                description = f'List:\n{strsAPPEND}',
-                color = discord.Color.from_rgb(117, 128, 219))
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+                description = f'\n{strsAPPEND}',
+                color = self.color)
+            emb.timestamp = self.timestamp
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(embed=emb)
@@ -143,11 +150,11 @@ class Utility(commands.Cog, discord.ui.View):
         emb = discord.Embed(
             title = '42069',
             description = '42069',
-        color = discord.Color.from_rgb(117, 128, 219))
+        color = self.color)
         emb.add_field(
             name = '42069',
             value = '42069')
-        emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        emb.timestamp = self.timestamp
         await ctx.reply(embed = emb)
     
 def setup(bot):

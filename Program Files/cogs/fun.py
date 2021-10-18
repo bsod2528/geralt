@@ -12,6 +12,9 @@ class Fun(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        self.json = json.load(open('Program Files\Emotes.json'))   
     def av(ctx):
         return ctx.author.id == 750979369001811982
    
@@ -30,7 +33,7 @@ class Fun(commands.Cog):
         help = f'```ini\n[ Syntax : .gghost <mention user> ]\n```\n>>> **USE :**Have fun ghost pinging your friends\n**AKA :** `gping` `gp`', 
         brief = 'Use it to ghost ping!')
     async def ghost(self, ctx, member : discord.Member):
-        emote = json.load(open('Program Files\Emotes.json'))    
+        emote = self.json
         alpha = [f'{emote["linus"]["kill"]}',
                  f'{emote["linus"]["focboi"]}',
                  f'{emote["linus"]["bruh"]}',
@@ -46,7 +49,7 @@ class Fun(commands.Cog):
     @commands.command(
         help = f'```ini\n[ Syntax : .gchoose <opt.1> <opt.2> ]\n```\n>>> **USE :** For when you wanna settle the score some other way\n**AKA :** No aliases present ;)')
     async def choose(self, ctx, *choices: str):
-        emote = json.load(open('Program Files\Emotes.json'))
+        emote = self.json
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(f'Well, I choose {random.choice(choices)}')

@@ -10,11 +10,12 @@ import sys
 from discord import user
 from discord import integrations
 from discord.ext import commands
-from discord.ext.commands.errors import MissingPermissions
+from discord.ext.commands.errors import MemberNotFound, MissingPermissions
 
 class ErrorHandler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -51,7 +52,7 @@ class ErrorHandler(commands.Cog):
             emb.add_field(
                 name = f'__***Command: {ctx.command}***__',
                 value = f'```py\n{error}\n```')
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(embed = emb)
@@ -63,6 +64,7 @@ class ErrorHandler(commands.Cog):
             emb.add_field(
                 name = f'__***Missing Perms : {ctx.command}***__',
                 value = f'```py\n{error}\n```')
+            emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(embed = emb)
@@ -74,7 +76,7 @@ class ErrorHandler(commands.Cog):
             emb.add_field(
                 name = f'__***Missing Perms : {ctx.command}***__  {random.choice(mu)}',
                 value = f'```py\n{error} \n```\n')
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(embed = emb)
@@ -86,7 +88,7 @@ class ErrorHandler(commands.Cog):
             emb.add_field(
                 name = f'__***Command: {ctx.command}***__ {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            emb.timestamp = self.timestamp
             await ctx.reply(embed = emb)
         
         if isinstance(error, commands.MissingRequiredArgument):
@@ -95,8 +97,19 @@ class ErrorHandler(commands.Cog):
                 color = color)
             emb.add_field(
                 name = f'__***Args Missing : {ctx.command}***__ {random.choice(mu)}',
-                value = f'```pi\n {error}\n```')
-            emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+                value = f'```py\n {error}\n```')
+            emb.timestamp = self.timestamp
+            await ctx.reply(embed = emb)
+        
+        if isinstance(error, MemberNotFound):
+            emb = discord.Embed(
+                title = 'Weee!',
+                color = color)
+            emb.add_field(
+                name = f'__***Args Missing : {ctx.command}***__ {random.choice(mu)}',
+                value = f'```py\n {error}\n```')
+            emb.timestamp = self.timestamp
+            await ctx.reply(embed = emb)
 
         else:
             errorsend = 894957830375899157
@@ -109,7 +122,7 @@ class ErrorHandler(commands.Cog):
             emb.add_field(
                 name = f'__***{error}***__',
                 value = f'{ctx.author.mention} did this in <#{ctx.channel.id}> in `{ctx.guild.name}`\n```py\n{traceback}\n{traceback.format_exception}\n```')
-            emb.timestamp = emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            emb.timestamp = self.timestamp
             await channel.send(embed = emb)
 
 def setup(bot):

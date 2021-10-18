@@ -20,10 +20,63 @@ class AV(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        self.json = json.load(open('Program Files\Emotes.json'))   
         super().__init__()
 
     def av(ctx):
-        return ctx.author.id == 750979369001811982 , 760823877034573864
+        return ctx.author.id == 750979369001811982 , 760823877034573864, 719566083144548464, 301358743143186432
+
+        class CogsSelect(discord.ui.Select):
+            def __init__(self):
+    
+                cogs    =   [
+                                discord.SelectOption(
+                                    label = 'Fun',
+                                    description = None,
+                                    emoji = '<:WinCogs:898591890209910854> '
+                                ),
+                                discord.SelectOption(
+                                    label = 'Mod',
+                                    description = None,
+                                    emoji = '<:WinCogs:898591890209910854>'
+                                ),
+                                discord.SelectOption(
+                                    label = 'AV',
+                                    description = None,
+                                    emoji = '<:WinCogs:898591890209910854>'
+                                ),
+                                discord.SelectOption(
+                                    label = 'Puns',
+                                    description = None,
+                                    emoji = '<:WinCogs:898591890209910854>'
+                                ),
+                                discord.SelectOption(
+                                    label = 'Quotes',
+                                    description = None,
+                                    emoji = '<:WinCogs:898591890209910854>'
+                                ),
+                                discord.SelectOption(
+                                    label = 'Utility',
+                                    description = None,
+                                    emoji = '<:WinCogs:898591890209910854>'
+                                )
+                            ]
+                super().__init__(
+                    placeholder = 'Choose the Cog of your choice',
+                    min_values = 1,
+                    max_values = 1,
+                    options = cogs
+                )
+            async def callback(self, interaction : discord.Interaction):
+                await interaction.response.send_message(f'You chose thig cog {self.values[0]}')
+    
+        class CogSelect(discord.ui.View):
+            def __init__(self):
+                super().__init__()
+                self.add_item(CogsSelect())
+
 
     @commands.command(
         name = 'unload', 
@@ -32,7 +85,7 @@ class AV(commands.Cog):
     @commands.check(av)
     @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
-        emote = json.load(open('Program Files\Emotes.json'))
+        emote = self.json
         try:
             self.bot.unload_extension(cog)
         except Exception as e:
@@ -56,7 +109,7 @@ class AV(commands.Cog):
     @commands.check(av)
     @commands.is_owner()
     async def load(self, ctx, *, cog : str):
-        emote = json.load(open('Program Files\Emotes.json'))
+        emote = self.json
         try:
             self.bot.load_extension(cog)
         except Exception as e:
@@ -76,7 +129,7 @@ class AV(commands.Cog):
         help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
     @commands.is_owner()
     async def reload(self, ctx, *, cog : str):
-        emote = json.load(open('Program Files\Emotes.json'))
+        emote = self.json
         try:
             self.bot.reload_extension(cog)
         except Exception as e:
@@ -98,7 +151,7 @@ class AV(commands.Cog):
         help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
     @commands.is_owner()
     async def loadjsk(self, ctx):
-        emote = json.load(open('Program Files\Emotes.json'))    
+        emote = self.json
         async with ctx.typing():
             self.bot.load_extension('jishaku')
             await asyncio.sleep(0.5)
@@ -111,13 +164,13 @@ class AV(commands.Cog):
         brief = 'kills da bot')
     @commands.is_owner()
     async def die(self, ctx):
-        emote = json.load(open('Program Files\Emotes.json'))    
+        emote = self.json
         async with ctx.typing():
             await asyncio.sleep(0.5)
         message = await ctx.reply(f'`Time to go`')
-        await message.edit(content = f'`Dying in 1 .` <a:G_WinLoad:898571559265001513>')
-        await message.edit(content = f'`Dying in 2 . .` <a:G_WinLoad:898571559265001513>')
-        await message.edit(content = f'`Dying in 3 . . .` <a:G_WinLoad:898571559265001513>')
+        await message.edit(content = f'Dying in 1 . <a:G_WinLoad:898571559265001513>')
+        await message.edit(content = f'Dying in 2 . . <a:G_WinLoad:898571559265001513>')
+        await message.edit(content = f'Dying in 3 . . . <a:G_WinLoad:898571559265001513>')
         await message.edit(content = f'Imma kill ma self. Bye! {emote["panda"]["snap"]}')
         await self.bot.close()  
     
@@ -127,7 +180,7 @@ class AV(commands.Cog):
         aliases = ['tog'])
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
-        emote = json.load(open('Program Files\Emotes.json')) 
+        emote = self.json
         command = self.bot.get_command(command)
 
         if command is None:
