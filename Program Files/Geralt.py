@@ -41,7 +41,7 @@ class Geralt(commands.Bot):
 	def __init__(self, **kwargs):
 		super().__init__(
 			command_prefix = ['.g'], 
-			status = discord.Status.do_not_disturb, 
+			status = discord.Status.invisible, 
 			intents = discord.Intents.all(),
 			activity = discord.Game(name = f'.ghelp ; i hate myself'))
 		

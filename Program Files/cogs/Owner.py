@@ -26,7 +26,7 @@ class AV(commands.Cog):
         super().__init__()
 
     def av(ctx):
-        return ctx.author.id == 750979369001811982 , 760823877034573864, 719566083144548464, 301358743143186432
+        return ctx.author.id == 750979369001811982 , 760823877034573864, 696214404836098078
 
         class CogsSelect(discord.ui.Select):
             def __init__(self):
@@ -162,7 +162,7 @@ class AV(commands.Cog):
         aliases = ['snap'],
         help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
         brief = 'kills da bot')
-    @commands.is_owner()
+    @commands.check(av)
     async def die(self, ctx):
         emote = self.json
         async with ctx.typing():
