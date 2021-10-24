@@ -41,7 +41,7 @@ class Geralt(commands.Bot):
 	def __init__(self, **kwargs):
 		super().__init__(
 			command_prefix = ['.g'], 
-			status = discord.Status.invisible, 
+			status = discord.Status.idle, 
 			intents = discord.Intents.all(),
 			activity = discord.Game(name = f'.ghelp ; i hate myself'))
 		
@@ -153,5 +153,5 @@ async def on_message(message: discord.Message):
 		await channel.send(embed = emb)
 	await bot.process_commands(message)
 
-token = json.load(open(r'Program Files\Key.json'))
+token = json.load(open(r'Key.json'))
 bot.run(f'{token["TOKEN"]}')

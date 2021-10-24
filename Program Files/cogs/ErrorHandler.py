@@ -110,7 +110,7 @@ class ErrorHandler(commands.Cog):
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb)
-
+        
         else:
             errorsend = 894957830375899157
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)

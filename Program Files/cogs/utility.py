@@ -19,7 +19,7 @@ class Utility(commands.Cog, discord.ui.View):
         self.bot = bot
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.color = discord.Color.from_rgb(117, 128, 219)
-        self.emote = json.load(open('Program Files\Emotes.json'))   
+        self.emote = json.load(open('Emotes.json'))   
     
     @commands.command(
         name = 'avatar',
@@ -95,7 +95,7 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Get an image from Google Images!',
         aliases = ['pic'])
     async def image (self, ctx, *search):
-        apikey = json.load(open('Program Files\Key.json'))   
+        apikey = json.load(open('Key.json'))   
 
         ran = random.randint(0,9)
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
@@ -114,13 +114,13 @@ class Utility(commands.Cog, discord.ui.View):
         brief = 'Searches Google for you!',
         aliases = ['search','google'])
     async def web(self, ctx,*search):
-        apikeyy = json.load(open('Program Files\Key.json'))   
+        apikeyy = json.load(open('Key.json'))   
         page = 3
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
         images = []
         strsAPPEND = ""
         for i in range(1, page, 5):
-            result=resource.list(
+            result = resource.list(
                 q = f'{search}', 
                 cx = f'{apikeyy["API"]}',
                 start = i).execute()
@@ -128,12 +128,10 @@ class Utility(commands.Cog, discord.ui.View):
     
         for item in images:
     
-            imagesNEW = '\n<:reply:897151692737486949>' + item["title"]
-            link = '{0} : {1}'.format(imagesNEW, item["link"])
-            strsAPPEND += f'{link}'
+            imagelist = "\n".join([f"{'> <:reply:897151692737486949>' if len(images) == index+1 else '> <:replygoin:897151741320122458>'} **[{item['title']}]({item['link']})**" for index, item in enumerate(images)])
             emb = discord.Embed(
-                title = f'Your search results below',
-                description = f'\n{strsAPPEND}',
+                title = f'Your search results below - ',
+                description = f'\n{imagelist}',
                 color = self.color)
             emb.timestamp = self.timestamp
         async with ctx.typing():
