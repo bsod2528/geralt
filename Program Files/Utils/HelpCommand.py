@@ -4,7 +4,7 @@ from discord.ext import commands
 
 class HelpViewUI(discord.ui.Select):
     def __init__(self, view, **kwargs):
-        super().__init__(**kwargs)
+        
         self.help = view.help
         self.mapping = view.mapping
         self.mainhelp = view.mainhelp
@@ -39,8 +39,8 @@ class HelpViewUI(discord.ui.Select):
                                 min_values = 1, 
                                 max_values = 1, 
                                 view = self))
-
-class HelpView(discord.ui.View):
+                super().__init__(**kwargs, placeholder = 'help menu', options = options)
+class HelpView(discord.ui.View): 
     def __init__(self, mapping, help):
         super().__init__(placeholder ='Choose your category')
         self.help = help

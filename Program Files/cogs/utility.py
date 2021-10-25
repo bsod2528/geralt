@@ -6,7 +6,9 @@ import random
 import json
 import threading
 import asyncpg
+import time
 from discord import interactions
+from discord.embeds import E
 from googleapiclient.discovery import build
 from discord.ext import commands
 
@@ -52,7 +54,7 @@ class Utility(commands.Cog, discord.ui.View):
         emb.set_thumbnail(url = ctx.me.avatar)
         emb.add_field(
             name = 'Coded in:',
-            value=f'**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ<:reply:897151692737486949> Master Branch')
+            value=f'**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ<:reply:897151692737486949> Dependent On')
         emb.add_field(
             name = 'Statistics:',
             value=f'**Servers :** `{len([g.id for g in self.bot.guilds])}`\n**Users :** `{len([g.id for g in self.bot.users])}`', inline = True)
@@ -81,13 +83,14 @@ class Utility(commands.Cog, discord.ui.View):
         help = f'```ini\n[ Syntax : .gping ]\n```\n>>> **USE :** Sends out my latency!\n**AKA :** `.gpong`', 
         brief = 'Well, Im slow')
     async def ping(self, ctx):
+        start = time.perf_counter()
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        message = await ctx.reply(f'`Checking .` <a:WinLoad:898571559265001513>')      
-        await message.edit(content = f'`Checking . .` <a:WinLoad:898571559265001513>')
-        await message.edit(content = f'`Checking . . .` <a:WinLoad:898571559265001513>')
-        await message.edit(content = f'`Checking . . . .` <a:WinLoad:898571559265001513>')
-        await message.edit(content = f'`Websocket - {self.bot.latency*1000:,.0f}ms`')
+        message = await ctx.reply('Please wait for me to check my ping <a:WinLoad:898571559265001513>')
+        end = time.perf_counter()
+        type_ping = (end - start) * 1000
+        await asyncio.sleep(1)
+        await message.edit(content = f'__***My Latency :-***__ \n>>> <:replygoin:897151741320122458>__Typing__ - `{round(type_ping, 1)}` ms\n<:reply:897151692737486949>__Websocket__ - `{self.bot.latency*1000:,.0f}` ms')
 
     @commands.command(
         name = 'image', 

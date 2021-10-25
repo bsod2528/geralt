@@ -162,18 +162,25 @@ class AV(commands.Cog):
         aliases = ['snap'],
         help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
         brief = 'kills da bot')
-    @commands.check(av)
+    @commands.is_owner()
     async def die(self, ctx):
         emote = self.json
+        gif =   [f'https://tenor.com/view/drewredford123-pewdiepie-this-is-dumb-gif-13775481',
+                f'https://tenor.com/view/were-all-gonna-die-end-of-the-world-elmo-sesame-street-shrug-gif-16568695',
+                f'https://tenor.com/view/cfsl-murph-we-die-i-die-running-gif-17307394']
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        message = await ctx.reply(f'`Time to go`')
-        await message.edit(content = f'Dying in 1 . <a:G_WinLoad:898571559265001513>')
-        await message.edit(content = f'Dying in 2 . . <a:G_WinLoad:898571559265001513>')
-        await message.edit(content = f'Dying in 3 . . . <a:G_WinLoad:898571559265001513>')
-        await message.edit(content = f'Imma kill ma self. Bye! {emote["panda"]["snap"]}')
-        await self.bot.close()  
-    
+        message = await ctx.reply(f'Why must you - ')
+        await asyncio.sleep(1)
+        await message.edit(content = f'Dying in  . ')
+        await asyncio.sleep(1)
+        await message.edit(content = f'Dying in  . . ')
+        await asyncio.sleep(1)
+        await message.edit(content = f'Dying in  . . . ')
+        await asyncio.sleep(1)
+        await message.edit(content = f'{random.choice(gif)}')
+        await self.bot.close()
+
     @commands.command(
         name="toggle", 
         help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 

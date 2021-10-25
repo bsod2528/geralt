@@ -19,7 +19,6 @@ class ErrorHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
-        emote = json.load(open('Program Files\Emotes.json'))    
         if hasattr(ctx.command, 'on_error'):
             return
 
@@ -29,6 +28,7 @@ class ErrorHandler(commands.Cog):
                 return
         notfound    =   (commands.CommandNotFound, )
         error   =   getattr(error, 'original', error)
+        emote = json.load(open(r'Emotes.json'))    
         mu  =   [f'{emote["frog"]["worry"]}',
                 f'{emote["frog"]["hmm"]}',
                 f'{emote["frog"]["worryrun"]}',

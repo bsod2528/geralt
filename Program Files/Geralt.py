@@ -65,6 +65,7 @@ logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='Geralt.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
+
 def av(ctx):
 	return ctx.author.id == 750979369001811982 , 760823877034573864
 
@@ -81,7 +82,7 @@ class Help(commands.HelpCommand):
 			emb.description = description
 
 		for cog, commands in mapping.items():
-			name = '<:reply:897151692737486949>Essential' if cog is None else f'<:reply:897151692737486949>{cog.qualified_name}'
+			name = '<:reply:897151692737486949>Essential' if cog is None else f'<:replygoin:897151741320122458>{cog.qualified_name}'
 			filtered = await self.filter_commands(commands, sort = True)
 			if filtered:
 				value = '\u2002'.join(c.name for c in commands)
@@ -152,6 +153,13 @@ async def on_message(message: discord.Message):
 		emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
 		await channel.send(embed = emb)
 	await bot.process_commands(message)
+
+@bot.event
+async def on_message(message):
+	if message.content == '<@!873204919593730119>':
+    		await message.channel.send(f'{bot.help_command}')
+	await bot.process_commands(message)
+
 
 token = json.load(open(r'Key.json'))
 bot.run(f'{token["TOKEN"]}')
