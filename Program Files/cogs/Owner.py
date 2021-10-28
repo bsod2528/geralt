@@ -203,9 +203,9 @@ class AV(commands.Cog):
                 pass
             if ret is None:
                 if value:
-                    await ctx.send(f'```py\n{value}\n```')
+                    await ctx.reply(f'```py\n{value}\n```')
             else:
-                await ctx.send(f'```py\n{value}{ret}\n```')
+                await ctx.reply(f'```py\n{value}{ret}\n```')
 
 def setup(bot):
     bot.add_cog(AV(bot))
