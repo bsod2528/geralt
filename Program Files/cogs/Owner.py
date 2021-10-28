@@ -7,8 +7,12 @@ import logging
 import json
 import random
 import asyncpg
-from discord import user
-from discord import channel
+import contextlib
+import traceback
+import io
+import textwrap
+import Kernel.Utils.ButtonStop as Stop
+from discord import user, channel
 from discord.enums import InteractionType
 from discord.ext import commands
 from discord.ext.commands import bot, converter
@@ -22,61 +26,11 @@ class AV(commands.Cog):
         self.bot = bot
         self.color = discord.Color.from_rgb(117, 128, 219)
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        self.json = json.load(open('Emotes.json'))   
+        self.json = json.load(open('Program Files\Emotes.json'))
         super().__init__()
 
     def av(ctx):
         return ctx.author.id == 750979369001811982 , 760823877034573864, 696214404836098078
-
-        class CogsSelect(discord.ui.Select):
-            def __init__(self):
-    
-                cogs    =   [
-                                discord.SelectOption(
-                                    label = 'Fun',
-                                    description = None,
-                                    emoji = '<:WinCogs:898591890209910854> '
-                                ),
-                                discord.SelectOption(
-                                    label = 'Mod',
-                                    description = None,
-                                    emoji = '<:WinCogs:898591890209910854>'
-                                ),
-                                discord.SelectOption(
-                                    label = 'AV',
-                                    description = None,
-                                    emoji = '<:WinCogs:898591890209910854>'
-                                ),
-                                discord.SelectOption(
-                                    label = 'Puns',
-                                    description = None,
-                                    emoji = '<:WinCogs:898591890209910854>'
-                                ),
-                                discord.SelectOption(
-                                    label = 'Quotes',
-                                    description = None,
-                                    emoji = '<:WinCogs:898591890209910854>'
-                                ),
-                                discord.SelectOption(
-                                    label = 'Utility',
-                                    description = None,
-                                    emoji = '<:WinCogs:898591890209910854>'
-                                )
-                            ]
-                super().__init__(
-                    placeholder = 'Choose the Cog of your choice',
-                    min_values = 1,
-                    max_values = 1,
-                    options = cogs
-                )
-            async def callback(self, interaction : discord.Interaction):
-                await interaction.response.send_message(f'You chose thig cog {self.values[0]}')
-    
-        class CogSelect(discord.ui.View):
-            def __init__(self):
-                super().__init__()
-                self.add_item(CogsSelect())
-
 
     @commands.command(
         name = 'unload', 
@@ -87,6 +41,7 @@ class AV(commands.Cog):
     async def unload(self, ctx, *, cog : str):
         emote = self.json
         try:
+
             self.bot.unload_extension(cog)
         except Exception as e:
             await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
@@ -206,6 +161,51 @@ class AV(commands.Cog):
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
+
+    @commands.command(
+        name = 'eval',
+        aliases = ['e'],
+        help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`')
+    @commands.is_owner()
+    async def _eval(self, ctx, *, body:str):
+        env = {
+            "self": self,
+            "discord": discord,
+            "bot": self.bot,
+            "ctx": ctx,
+            "message": ctx.message,
+            "author": ctx.author,
+            "guild": ctx.guild,
+            "channel": ctx.channel,
+        }
+        env.update(globals())
+        if body.startswith( '```' ) and body.endswith( '```' ):
+            body = '\n'.join(body.split('\n')[1:-1])
+        body = body.strip('` \n')
+        stdout = io.StringIO()
+        to_compile = F"async def func():\n{textwrap.indent(body, '  ')}"
+        try:
+            exec(to_compile, env)
+        except Exception as e:
+            return await ctx.send(f'```py\n{e.__class__.__name__} --> {e}\n```')
+        func = env["func"]
+        try:
+            with contextlib.redirect_stdout(stdout):
+                ret = await func()
+        except Exception as e:
+            value = stdout.getvalue()
+            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```', view = Stop.SelfStop())
+        else:
+            value = stdout.getvalue()
+            try:
+                await ctx.message.add_reaction('<:WinCheck:898572324490604605>')
+            except:
+                pass
+            if ret is None:
+                if value:
+                    await ctx.send(f'```py\n{value}\n```')
+            else:
+                await ctx.send(f'```py\n{value}{ret}\n```')
 
 def setup(bot):
     bot.add_cog(AV(bot))
