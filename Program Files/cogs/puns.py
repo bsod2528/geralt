@@ -16,7 +16,7 @@ class Puns(commands.Cog):
         self.bot = bot
         self.color = discord.Color.from_rgb(117, 128, 219)
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        self.json = json.load(open('Emotes.json'))   
+        self.json = json.load(open('Program Files\Emotes.json'))   
 
     @commands.command(
         aliases   =   ['fb', 'friendsb'], 

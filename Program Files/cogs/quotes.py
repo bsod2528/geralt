@@ -10,6 +10,7 @@ from discord.ext import commands
 class Quotes(commands.Cog):
     def __init__ (self, bot):
         self.bot = bot
+        self.json = json.load(open('Program Files\Emotes.json'))
     
     @commands.command(
         name = 'pieace', 
@@ -136,7 +137,7 @@ class Quotes(commands.Cog):
                  'It’s okay to shed the tears / But don’t you tear yourself – MOONCHILD - RM',
                  'You can’t just come into someone’s life, make them feel special, and then leave. – TAEHYUNG',
                  'If you can’t respect, don’t even open your mouth. – KIM NAMJOON']
-        emote = json.load(open('Emotes.json'))   
+        emote = self.json
         beta = [f'{emote["panda"]["aww"]}',
                    f'{emote["panda"]["cry"]}',
                    f'{emote["panda"]["blob"]}',
@@ -256,7 +257,7 @@ class Quotes(commands.Cog):
                  'To act is not necessarily compassion. True compassion sometimes comes from inaction. – Hinata Miyake',
                  'It’s impossible to work hard for something you don’t enjoy. – Silica',
                  'Life is not a game of luck. If you wanna win, work hard. – Sora']
-        emote = json.load(open('Emotes.json'))    
+        emote = self.json
         gamma   =   [f'{emote["panda"]["aww"]}',
                     f'{emote["panda"]["cry"]}',
                     f'{emote["panda"]["blob"]}',
