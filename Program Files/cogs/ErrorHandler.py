@@ -52,7 +52,7 @@ class ErrorHandler(commands.Cog):
                 title = 'OOP -',
                 color = color)
             emb.add_field(
-                name = f'__***Command: {ctx.command}***__',
+                name = f'__***Command: {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n{error}\n```')
             emb.timestamp = self.timestamp
             async with ctx.typing():
@@ -64,7 +64,7 @@ class ErrorHandler(commands.Cog):
                 title = 'Thats Depressing -',
                 color = color)
             emb.add_field(
-                name = f'__***Missing Perms : {ctx.command}***__',
+                name = f'__***Missing Perms : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n{error}\n```')
             emb.timestamp = self.timestamp
             async with ctx.typing():
@@ -76,7 +76,7 @@ class ErrorHandler(commands.Cog):
                 title = 'I - I cant -',
                 color = color)
             emb.add_field(
-                name = f'__***Missing Perms : {ctx.command}***___',
+                name = f'__***Missing Perms : {ctx.command}***___   {random.choice(mu)}',
                 value = f'```py\n{error}\n```')
             emb.timestamp = self.timestamp
             async with ctx.typing():
@@ -88,7 +88,7 @@ class ErrorHandler(commands.Cog):
                 title = 'OOPS!',
                 color = color)
             emb.add_field(
-                name = f'__***Missing Perms : {ctx.command}***__  {random.choice(mu)}',
+                name = f'__***Missing Perms : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n{error} \n```\n')
             emb.timestamp = self.timestamp
             async with ctx.typing():
@@ -100,7 +100,7 @@ class ErrorHandler(commands.Cog):
                 title = 'Suck on That',
                 color = color)
             emb.add_field(
-                name = f'__***Command: {ctx.command}***__ {random.choice(mu)}',
+                name = f'__***Command: {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Stop.SelfStop())
@@ -110,7 +110,7 @@ class ErrorHandler(commands.Cog):
                 title = 'Yikes !',
                 color = color)
             emb.add_field(
-                name = f'__***Args Missing : {ctx.command}***__ {random.choice(mu)}',
+                name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Stop.SelfStop())
@@ -120,7 +120,7 @@ class ErrorHandler(commands.Cog):
                 title = 'Weee!',
                 color = color)
             emb.add_field(
-                name = f'__***Args Missing : {ctx.command}***__ {random.choice(mu)}',
+                name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Stop.SelfStop())
@@ -130,7 +130,7 @@ class ErrorHandler(commands.Cog):
                 title = 'Dang !',
                 color = color)
             emb.add_field(
-                name = f'__***Bad Args : {ctx.command}***__ {random.choice(mu)}',
+                name = f'__***Bad Args : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Stop.SelfStop())
