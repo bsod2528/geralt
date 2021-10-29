@@ -11,7 +11,8 @@ import contextlib
 import traceback
 import io
 import textwrap
-import Kernel.Utils.ButtonStop as Stop
+from discord.ui import view
+import Kernel.Utils.Buttons as Button
 from discord import user, channel
 from discord.enums import InteractionType
 from discord.ext import commands
@@ -30,13 +31,12 @@ class AV(commands.Cog):
         super().__init__()
 
     def av(ctx):
-        return ctx.author.id == 750979369001811982 , 760823877034573864, 696214404836098078
+        return ctx.author.id == 750979369001811982 , 760823877034573864, 778251218505433098
 
     @commands.command(
         name = 'unload', 
         help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
         brief = 'Unload dem!')
-    @commands.check(av)
     @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
         emote = self.json
@@ -61,7 +61,6 @@ class AV(commands.Cog):
         name = 'load', 
         help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
         brief = 'Load em')
-    @commands.check(av)
     @commands.is_owner()
     async def load(self, ctx, *, cog : str):
         emote = self.json
@@ -120,21 +119,7 @@ class AV(commands.Cog):
     @commands.is_owner()
     async def die(self, ctx):
         emote = self.json
-        gif =   [f'https://tenor.com/view/drewredford123-pewdiepie-this-is-dumb-gif-13775481',
-                f'https://tenor.com/view/were-all-gonna-die-end-of-the-world-elmo-sesame-street-shrug-gif-16568695',
-                f'https://tenor.com/view/cfsl-murph-we-die-i-die-running-gif-17307394']
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        message = await ctx.reply(f'Why must you - ')
-        await asyncio.sleep(1)
-        await message.edit(content = f'Dying in  . ')
-        await asyncio.sleep(1)
-        await message.edit(content = f'Dying in  . . ')
-        await asyncio.sleep(1)
-        await message.edit(content = f'Dying in  . . . ')
-        await asyncio.sleep(1)
-        await message.edit(content = f'{random.choice(gif)}')
-        await self.bot.close()
+        await ctx.reply(f'Are you sure about what you just chose now?', view = Button.Die(bot = self.bot))
 
     @commands.command(
         name="toggle", 
@@ -167,7 +152,7 @@ class AV(commands.Cog):
         aliases = ['e'],
         help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`')
     @commands.is_owner()
-    async def _eval(self, ctx, *, body:str):
+    async def eval(self, ctx, *, body:str):
         env = {
             "self": self,
             "discord": discord,
@@ -187,14 +172,14 @@ class AV(commands.Cog):
         try:
             exec(to_compile, env)
         except Exception as e:
-            return await ctx.send(f'```py\n{e.__class__.__name__} --> {e}\n```')
+            return await ctx.reply(f'```py\n{e.__class__.__name__} --> {e}\n```', view = Button.ExceptionButton())
         func = env["func"]
         try:
             with contextlib.redirect_stdout(stdout):
                 ret = await func()
         except Exception as e:
             value = stdout.getvalue()
-            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```', view = Stop.SelfStop())
+            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```', view = Button.ExceptionButton())
         else:
             value = stdout.getvalue()
             try:

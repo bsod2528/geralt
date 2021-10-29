@@ -1,4 +1,5 @@
 import discord, requests, random, sys, asyncio, datetime, logging, json, pathlib, asyncpg, webbrowser, os, time
+from discord.components import Button
 import Kernel.Utils.HelpCommand as help
 from discord import activity, channel, mentions, user
 from discord.embeds import EmptyEmbed
@@ -14,7 +15,7 @@ from discord.utils import find
 from discord.ext.commands.core import command, has_guild_permissions, has_permissions
 from googleapiclient.discovery import build
 from typing import Coroutine, Optional, Union
-import Kernel.Utils.ButtonStop as Stop
+import Kernel.Utils.Buttons as Buttons
 from discord import ui, Interaction, SelectOption, ButtonStyle, Embed
 from discord.ext.commands import Cog, Command, Group, DefaultHelpCommand
 	
@@ -88,7 +89,7 @@ class Help(commands.HelpCommand):
 				emb.set_footer(
 					text = 'Run .ginfo for dashboard')
 				emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-		await self.get_destination().send(embed = emb, view = Stop.SelfStop())
+		await self.get_destination().send(embed = emb, view = Button.Delete())
 	
 	async def send_cog_help(self, cog):
 		embed = discord.Embed(title='{0.qualified_name} Commands'.format(cog), colour=discord.Color.from_rgb(117, 128, 219))
@@ -120,7 +121,7 @@ class Help(commands.HelpCommand):
 					name = self.get_command_signature(command), 
 					value = command.short_doc or 'Short Documentation yet to be provided', 
 					inline = False)
-		await self.get_destination().send(embed = embed, view = Stop.SelfStop())
+		await self.get_destination().send(embed = embed, view = Button.Delete())
 	send_command_help = send_group_help
 	
 	async def on_help_command_error(self, ctx, error):

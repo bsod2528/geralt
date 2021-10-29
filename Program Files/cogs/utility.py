@@ -7,7 +7,7 @@ import json
 import threading
 import asyncpg
 import time
-import Kernel.Utils.ButtonStop as Stop
+import Kernel.Utils.Buttons as Button
 from discord import interactions
 from discord.embeds import E
 from discord.enums import ButtonStyle
@@ -145,7 +145,7 @@ class Utility(commands.Cog, discord.ui.View):
             emb.timestamp = self.timestamp
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed=emb, view = Stop.SelfStop())
+        await ctx.reply(embed=emb, view = Button.SelfStop())
 
     @commands.command(
         name = 'nice', 
