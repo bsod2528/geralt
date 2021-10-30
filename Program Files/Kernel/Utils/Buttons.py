@@ -1,8 +1,10 @@
 import io
+from typing import Tuple
 import discord
 import asyncio
 import traceback
 from discord import interactions
+from discord import client
 from discord.components import Button
 from discord.enums import ButtonStyle
 from discord.ext import commands
@@ -10,8 +12,6 @@ from discord.ui.button import button
 from discord.user import BU
 
 class SelfStop(discord.ui.View):
-    def __init__(self, bot):
-        super().__init__(timeout = 3)
         @discord.ui.button(label = 'Delete', style = ButtonStyle.blurple, emoji = '\U0001f5d1')
         async def close(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
             await interaction.message.delete()
@@ -48,11 +48,10 @@ class Die(discord.ui.View):
         await interaction.response.send_message('Thank you for sparing me!')
         self.stop()
 
-class Load(discord.ui.View):
-    def __init__(self, bot):
-        super().__init__()
-        self.bot = bot
+class Nitro(discord.ui.View):
     
-    @discord.ui.button(style = ButtonStyle.blurple)
-    async def load(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
-        await interaction.response.send_message('hi')
+    @discord.ui.button(label = '\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001Claim\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001', style = ButtonStyle.green)
+    async def nitro(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
+        await interaction.response.send_message(content = 'https://imgur.com/NQinKJB', ephemeral = True)
+
+

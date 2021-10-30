@@ -5,7 +5,12 @@ import aiohttp
 import datetime
 import asyncpg
 import json
+
+from discord.ext.commands import bot
+from discord.ui.button import B
+import Kernel.Utils.Buttons as Button
 from discord.embeds import Embed
+from discord.enums import ButtonStyle
 from discord.ext import commands
 
 class Fun(commands.Cog):
@@ -103,6 +108,15 @@ class Fun(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)      
         await ctx.reply(f'{random.choice(response)}')
+    
+    @commands.command()
+    async def nitro(self, ctx):
+        emb = discord.Embed(
+            title = "You've been gifted a subscription",
+            description = "You've been gifted Nitro for __**1 month!**__\n Expires in __**24 hours**__",
+            color = 0x2F3136)
+        emb.set_thumbnail(url = 'https://i.imgur.com/w9aiD6F.png')
+        await ctx.send(embed = emb, view = Button.Nitro())
 
 def setup(bot):
     bot.add_cog(Fun(bot))

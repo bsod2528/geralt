@@ -89,7 +89,7 @@ class Help(commands.HelpCommand):
 				emb.set_footer(
 					text = 'Run .ginfo for dashboard')
 				emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
-		await self.get_destination().send(embed = emb, view = Button.Delete())
+		await self.get_destination().send(embed = emb)
 	
 	async def send_cog_help(self, cog):
 		embed = discord.Embed(title='{0.qualified_name} Commands'.format(cog), colour=discord.Color.from_rgb(117, 128, 219))
@@ -121,7 +121,7 @@ class Help(commands.HelpCommand):
 					name = self.get_command_signature(command), 
 					value = command.short_doc or 'Short Documentation yet to be provided', 
 					inline = False)
-		await self.get_destination().send(embed = embed, view = Button.Delete())
+		await self.get_destination().send(embed = embed)
 	send_command_help = send_group_help
 	
 	async def on_help_command_error(self, ctx, error):
