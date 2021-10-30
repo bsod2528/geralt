@@ -5,6 +5,7 @@ import aiohttp
 import datetime
 import asyncpg
 import json
+from discord import user
 
 from discord.ext.commands import bot
 from discord.ui.button import B
@@ -109,14 +110,19 @@ class Fun(commands.Cog):
             await asyncio.sleep(0.5)      
         await ctx.reply(f'{random.choice(response)}')
     
-    @commands.command()
-    async def nitro(self, ctx):
+    @commands.command(
+        name = 'nitro',
+        help = f'```ini\n[ Syntax : .gnitro ]\n```\n>>> **USE :** Get free nitro subcription from our sponsers\n**AKA :** No aliases present ;)',
+        brief = 'kek, you got rickrolled')
+    @commands.cooldown(5, 2, commands.BucketType.user)
+    async def nitro(self, ctx, *, member : discord.Member = None):
+        member = member or ctx.author
         emb = discord.Embed(
             title = "You've been gifted a subscription",
-            description = "You've been gifted Nitro for __**1 month!**__\n Expires in __**24 hours**__",
+            description = f"[__**{str(member)}**__](https://i.imgur.com/w9aiD6F.png) You've been gifted Nitro for __**1 month!**__\n Expires in __**24 hours**__",
             color = 0x2F3136)
         emb.set_thumbnail(url = 'https://i.imgur.com/w9aiD6F.png')
         await ctx.send(embed = emb, view = Button.Nitro())
-
+    
 def setup(bot):
     bot.add_cog(Fun(bot))

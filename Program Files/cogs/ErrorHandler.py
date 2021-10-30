@@ -1,4 +1,5 @@
 import inspect
+from operator import is_not
 import discord
 import asyncio
 import random
@@ -9,6 +10,7 @@ import asyncpg
 import sys
 from discord import user
 from discord import integrations
+from discord import errors
 from discord.ext import commands
 from discord.ext.commands.errors import BadArgument, MemberNotFound, MissingPermissions
 from discord.ui import view
@@ -132,10 +134,19 @@ class ErrorHandler(commands.Cog):
             emb.add_field(
                 name = f'__***Bad Args : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
-            emb.set_footer(
-                icon_url = self.icon)
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Button.SelfStop())
+
+        if isinstance(error, commands.errors.CommandOnCooldown):
+            emb = discord.Embed(
+                title = 'Woah woah !',
+                color = color)
+            emb.add_field(
+                name = f'__***Cooldown sweet heart : {ctx.command}***__   {random.choice(mu)}',
+                value = f'```py\n {error}\n```')
+            emb.timestamp = self.timestamp
+            await ctx.reply(embed = emb)
+
         else:
             errorsend = 894957830375899157
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)

@@ -50,8 +50,6 @@ class Die(discord.ui.View):
 
 class Nitro(discord.ui.View):
     
-    @discord.ui.button(label = '\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001Claim\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001', style = ButtonStyle.green)
+    @discord.ui.button(label = '\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001Claim\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001', style = ButtonStyle.green)
     async def nitro(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
-        await interaction.response.send_message(content = 'https://imgur.com/NQinKJB', ephemeral = True)
-
-
+        await interaction.response.send_message(content = '__**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**__\nhttps://imgur.com/NQinKJB', ephemeral = True)

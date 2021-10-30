@@ -13,7 +13,6 @@ from discord.ext import commands
 from discord.ext import tasks
 from discord.utils import find
 from discord.ext.commands.core import command, has_guild_permissions, has_permissions
-from googleapiclient.discovery import build
 from typing import Coroutine, Optional, Union
 import Kernel.Utils.Buttons as Buttons
 from discord import ui, Interaction, SelectOption, ButtonStyle, Embed
