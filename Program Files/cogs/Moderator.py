@@ -17,6 +17,8 @@ from discord.ext.commands.core import command, is_owner
 
 class Mod(commands.Cog):
 
+    """Powerful Moderation commands to take care of your server."""
+
     def __init__(self, bot):
         self.bot = bot
         self.color = discord.Color.from_rgb(117, 128, 219)

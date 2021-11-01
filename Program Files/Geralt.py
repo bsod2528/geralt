@@ -1,6 +1,6 @@
 import discord, requests, random, sys, asyncio, datetime, logging, json, pathlib, asyncpg, webbrowser, os, time
+import Kernel.HelpCommand.Help as help
 from discord.components import Button
-import Kernel.Utils.HelpCommand as help
 from discord import activity, channel, mentions, user
 from discord.embeds import EmptyEmbed
 from discord.flags import Intents
@@ -8,7 +8,7 @@ from discord.types.embed import EmbedField
 from discord.ui import view
 from google.auth import credentials
 from discord import DMChannel, message
-from discord.enums import ContentFilter, T
+from discord.enums import ContentFilter
 from discord.ext import commands
 from discord.ext import tasks
 from discord.utils import find
@@ -24,7 +24,7 @@ class Geralt(commands.Bot):
 			command_prefix = ['.g'], 
 			status = discord.Status.idle, 
 			intents = discord.Intents.all(),
-			activity = discord.Game(name = f'.ghelp ; i hate myself'))
+			activity = discord.Game(name = 'jls'))
 
 	async def on_ready(self):
 		print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
@@ -39,6 +39,8 @@ class Geralt(commands.Bot):
 		print(f'Channels Im In : {total_channels}')
 		print(f'Message Cache Size : {len(bot.cached_messages)}\n')
 		print(f'Geralt is ready for action !')
+		await self.change_presence(status = discord.Status.idle, activity = discord.Game(name = '.ghelp ; i hate my self'))
+
 bot = Geralt()
 
 rootdir = pathlib.Path(__file__).parent.resolve()
@@ -127,7 +129,7 @@ class Help(commands.HelpCommand):
 		if isinstance(error, commands.BadArgument):
 			embed = discord.Embed(title="Error", description=str(error))
 			await ctx.send(embed=embed)
-bot.help_command = Help()
+bot.help_command = help.CustomHelp()
 
 for filename in os.listdir(f'{rootdir}/Cogs'):
 	if filename.endswith('.py'):    

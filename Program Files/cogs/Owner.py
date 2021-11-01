@@ -11,6 +11,9 @@ import contextlib
 import traceback
 import io
 import textwrap
+from discord import message
+from discord import interactions
+from discord import embeds
 from discord.ui import view
 import Kernel.Utils.Buttons as Button
 from discord import user, channel
@@ -22,6 +25,8 @@ from discord.interactions import Interaction
 from logging import exception
 
 class AV(commands.Cog):
+
+    """Owner Commands, so there's no use in trying them out KEK"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -119,10 +124,10 @@ class AV(commands.Cog):
     @commands.is_owner()
     async def die(self, ctx):
         emote = self.json
-        await ctx.reply(f'Are you sure about what you just chose now?', view = Button.Die(bot = self.bot))
+        await ctx.reply(f'Do you really wanna kill me?', view = Button.Die(bot = self.bot))
 
     @commands.command(
-        name="toggle", 
+        name = "toggle", 
         help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
         aliases = ['tog'])
     @commands.is_owner()
@@ -140,13 +145,13 @@ class AV(commands.Cog):
                 await asyncio.sleep(0.5)
             await ctx.reply(f'{emote["anxiety"]["trigger"]}You cannot disable this command')
 
-        else:
+        else: 
             command.enabled = not command.enabled
             cmdstat = "enabled" if command.enabled else "disabled"
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
-
+    
     @commands.command(
         name = 'eval',
         aliases = ['e'],
@@ -172,14 +177,21 @@ class AV(commands.Cog):
         try:
             exec(to_compile, env)
         except Exception as e:
-            return await ctx.reply(f'```py\n{e.__class__.__name__} --> {e}\n```', view = Button.ExceptionButton())
+            emb = discord.Embed(
+                description = f'```py\n{e.__class__.__name__} --> {e}\n```',
+                color = 0x2F3136)
+            return await ctx.send(embed = emb, view = Button.ExceptionButton())
         func = env["func"]
         try:
             with contextlib.redirect_stdout(stdout):
                 ret = await func()
         except Exception as e:
             value = stdout.getvalue()
-            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```', view = Button.ExceptionButton())
+            emb = discord.Embed(
+                description = f'```py\n{value}{traceback.format_exc()}\n```',
+                color = 0x2F3136)
+            message = await ctx.send(embed = emb, view = Button.ExceptionButton())
+            await ctx.message.add_reaction('<:WinUnheck:898572376147623956>')
         else:
             value = stdout.getvalue()
             try:
@@ -188,9 +200,24 @@ class AV(commands.Cog):
                 pass
             if ret is None:
                 if value:
-                    await ctx.reply(f'```py\n{value}\n```')
+                    emb = discord.Embed(
+                        description = f'```py\n{value}\n```',
+                        color = 0x2F3136)
+                    await ctx.send(embed = emb)
             else:
-                await ctx.reply(f'```py\n{value}{ret}\n```')
+                emb = discord.Embed(
+                    description = f'```py\n{value}{ret}\n```',
+                    color = 0x2F3136)
+                await ctx.send(embed = emb)
+
+    @commands.command(
+        name = 'guilds',
+        aliases = ['gg', 'getguilds'])
+    @commands.is_owner()
+    async def guilds(self, ctx):
+        """```ini\n[ Syntax : .gguilds ]\n```\n>>> **USE :** To see which servers the bot is in !\n**AKA :** `.ggg` `.ggetguilds'"""
+        
+        await ctx.send(f''.join([f'```yaml\n {g.name} : {g.id}```' for g in self.bot.guilds]) + '')
 
 def setup(bot):
     bot.add_cog(AV(bot))

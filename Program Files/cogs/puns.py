@@ -12,6 +12,8 @@ from discord.ext import commands
 
 class Puns(commands.Cog):
 
+    """A Category of commands filled with amazing insults and jokes to take care of your friendss"""
+
     def __init__(self, bot):
         self.bot = bot
         self.color = discord.Color.from_rgb(117, 128, 219)

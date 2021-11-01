@@ -18,6 +18,7 @@ api_key = 'AIzaSyBEed4XMr_rS8y6LcdEFBmw3CCR7oLALXk'
 
 class Utility(commands.Cog, discord.ui.View):
     
+    """Get simple statistics about me and in general."""
 
     def __init__ (self, bot):
         self.bot = bot

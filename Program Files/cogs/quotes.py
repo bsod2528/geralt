@@ -8,6 +8,9 @@ import asyncio
 from discord.ext import commands
 
 class Quotes(commands.Cog):
+    
+    """Are you feeling down? Get inspired by beautiful quotes!"""
+
     def __init__ (self, bot):
         self.bot = bot
         self.json = json.load(open('Program Files\Emotes.json'))
