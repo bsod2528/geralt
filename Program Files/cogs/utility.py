@@ -23,7 +23,7 @@ class Utility(commands.Cog, discord.ui.View):
     def __init__ (self, bot):
         self.bot = bot
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.color = 0x2F3136
         self.emote = json.load(open('Program Files\Emotes.json'))   
 
     @commands.command(

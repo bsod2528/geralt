@@ -20,7 +20,7 @@ class Fun(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
-        self.color = discord.Color.from_rgb(117, 128, 219)
+        self.color = 0x2F3136
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.json = json.load(open('Program Files\Emotes.json'))   
     def av(ctx):

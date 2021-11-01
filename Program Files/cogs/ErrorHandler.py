@@ -44,7 +44,7 @@ class ErrorHandler(commands.Cog):
                 f'{emote["anxiety"]["sus"]}',
                 f'{emote["anxiety"]["triggered"]}',
                 f'{emote["anxiety"]["shit"]}']
-        color = discord.Color.from_rgb(117, 128, 219)
+        color = 0x2F3136
 
         if isinstance(error, notfound):
             return

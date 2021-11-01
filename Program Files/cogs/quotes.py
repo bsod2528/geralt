@@ -36,7 +36,7 @@ class Quotes(commands.Cog):
         emb = discord.Embed(
             title = 'Pieace',
             description = f'{ctx.message.author.mention} {random.choice(peace)}',
-            color = discord.Color.from_rgb(117, 128, 219))
+            color = 0x2F3136)
         await ctx.reply(embed = emb)
 
     @commands.command(
@@ -152,7 +152,7 @@ class Quotes(commands.Cog):
         emb = discord.Embed(
             title = 'FAMOUS QUOTES FROM BTS',
             description = f'{ctx.message.author.mention} {random.choice(quote)} {random.choice(beta)}',
-            color = discord.Color.from_rgb(117, 128, 219))
+            color = 0x2F3136)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -272,7 +272,7 @@ class Quotes(commands.Cog):
         emb = discord.Embed(
             title = 'Anime Quote For Ya',
             description = f'{ctx.message.author.mention} {random.choice(quote)} {random.choice(gamma)}',
-            color = discord.Color.from_rgb(117, 128, 219))
+            color = 0x2F3136)
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
