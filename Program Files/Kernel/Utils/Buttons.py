@@ -17,12 +17,20 @@ from discord.ui.button import B, button
 from discord.user import BU
 
 class SelfStop(discord.ui.View):
+    def __init__(self, bot):
+        super().__init__()
+
         @discord.ui.button(label = 'Delete', style = ButtonStyle.blurple, emoji = '\U0001f5d1')
         async def close(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
             await interaction.message.delete()
 
+        async def interaction_check(self, interaction : discord.Interaction) -> bool:
+            return await super().interaction_check(interaction)('Well, your not the owner of this interaction, get your invoked interaction and try it out !', ephemeral = True)
+        
 class ExceptionButton(discord.ui.View):
-
+    def __init__(self, bot):
+        super().__init__()
+        
         @discord.ui.button(label = 'Exception', style = ButtonStyle.danger)
         async def exception(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
             await interaction.response.send_message(f'```py\n{Exception.__class__.__name__} --> {Exception}\n```', ephemeral = True)
@@ -37,7 +45,7 @@ class ExceptionButton(discord.ui.View):
             stdout = io.StringIO()
             value = stdout.getvalue()
             await interaction.response.send_message(f'```py\n{value}{traceback.format_exc()}\n```', ephemeral = True)
-
+    
 class Die(discord.ui.View):
     def __init__(self, bot):
         super().__init__()

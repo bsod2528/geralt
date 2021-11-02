@@ -49,10 +49,10 @@ class HelpMenu(discord.ui.View):
         for cog, commands in self.mapping.items():
             name = cog.qualified_name if cog else 'Essential'
             description = cog.description if cog else 'No Cog Present'
-            if not name.startswith("On"):
+            if not name.startswith('On'):
                 option = discord.SelectOption(
                     emoji = self.help.emojis.get(name) if self.help.emojis.get(name) else None, 
-                    label = f'{name} Category', 
+                    label = f'{name}', 
                     description = description, 
                     value = name)
                 options.append(option)
@@ -78,15 +78,10 @@ class HelpMenu(discord.ui.View):
             return True
         inter_check = discord.Embed(
             color = self.color,
-            title = 'You cant use this',
-            description = f'<@{interaction.user.id}> - Only <@{self.help.context.author.id}> can use that\nCause they did the command\nIf you wanted to use the command, do what they did',
+            title = 'SIKE !!',
+            description = f'<@{interaction.user.id}> ! <@{self.help.context.author.id}> INVOKED HELP, NOT YOU IDIOT !! ',
             timestamp = self.help.context.message.created_at
         )
-        inter_check.set_thumbnail(
-            url = self.help.context.me.display_avatar.url)
-        inter_check.set_author(
-            name = interaction.user, 
-            icon_url = interaction.user.display_avatar.url)
         await interaction.response.send_message(embed = inter_check, ephemeral = True)
         return False
     

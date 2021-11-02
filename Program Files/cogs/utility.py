@@ -146,7 +146,7 @@ class Utility(commands.Cog, discord.ui.View):
             emb.timestamp = self.timestamp
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed=emb, view = Button.SelfStop())
+        await ctx.reply(embed=emb, view = Button.SelfStop(bot = self.bot))
 
     @commands.command(
         name = 'nice', 

@@ -12,13 +12,14 @@ class CustomHelp(commands.HelpCommand):
             }
         )
         self.emojis = {
-            'Fun'       :   '<:PandaNice:904765669680226315>',
-            'Mod':   '<:ModBadge:904765450066473031>',
-            'AV'     :   '<:WinTerminal:898609124982554635>',
-            'Utility'   :   '<:WinGIT:898591166864441345>',
-            'Essential' :   '<:WinCheck:898572324490604605>',
-            'Puns'      :   '<:uwu:902119529461727252>',
-            'Quotes'    :   '<:AkkoDab:898610956895154288>'
+            'Fun'           :       '<:PandaNice:904765669680226315>',
+            'Mod'           :       '<:ModBadge:904765450066473031>',
+            'AV'            :       '<:WinTerminal:898609124982554635>',
+            'Utility'       :       '<:WinGIT:898591166864441345>',
+            'Essential'     :       '<:WinCheck:898572324490604605>',
+            'Puns'          :       '<:uwu:902119529461727252>',
+            'Quotes'        :       '<:AkkoDab:898610956895154288>',
+            'Error Handler' :       '<:WinCogs:898591890209910854>'
         }
         self.color = 0x2F3136
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -50,7 +51,7 @@ class CustomHelp(commands.HelpCommand):
     async def send_command_help(self, command):
         command_help = discord.Embed(
             color = self.color,
-            title = self.get_command_signature(command),
+            title = command.qualified_name,
             description = command.help or 'Help to be given',
             timestamp = self.context.message.created_at
         )
@@ -66,7 +67,7 @@ class CustomHelp(commands.HelpCommand):
                 can_run = 'Yes'  
         command_help.add_field(
             name = 'Can you use it?', 
-            value = f'`{can_run}`')
+            value = f'<:GeraltRightArrow:904740634982760459> {can_run}')
         if command._buckets and (cooldown := command._buckets._cooldown):
             command_help.add_field(
                 name = 'Cooldown', 
@@ -105,7 +106,7 @@ class CustomHelp(commands.HelpCommand):
     async def send_error_message(self, error):
         help_error = discord.Embed(
             color = self.color,
-            title = f'```py\n {error}```',
+            title = error,
             timestamp=self.context.message.created_at
         )
         await self.context.reply(embed = help_error)

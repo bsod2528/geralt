@@ -13,11 +13,13 @@ from discord import integrations
 from discord import errors
 from discord.ext import commands
 from discord.ext.commands.errors import BadArgument, MemberNotFound, MissingPermissions
-from discord.ui import view
+from discord.ui import button, view
 import Kernel.Utils.Buttons as Button
 
-class ErrorHandler(commands.Cog):
-    def __init__(self, bot):
+class ErrorHandler(commands.Cog, name = 'Error Handler'):
+    """Global Error Handling for Geralt"""
+    
+    def __init__(self, bot : commands.Bot):
         self.bot = bot
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
@@ -59,7 +61,7 @@ class ErrorHandler(commands.Cog):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
     
         if  isinstance(error, commands.BotMissingPermissions):
             emb = discord.Embed(
@@ -71,7 +73,7 @@ class ErrorHandler(commands.Cog):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
         
         if isinstance(error, MissingPermissions):
             emb = discord.Embed(
@@ -83,7 +85,7 @@ class ErrorHandler(commands.Cog):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
 
         if isinstance(error, commands.MissingPermissions):
             emb = discord.Embed(
@@ -95,7 +97,7 @@ class ErrorHandler(commands.Cog):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
 
         if isinstance(error, commands.NotOwner):
             emb = discord.Embed(
@@ -105,7 +107,7 @@ class ErrorHandler(commands.Cog):
                 name = f'__***Command: {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
         
         if isinstance(error, commands.MissingRequiredArgument):
             emb = discord.Embed(
@@ -115,7 +117,7 @@ class ErrorHandler(commands.Cog):
                 name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
         
         if isinstance(error, MemberNotFound):
             emb = discord.Embed(
@@ -125,7 +127,7 @@ class ErrorHandler(commands.Cog):
                 name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
         
         if isinstance(error, BadArgument):
             emb = discord.Embed(
@@ -135,7 +137,7 @@ class ErrorHandler(commands.Cog):
                 name = f'__***Bad Args : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop())
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
 
         if isinstance(error, commands.errors.CommandOnCooldown):
             emb = discord.Embed(
@@ -145,7 +147,7 @@ class ErrorHandler(commands.Cog):
                 name = f'__***Cooldown sweet heart : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb)
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
 
         else:
             errorsend = 894957830375899157
