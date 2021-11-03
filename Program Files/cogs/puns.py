@@ -21,8 +21,10 @@ class Puns(commands.Cog):
         self.json = json.load(open('Program Files\Emotes.json'))   
 
     @commands.command(
+        name = 'friendsburn',
         aliases   =   ['fb', 'friendsb'], 
-        help = '```ini\n[ Syntax : .gfriendsburn <user> ]\n```\n>>> **USE : **Roast your friends with amazing insults.\n**AKA :** `.gfb` `.gfriendsb`')
+        help = '```ini\n[ Syntax : .gfriendsburn <user> ]\n```\n>>> **USE : **Roast your friends with amazing insults.\n**AKA :** `.gfb` `.gfriendsb`',
+        brief = 'Roast your friends !')
     async def friendsburn(self, ctx, member: discord.Member):
         roast = ['You are more disappointing than an unsalted pretzel.',
                 'You have so many gaps in your teeth it looks like your tongue is in jail.',
@@ -84,7 +86,8 @@ class Puns(commands.Cog):
     @commands.command(
         name = 'techburn', 
         aliases = ['tb', 'techb'], 
-        help = f'```ini\n[ Syntax : .gtechburn <user> ]\n```\n>>> **USE :** En number of technical insults to roast your friends with.\n**AKA :** `.gtb` `.gtechb`')
+        help = f'```ini\n[ Syntax : .gtechburn <user> ]\n```\n>>> **USE :** En number of technical insults to roast your friends with.\n**AKA :** `.gtb` `.gtechb`',
+        brief = 'Technical Roasts')
     async def techburn(self, ctx, member : discord.Member):
         techroast = ['My CPU cores are faster than your brain registering what I just said',
                      'Honestly, DDR1 is better than you! Go suck on that punk.',
@@ -126,8 +129,10 @@ class Puns(commands.Cog):
         await send.add_reaction('🔥')
 
     @commands.command(
+        name = 'dadjoke',
         aliases = ['dj', 'dad'], 
-        help = f'```ini\n[ Syntax : .gdadjoke ]\n```\n>>> **USE :** Spice up your day with DADJOKES!\n**AKA :** `.gdj` `dad`')
+        help = f'```ini\n[ Syntax : .gdadjoke ]\n```\n>>> **USE :** Spice up your day with DADJOKES!\n**AKA :** `.gdj` `dad`',
+        brief = 'Nice Dad Jokes Kekw')
     async def dadjoke(self,ctx):
         jokes = ['To whoever stole my copy of Microsoft Office, I will find you.You have my Word!',
                  'Q: Why did the coffee file a police report? A: It got mugged.',

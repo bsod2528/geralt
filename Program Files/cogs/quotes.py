@@ -17,7 +17,8 @@ class Quotes(commands.Cog):
     
     @commands.command(
         name = 'pieace', 
-        help = f'```ini\n [ Syntax : .gpieace ]\n```\n>>> **USE :**Enjoy some pieace\n**AKA :** No aliases present')
+        help = f'```ini\n [ Syntax : .gpieace ]\n```\n>>> **USE :**Enjoy some pieace\n**AKA :** No aliases present',
+        brief = 'Have some pieace in your life')
     async def pieace(self, ctx):
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -27,11 +28,11 @@ class Quotes(commands.Cog):
                  'https://en.wikipedia.org/wiki/Pea',
                  'Pieacefullness is something everyone requires in their lives. On the contrary, no one has it.',
                  'https://www.google.com/search?q=peas&source=lnms&tbm=isch&sa=X&ved=2ahUKEwjPsbuD2cnyAhXFmeYKHV_FAzgQ_AUoAXoECAEQAw&biw=1366&bih=649',
-                 'Jai Pattani FOR LIFE! SAY ITT!! Otherwise <:linuskill:886606006761717760><:linuskill:886606006761717760><:linuskill:886606006761717760>',
+                 'Jai Pattani FOR LIFE! SAY ITT!! Otherwise <:lttkill:893714637097422908>',
                  'Everyone generally say " Leave me in Peace "; while I say Leave me in pieace <:jp:879708834820661270>',
                  'PIEACE = PEACE + PIECE --> Its no where related to peas, but yeah it just popped up.',
                  'You know Hitler hated Peas <:broo:877044811402735638>',
-                 'If you say peace ever again, your <:linuskill:886606006761717760>',
+                 'If you say peace ever again, your  <:lttkill:893714637097422908>  ',
                  '"<:jaipattani:893715313189847041>']
         emb = discord.Embed(
             title = 'Pieace',

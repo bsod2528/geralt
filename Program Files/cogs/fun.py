@@ -55,7 +55,8 @@ class Fun(commands.Cog):
         await ctx.channel.purge(limit = 2)
 
     @commands.command(
-        help = f'```ini\n[ Syntax : .gchoose <opt.1> <opt.2> ]\n```\n>>> **USE :** For when you wanna settle the score some other way\n**AKA :** No aliases present ;)')
+        help = f'```ini\n[ Syntax : .gchoose <opt.1> <opt.2> ]\n```\n>>> **USE :** For when you wanna settle the score some other way\n**AKA :** No aliases present ;)',
+        brief = 'Either this or that !')
     async def choose(self, ctx, *choices: str):
         emote = self.json
         async with ctx.typing():
@@ -115,7 +116,7 @@ class Fun(commands.Cog):
     @commands.command(
         name = 'nitro',
         help = f'```ini\n[ Syntax : .gnitro ]\n```\n>>> **USE :** Get free nitro subcription from our sponsers\n**AKA :** No aliases present ;)',
-        brief = 'kek, you got rickrolled')
+        brief = 'Kek, you got rickrolled')
     @commands.cooldown(5, 2, commands.BucketType.user)
     async def nitro(self, ctx, *, member : discord.Member = None):
         member = member or ctx.author

@@ -29,8 +29,8 @@ class Utility(commands.Cog, discord.ui.View):
     @commands.command(
         name = 'avatar',
         aliases = ['pfp'],
-        help = f'```ini\n[ Syntax : .gavatar [member mention/id] ]\n```\n>>> **USE :** Gets the Avatar of a user or you!\n**AKA :** `.gpfp`'
-    )
+        help = f'```ini\n[ Syntax : .gavatar [member mention/id] ]\n```\n>>> **USE :** Gets the Avatar of a user or you!\n**AKA :** `.gpfp`',
+        brief = 'See other members pfps enlarged')
     async def avatar(self, ctx, *, user : discord.Member = None):
         emb = discord.Embed(
             color = self.color)
@@ -41,7 +41,7 @@ class Utility(commands.Cog, discord.ui.View):
             url = avatar)
         emb.set_image(url = avatar)
         emb.timestamp = self.timestamp
-        await ctx.reply(embed = emb)
+        await ctx.reply(embed = emb, mention_author = False)
     
     @commands.command( 
         help = f'```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`', 
@@ -78,7 +78,7 @@ class Utility(commands.Cog, discord.ui.View):
             emoji = f'{self.emote["panda"]["clap"]}'))
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed = emb, view = view)
+        await ctx.reply(embed = emb, view = view, mention_author = False)
 
     @commands.command(
         name = 'ping',
@@ -95,7 +95,7 @@ class Utility(commands.Cog, discord.ui.View):
             title = 'Pong!',
             description = f'__***My Latency :-***__ \n\n>>> <:replygoin:897151741320122458>__Typing__ - `{round(type_ping, 1)}` ms\n<:reply:897151692737486949>__Websocket__ - `{self.bot.latency*1000:,.0f}` ms',
             color = 0x2F3136)
-        await ctx.reply(embed = emb)
+        await ctx.reply(embed = emb, mention_author = False)
 
     @commands.command(
         name = 'image', 
@@ -116,7 +116,7 @@ class Utility(commands.Cog, discord.ui.View):
         emb.set_image(url = url)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label = 'Image Source', url = url))
-        await ctx.reply(embed = emb, view = view)
+        await ctx.reply(embed = emb, view = view, mention_author = False)
 
     @commands.command(
         name = 'web', 
@@ -128,7 +128,7 @@ class Utility(commands.Cog, discord.ui.View):
         page = 3
         resource = build('customsearch', 'v1', developerKey = api_key).cse()
         images = []
-        strsAPPEND = ""
+        strsAPPEND = ''
         for i in range(1, page, 5):
             result = resource.list(
                 q = f'{search}', 
@@ -146,7 +146,7 @@ class Utility(commands.Cog, discord.ui.View):
             emb.timestamp = self.timestamp
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed=emb, view = Button.SelfStop(bot = self.bot))
+        await ctx.reply(embed=emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
 
     @commands.command(
         name = 'nice', 
@@ -163,7 +163,7 @@ class Utility(commands.Cog, discord.ui.View):
             name = '42069',
             value = '42069')
         emb.timestamp = self.timestamp
-        await ctx.reply(embed = emb)
+        await ctx.reply(embed = emb, mention_author = False)
     
 def setup(bot):
     bot.add_cog(Utility(bot))

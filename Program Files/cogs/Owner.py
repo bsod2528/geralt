@@ -67,7 +67,7 @@ class AV(commands.Cog):
             emb = discord.Embed(
                 description = f'```py\n{e.__class__.__name__} --> {e}\n```',
                 color = self.color)
-            return await ctx.send(embed = emb, view = Button.ExceptionButton())
+            return await ctx.send(embed = emb, view = Button.ExceptionButton(bot = self.bot))
         func = env["func"]
         try:
             with contextlib.redirect_stdout(stdout):
@@ -77,7 +77,7 @@ class AV(commands.Cog):
             emb = discord.Embed(
                 description = f'```py\n{value}{traceback.format_exc()}\n```',
                 color = 0x2F3136)
-            message = await ctx.send(embed = emb, view = Button.ExceptionButton())
+            message = await ctx.send(embed = emb, view = Button.ExceptionButton(bot = self.bot))
             await ctx.message.add_reaction('<:WinUnheck:898572376147623956>')
         else:
             value = stdout.getvalue()
@@ -209,16 +209,18 @@ class AV(commands.Cog):
 
         else: 
             command.enabled = not command.enabled
-            cmdstat = "enabled" if command.enabled else "disabled"
+            cmdstat = 'enabled' if command.enabled else 'disabled'
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}', mention_author = False)
     
     @commands.command(
-        name = 'guilds',
-        aliases = ['gg', 'getguilds'])
+        name = 'getguilds',
+        aliases = ['gg', 'guilds'],
+        help = f'```ini\n[ Syntax : .gguilds ]\m```\n>>>__***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Gets the guilds and id the bot is in\n**AKA :** `.ggg` `.gguilds`',
+        brief = 'List of Servers im in !')
     @commands.is_owner()
-    async def guilds(self, ctx):
+    async def getguilds(self, ctx):
         """```ini\n[ Syntax : .gguilds ]\n```\n>>> **USE :** To see which servers the bot is in !\n**AKA :** `.ggg` `.ggetguilds'"""    
         await ctx.send(f''.join([f'```yaml\n {g.name} : {g.id}```' for g in self.bot.guilds]) + '')
 
