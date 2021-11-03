@@ -19,7 +19,8 @@ class CustomHelp(commands.HelpCommand):
             'Essential'     :       '<:WinCheck:898572324490604605>',
             'Puns'          :       '<:uwu:902119529461727252>',
             'Quotes'        :       '<:AkkoDab:898610956895154288>',
-            'Error Handler' :       '<:WinCogs:898591890209910854>'
+            'Error Handler' :       '<:WinCogs:898591890209910854>',
+            'Jishaku'       :       '<:WinCMD:898572428379299880>'
         }
         self.color = 0x2F3136
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -31,7 +32,7 @@ class CustomHelp(commands.HelpCommand):
             url = self.context.me.display_avatar.url)
         DropDown.main.set_footer(
             text = self.footer)
-        DropDown.message = await self.context.reply(embed = DropDown.main, view = DropDown)
+        DropDown.message = await self.context.reply(embed = DropDown.main, view = DropDown, mention_author = False)
         return
 
     async def send_cog_help(self, cog):
@@ -45,7 +46,7 @@ class CustomHelp(commands.HelpCommand):
             cog_help.description += f'<:GeraltRightArrow:904740634982760459> `{command.qualified_name}` - {command.brief}\n'
         cog_help.set_footer(
             text = self.footer)
-        await self.context.send(embed = cog_help)
+        await self.context.reply(embed = cog_help, mention_author = False)
         return
 
     async def send_command_help(self, command):
@@ -72,7 +73,7 @@ class CustomHelp(commands.HelpCommand):
             command_help.add_field(
                 name = 'Cooldown', 
                 value =f'{cooldown.rate} per {cooldown.per:.0f} seconds')
-        await self.context.reply(embed = command_help)
+        await self.context.reply(embed = command_help, mention_author = False)
         return
 
     async def send_group_help(self, group):
@@ -100,7 +101,7 @@ class CustomHelp(commands.HelpCommand):
             group_embed.add_field(
                 name = 'Cooldown', 
                 value = f'{cooldown.rate} per {cooldown.per:.0f} seconds')
-        await self.context.reply(embed = group_embed)
+        await self.context.reply(embed = group_embed, mention_author = False)
         return
 
     async def send_error_message(self, error):
@@ -109,7 +110,7 @@ class CustomHelp(commands.HelpCommand):
             title = error,
             timestamp=self.context.message.created_at
         )
-        await self.context.reply(embed = help_error)
+        await self.context.reply(embed = help_error, mention_author = False)
         return
 
 class HelpCommand(commands.Cog):

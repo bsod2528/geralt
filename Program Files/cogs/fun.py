@@ -110,7 +110,7 @@ class Fun(commands.Cog):
                     'Very doubtful.']
         async with ctx.typing():
             await asyncio.sleep(0.5)      
-        await ctx.reply(f'{random.choice(response)}')
+        await ctx.reply(f'{random.choice(response)}', mention_author = False)
     
     @commands.command(
         name = 'nitro',

@@ -79,7 +79,7 @@ class Puns(commands.Cog):
                 description = f'{member.mention} {random.choice(roast)} {random.choice(delta)} ',
                 color = self.color)
         emb.timestamp = self.timestamp
-        await ctx.send(embed = emb)
+        await ctx.send(embed = emb, mention_author = False)
     
     @commands.command(
         name = 'techburn', 
@@ -122,7 +122,7 @@ class Puns(commands.Cog):
                 color = self.color)
             emb.timestamp = self.timestamp
         await asyncio.sleep(0.5)    
-        send = await ctx.send(embed = emb)
+        send = await ctx.send(embed = emb, mention_author = False)
         await send.add_reaction('🔥')
 
     @commands.command(
@@ -246,7 +246,7 @@ class Puns(commands.Cog):
             description = f'{random.choice(jokes)} {random.choice(zeta)}',
             color = self.color)
         emb.timestamp = self.timestamp
-        send = await ctx.reply(embed = emb)
+        send = await ctx.reply(embed = emb, mention_author = False)
         await send.add_reaction('🤌')
 
 def setup(bot):

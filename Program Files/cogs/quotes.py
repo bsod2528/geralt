@@ -37,7 +37,7 @@ class Quotes(commands.Cog):
             title = 'Pieace',
             description = f'{ctx.message.author.mention} {random.choice(peace)}',
             color = 0x2F3136)
-        await ctx.reply(embed = emb)
+        await ctx.reply(embed = emb, mention_author = False)
 
     @commands.command(
         aliases = ['bq', 'btsq', 'bts'], 
@@ -156,7 +156,7 @@ class Quotes(commands.Cog):
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed = emb)
+        await ctx.reply(embed = emb, mention_author = False)
 
     @commands.command(
         aliases = ['animeq','aq', 'anime' ], 
@@ -276,7 +276,7 @@ class Quotes(commands.Cog):
         emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed = emb)
+        await ctx.reply(embed = emb, mention_author = False)
 
 def setup(bot):
     bot.add_cog(Quotes(bot))

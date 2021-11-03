@@ -61,7 +61,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
     
         if  isinstance(error, commands.BotMissingPermissions):
             emb = discord.Embed(
@@ -73,7 +73,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
         
         if isinstance(error, MissingPermissions):
             emb = discord.Embed(
@@ -85,7 +85,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
 
         if isinstance(error, commands.MissingPermissions):
             emb = discord.Embed(
@@ -97,7 +97,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
             emb.timestamp = self.timestamp
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
 
         if isinstance(error, commands.NotOwner):
             emb = discord.Embed(
@@ -107,7 +107,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 name = f'__***Command: {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
         
         if isinstance(error, commands.MissingRequiredArgument):
             emb = discord.Embed(
@@ -117,7 +117,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
         
         if isinstance(error, MemberNotFound):
             emb = discord.Embed(
@@ -127,7 +127,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
         
         if isinstance(error, BadArgument):
             emb = discord.Embed(
@@ -137,7 +137,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 name = f'__***Bad Args : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
 
         if isinstance(error, commands.errors.CommandOnCooldown):
             emb = discord.Embed(
@@ -147,7 +147,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 name = f'__***Cooldown sweet heart : {ctx.command}***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot))
+            await ctx.reply(embed = emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
 
         else:
             errorsend = 894957830375899157

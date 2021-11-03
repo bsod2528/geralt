@@ -39,134 +39,21 @@ class AV(commands.Cog):
         return ctx.author.id == 750979369001811982 , 760823877034573864, 778251218505433098
 
     @commands.command(
-        name = 'unload', 
-        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
-        brief = 'Unload dem!')
-    @commands.is_owner()
-    async def unload(self, ctx, *, cog : str):
-        emote = self.json
-        try:
-
-            self.bot.unload_extension(cog)
-        except Exception as e:
-            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
-        else:
-            unload  =   [f'Please wait, unloading cog set to happen in background {emote["Girl"]["okay"]}',
-                        f'Cog is being unloaded, please wait {emote["Girl"]["laugh"]}',
-                        f'Your selection of cog is being unloaded mate {emote["Girl"]["laugh"]}',
-                        f'{emote["Girl"]["okay"]}']
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            message = await ctx.reply(f'{random.choice(unload)}')
-            await asyncio.sleep(2)
-            await message.edit(f'{emote["Win"]["check"]} Cog Unloaded ')
-    
-
-    @commands.command(
-        name = 'load', 
-        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
-        brief = 'Load em')
-    @commands.is_owner()
-    async def load(self, ctx, *, cog : str):
-        emote = self.json
-        try:
-            self.bot.load_extension(cog)
-        except Exception as e:
-            await ctx.replyt(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
-        else:
-            load    =   [f'Just a second, I am loading the cog {emote["Girl"]["laugh"]}',
-                        f'Cog being loaded, please wait {emote["Girl"]["okay"]}',
-                        f'The cog of your choice is being loaded {emote["Girl"]["okay"]}']
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            message = await ctx.reply(f'{random.choice(load)}')
-            await asyncio.sleep(2)
-            await message.edit(f'{emote["Win"]["check"]} Cog Loaded ')
-    
-    @commands.command(
-        name = 'reload',
-        help = f'```ini\n[ Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;')
-    @commands.is_owner()
-    async def reload(self, ctx, *, cog : str):
-        emote = self.json
-        try:
-            self.bot.reload_extension(cog)
-        except Exception as e:
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
-        else:
-            reload  =   [f'Reloading Cog {emote["Girl"]["okay"]}',
-                        f'The cog is being reloaded, please wait {emote["Girl"]["okay"]}',
-                        f'BOOM {emote["Girl"]["okay"]}']
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            message = await ctx.reply(f'{random.choice(reload)}')
-            await asyncio.sleep(2)
-            await message.edit(f'{emote["Win"]["check"]} Cog reloaded succesfully')
-        
-    @commands.command(
-        name = 'loadjsk', 
-        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)')
-    @commands.is_owner()
-    async def loadjsk(self, ctx):
-        emote = self.json
-        async with ctx.typing():
-            self.bot.load_extension('jishaku')
-            await asyncio.sleep(0.5)
-        await ctx.reply(f'Done! JISHAKU now loaded up for... Well for running the commands you dumbo')
-
-    @commands.command(
-        name = 'die',
-        aliases = ['snap'],
-        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
-        brief = 'kills da bot')
-    @commands.is_owner()
-    async def die(self, ctx):
-        emote = self.json
-        await ctx.reply(f'Do you really wanna kill me?', view = Button.Die(bot = self.bot))
-
-    @commands.command(
-        name = "toggle", 
-        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
-        aliases = ['tog'])
-    @commands.is_owner()
-    async def toggle(self, ctx, *, command):
-        emote = self.json
-        command = self.bot.get_command(command)
-
-        if command is None:
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            await ctx.reply(f'{emote["frog"]["worryrun"]} I cant find a command with that name!')
-
-        elif ctx.command == command:
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            await ctx.reply(f'{emote["anxiety"]["trigger"]}You cannot disable this command')
-
-        else: 
-            command.enabled = not command.enabled
-            cmdstat = "enabled" if command.enabled else "disabled"
-            async with ctx.typing():
-                await asyncio.sleep(0.5)
-            await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}',)
-    
-    @commands.command(
         name = 'eval',
         aliases = ['e'],
-        help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`')
+        help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`',
+        brief = 'Evalutes Code')
     @commands.is_owner()
     async def eval(self, ctx, *, body:str):
         env = {
-            "self": self,
-            "discord": discord,
-            "bot": self.bot,
-            "ctx": ctx,
-            "message": ctx.message,
-            "author": ctx.author,
-            "guild": ctx.guild,
-            "channel": ctx.channel,
+            'self'      :   self,
+            'discord'   :   discord,
+            'bot'       :   self.bot,
+            'ctx'       :   ctx,
+            'message'   :   ctx.message,
+            'author'    :   ctx.author,
+            'guild'     :   ctx.guild,
+            'channel'   :   ctx.channel,
         }
         env.update(globals())
         if body.startswith( '```' ) and body.endswith( '```' ):
@@ -179,7 +66,7 @@ class AV(commands.Cog):
         except Exception as e:
             emb = discord.Embed(
                 description = f'```py\n{e.__class__.__name__} --> {e}\n```',
-                color = 0x2F3136)
+                color = self.color)
             return await ctx.send(embed = emb, view = Button.ExceptionButton())
         func = env["func"]
         try:
@@ -202,21 +89,137 @@ class AV(commands.Cog):
                 if value:
                     emb = discord.Embed(
                         description = f'```py\n{value}\n```',
-                        color = 0x2F3136)
-                    await ctx.send(embed = emb)
+                        color = self.color)
+                    await ctx.send(embed = emb, mention_author = False)
             else:
                 emb = discord.Embed(
                     description = f'```py\n{value}{ret}\n```',
-                    color = 0x2F3136)
-                await ctx.send(embed = emb)
+                    color = self.color)
+                await ctx.send(embed = emb, mention_author = False)
+    
+    @commands.command(
+        name = 'unload', 
+        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
+        brief = 'Unload cogs !')
+    @commands.is_owner()
+    async def unload(self, ctx, *, cog : str):
+        emote = self.json
+        try:
 
+            self.bot.unload_extension(cog)
+        except Exception as e:
+            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}', mention_author = False)
+        else:
+            unload  =   [f'Please wait, unloading cog set to happen in background {emote["Girl"]["okay"]}',
+                        f'Cog is being unloaded, please wait {emote["Girl"]["laugh"]}',
+                        f'Your selection of cog is being unloaded mate {emote["Girl"]["laugh"]}',
+                        f'{emote["Girl"]["okay"]}']
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            message = await ctx.reply(f'{random.choice(unload)}')
+            await asyncio.sleep(2)
+            await message.edit(f'{emote["Win"]["check"]} Cog Unloaded ', mention_author = False)
+    
+
+    @commands.command(
+        name = 'load', 
+        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
+        brief = 'Load cogs !')
+    @commands.is_owner()
+    async def load(self, ctx, *, cog : str):
+        emote = self.json
+        try:
+            self.bot.load_extension(cog)
+        except Exception as e:
+            await ctx.replyt(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}', mention_author = False)
+        else:
+            load    =   [f'Just a second, I am loading the cog {emote["Girl"]["laugh"]}',
+                        f'Cog being loaded, please wait {emote["Girl"]["okay"]}',
+                        f'The cog of your choice is being loaded {emote["Girl"]["okay"]}']
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            message = await ctx.reply(f'{random.choice(load)}')
+            await asyncio.sleep(2)
+            await message.edit(f'{emote["Win"]["check"]} Cog Loaded ', mention_author = False)
+    
+    @commands.command(
+        name = 'reload',
+        help = f'```ini\n[Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;',
+        brief = 'Reload cogs !')
+    @commands.is_owner()
+    async def reload(self, ctx, *, cog : str):
+        emote = self.json
+        try:
+            self.bot.reload_extension(cog)
+        except Exception as e:
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
+        else:
+            reload  =   [f'Reloading Cog {emote["Girl"]["okay"]}',
+                        f'The cog is being reloaded, please wait {emote["Girl"]["okay"]}',
+                        f'BOOM {emote["Girl"]["okay"]}']
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            message = await ctx.reply(f'{random.choice(reload)}', mention_author = False)
+            await asyncio.sleep(2)
+            await message.edit(f'{emote["Win"]["check"]} Cog reloaded succesfully')
+        
+    @commands.command(
+        name = 'loadjsk', 
+        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)',
+        brief = 'JSK Loader')
+    @commands.is_owner()
+    async def loadjsk(self, ctx):
+        emote = self.json
+        async with ctx.typing():
+            self.bot.load_extension('jishaku')
+            await asyncio.sleep(0.5)
+        await ctx.reply(f'Done! JISHAKU now loaded up for... Well for running the commands you dumbo')
+
+    @commands.command(
+        name = 'die',
+        aliases = ['snap'],
+        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
+        brief = 'Kills da bot')
+    @commands.is_owner()
+    async def die(self, ctx):
+        emote = self.json
+        await ctx.reply(f'Do you really wanna kill me?', view = Button.Die(bot = self.bot), mention_author = False)
+    
+    @commands.command(
+        name = 'toggle', 
+        aliases = ['tog'],
+        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
+        brief = 'Enables / Diables Commands')
+    @commands.is_owner()
+    async def toggle(self, ctx, *, command):
+        emote = self.json
+        command = self.bot.get_command(command)
+
+        if command is None:
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            await ctx.reply(f'{emote["frog"]["worryrun"]} I cant find a command with that name!')
+
+        elif ctx.command == command:
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            await ctx.reply(f'{emote["anxiety"]["trigger"]}You cannot disable this command')
+
+        else: 
+            command.enabled = not command.enabled
+            cmdstat = "enabled" if command.enabled else "disabled"
+            async with ctx.typing():
+                await asyncio.sleep(0.5)
+            await ctx.reply(f'I have {cmdstat} {command.qualified_name} for you! {emote["peep"]["prayage"]}', mention_author = False)
+    
     @commands.command(
         name = 'guilds',
         aliases = ['gg', 'getguilds'])
     @commands.is_owner()
     async def guilds(self, ctx):
-        """```ini\n[ Syntax : .gguilds ]\n```\n>>> **USE :** To see which servers the bot is in !\n**AKA :** `.ggg` `.ggetguilds'"""
-        
+        """```ini\n[ Syntax : .gguilds ]\n```\n>>> **USE :** To see which servers the bot is in !\n**AKA :** `.ggg` `.ggetguilds'"""    
         await ctx.send(f''.join([f'```yaml\n {g.name} : {g.id}```' for g in self.bot.guilds]) + '')
 
 def setup(bot):
