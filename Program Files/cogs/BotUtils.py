@@ -16,32 +16,15 @@ from discord.ext import commands
 
 api_key = 'AIzaSyBEed4XMr_rS8y6LcdEFBmw3CCR7oLALXk'
 
-class Utility(commands.Cog, discord.ui.View):
+class BotUtils(commands.Cog, discord.ui.View):
     
-    """Get simple statistics about me and in general."""
+    """Get simple statistics about me !"""
 
     def __init__ (self, bot):
         self.bot = bot
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.color = 0x2F3136
         self.emote = json.load(open('Program Files\Emotes.json'))   
-
-    @commands.command(
-        name = 'avatar',
-        aliases = ['pfp'],
-        help = f'```ini\n[ Syntax : .gavatar [member mention/id] ]\n```\n>>> **USE :** Gets the Avatar of a user or you!\n**AKA :** `.gpfp`',
-        brief = 'See other members pfps enlarged')
-    async def avatar(self, ctx, *, user : discord.Member = None):
-        emb = discord.Embed(
-            color = self.color)
-        user = user or ctx.author
-        avatar = user.display_avatar.with_static_format('png')
-        emb.set_author(
-            name = f'PFP of - {str(user)}', 
-            url = avatar)
-        emb.set_image(url = avatar)
-        emb.timestamp = self.timestamp
-        await ctx.reply(embed = emb, mention_author = False)
     
     @commands.command( 
         help = f'```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`', 
@@ -167,4 +150,4 @@ class Utility(commands.Cog, discord.ui.View):
         await ctx.reply(embed = emb, mention_author = False)
     
 def setup(bot):
-    bot.add_cog(Utility(bot))
+    bot.add_cog(BotUtils(bot))

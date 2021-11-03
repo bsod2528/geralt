@@ -15,12 +15,13 @@ class CustomHelp(commands.HelpCommand):
             'Fun'           :       '<:PandaNice:904765669680226315>',
             'Mod'           :       '<:ModBadge:904765450066473031>',
             'AV'            :       '<:WinTerminal:898609124982554635>',
-            'Utility'       :       '<:WinGIT:898591166864441345>',
+            'BotUtils'       :       '<:WinGIT:898591166864441345>',
             'Essential'     :       '<:WinCheck:898572324490604605>',
             'Puns'          :       '<:uwu:902119529461727252>',
             'Quotes'        :       '<:AkkoDab:898610956895154288>',
             'Error Handler' :       '<:WinCogs:898591890209910854>',
-            'Jishaku'       :       '<:WinCMD:898572428379299880>'
+            'Jishaku'       :       '<:WinCMD:898572428379299880>',
+            'Information'   :       '<:WinInfo:905487484421546015>'
         }
         self.color = 0x2F3136
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)

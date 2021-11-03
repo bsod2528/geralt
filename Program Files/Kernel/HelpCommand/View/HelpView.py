@@ -44,7 +44,7 @@ class HelpMenu(discord.ui.View):
             color = self.color,
             title = f'__Geralt is Here to Help__',
             description =   f'Well hello there dear user <:AkkoHi:898611360580141097> ! My name is **[Geralt#9638](https://bsod2528.wixsite.com/geralt)** and I am a very simple **Discord Bot** alive just to induce fun into your server, and roast your members alive ! Use the dropdown for more information\n\n**CATEGORIES PRESENT -**\n\n'
-                            f'>>> <:replygoin:897151741320122458> `Fun` - .ghelp Fun\n <:replygoin:897151741320122458> `Mod` - .ghelp Mod\n <:replygoin:897151741320122458> `Puns` - .ghelp Puns\n <:replygoin:897151741320122458> `Quotes` - .ghelp Quotes\n <:reply:897151692737486949> `Utility` - .ghelp Utility',
+                            f'>>> <:replygoin:897151741320122458> `BotUtils` - .ghelp BotUtils\n <:replygoin:897151741320122458> `Fun` - .ghelp Fun\n <:replygoin:897151741320122458> `Information` - .ghelp Information\n <:replygoin:897151741320122458> `Mod` - .ghelp Mod\n <:replygoin:897151741320122458> `Puns` - .ghelp Puns\n <:reply:897151692737486949> `Quotes` - .ghelp Quotes\n',
             timestamp = self.help.context.message.created_at)
         options = []
         for cog, commands in self.mapping.items():

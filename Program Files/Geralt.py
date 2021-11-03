@@ -41,7 +41,7 @@ class Geralt(commands.Bot):
 		print(f'Geralt is ready for action !')
 		await self.change_presence(
 			status = discord.Status.idle, 
-			activity = discord.Activity(type = discord.ActivityType.listening, name = f'to @{self.user.name} help'))
+			activity = discord.Activity(type = discord.ActivityType.listening, name = f'@{self.user.name} help'))
 
 bot = Geralt()
 
