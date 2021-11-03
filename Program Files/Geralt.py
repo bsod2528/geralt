@@ -1,4 +1,4 @@
-import discord, requests, random, sys, asyncio, datetime, logging, json, pathlib, asyncpg, webbrowser, os, time
+import discord, requests, random, sys, asyncio, datetime, logging, json, pathlib, asyncpg, webbrowser, os, time, aiohttp
 import Kernel.HelpCommand.Help as help
 from discord.components import Button
 from discord import activity, channel, mentions, user
@@ -21,11 +21,11 @@ from discord.ext.commands import Cog, Command, Group, DefaultHelpCommand
 class Geralt(commands.Bot):
 	def __init__(self, **kwargs):
 		super().__init__(
-			command_prefix = ['.g'], 
+			command_prefix = commands.when_mentioned_or('.g'), 
 			status = discord.Status.idle, 
 			intents = discord.Intents.all(),
 			activity = discord.Game(name = 'jls'))
-
+    
 	async def on_ready(self):
 		print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
 		total_members = list(bot.get_all_members())
@@ -39,7 +39,9 @@ class Geralt(commands.Bot):
 		print(f'Channels Im In : {total_channels}')
 		print(f'Message Cache Size : {len(bot.cached_messages)}\n')
 		print(f'Geralt is ready for action !')
-		await self.change_presence(status = discord.Status.idle, activity = discord.Game(name = '.ghelp ; i hate my self'))
+		await self.change_presence(
+			status = discord.Status.idle, 
+			activity = discord.Activity(type = discord.ActivityType.listening, name = f'to @{self.user.name} help'))
 
 bot = Geralt()
 
@@ -47,7 +49,10 @@ rootdir = pathlib.Path(__file__).parent.resolve()
 
 logger = logging.getLogger('Geralt')
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='Geralt.log', encoding='utf-8', mode='w')
+handler = logging.FileHandler(
+	filename = 'Geralt.log', 
+	encoding = 'utf-8', 
+	mode = 'w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
@@ -77,17 +82,10 @@ async def on_message(message: discord.Message):
 		emb = discord.Embed(
 			title = 'My DMs',
 			description = f'{message.author.mention} sent ➜ \n " *{message.content}* "' ,
-			color = discord.Color.from_rgb(117, 128, 219))
+			color = 0x2F3136)
 		emb.timestamp = datetime.datetime.now(datetime.timezone.utc)
 		await channel.send(embed = emb)
 	await bot.process_commands(message)
-
-@bot.event
-async def on_message(message):
-	if message.content == '<@!873204919593730119>':
-    		await message.channel.send(f'{bot.help_command}')
-	await bot.process_commands(message)
-
 
 token = json.load(open(r'Program Files\Key.json'))
 bot.run(f'{token["TOKEN"]}')

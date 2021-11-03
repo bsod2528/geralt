@@ -150,7 +150,8 @@ class Utility(commands.Cog, discord.ui.View):
 
     @commands.command(
         name = 'nice', 
-        help = f'```ini\[ Syntax : .gnice ]\n```\n>>> **USE :** Nice\n**AKA :** `.g69`', 
+        aliases = ['69'],
+        help = f'```ini\n[ Syntax : .gnice ]\n```\n>>> **USE :** Nice\n**AKA :** `.g69`', 
         brief = 'Nice')
     async def nice(self, ctx):
         async with ctx.typing():

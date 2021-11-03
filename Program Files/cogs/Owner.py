@@ -41,7 +41,7 @@ class AV(commands.Cog):
     @commands.command(
         name = 'eval',
         aliases = ['e'],
-        help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`',
+        help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`',
         brief = 'Evalutes Code')
     @commands.is_owner()
     async def eval(self, ctx, *, body:str):
@@ -99,7 +99,7 @@ class AV(commands.Cog):
     
     @commands.command(
         name = 'unload', 
-        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
+        help = f'```ini\n[ Syntax : .gunload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Unload Cogs in a fraction of a second!\n**AKA :** No aliases present ;)', 
         brief = 'Unload cogs !')
     @commands.is_owner()
     async def unload(self, ctx, *, cog : str):
@@ -123,7 +123,7 @@ class AV(commands.Cog):
 
     @commands.command(
         name = 'load', 
-        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
+        help = f'```ini\n[ Syntax : .gload cogs.<cog name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Load Cogs faster than Mcqueen!\n**AKA :** No aliases present ;)', 
         brief = 'Load cogs !')
     @commands.is_owner()
     async def load(self, ctx, *, cog : str):
@@ -144,7 +144,7 @@ class AV(commands.Cog):
     
     @commands.command(
         name = 'reload',
-        help = f'```ini\n[Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;',
+        help = f'```ini\n[Syntax : .greload cogs.<cog name>]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Reloads cogs for...nvm\n**AKA :** No aliases present ;',
         brief = 'Reload cogs !')
     @commands.is_owner()
     async def reload(self, ctx, *, cog : str):
@@ -167,7 +167,7 @@ class AV(commands.Cog):
         
     @commands.command(
         name = 'loadjsk', 
-        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)',
+        help = f'```ini\n[ Syntax : .gloadjsk ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Loads Jishaku as a COG\n**AKA :** No aliases present ;)',
         brief = 'JSK Loader')
     @commands.is_owner()
     async def loadjsk(self, ctx):
@@ -180,7 +180,7 @@ class AV(commands.Cog):
     @commands.command(
         name = 'die',
         aliases = ['snap'],
-        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
+        help = f'```ini\n[ Syntax : .gdie ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** If my dev uses it, I Die\n**AKA :** `.gsnap`',
         brief = 'Kills da bot')
     @commands.is_owner()
     async def die(self, ctx):
@@ -190,7 +190,7 @@ class AV(commands.Cog):
     @commands.command(
         name = 'toggle', 
         aliases = ['tog'],
-        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
+        help = f'```ini\n[ Syntax : .gtoggle <command name> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Enable or disable a command!\n**AKA :** `.gtog`', 
         brief = 'Enables / Diables Commands')
     @commands.is_owner()
     async def toggle(self, ctx, *, command):
@@ -217,7 +217,7 @@ class AV(commands.Cog):
     @commands.command(
         name = 'getguilds',
         aliases = ['gg', 'guilds'],
-        help = f'```ini\n[ Syntax : .gguilds ]\m```\n>>>__***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n**USE :** Gets the guilds and id the bot is in\n**AKA :** `.ggg` `.gguilds`',
+        help = f'```ini\n[ Syntax : .gguilds ]\m```\n>>>__***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Gets the guilds and id the bot is in\n**AKA :** `.ggg` `.gguilds`',
         brief = 'List of Servers im in !')
     @commands.is_owner()
     async def getguilds(self, ctx):

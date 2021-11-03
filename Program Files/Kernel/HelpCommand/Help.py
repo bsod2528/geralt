@@ -52,16 +52,12 @@ class CustomHelp(commands.HelpCommand):
     async def send_command_help(self, command):
         command_help = discord.Embed(
             color = self.color,
-            title = command.qualified_name,
+            title = f'__Command : {command.qualified_name}__',
             description = command.help or 'Help to be given',
             timestamp = self.context.message.created_at
         )
         command_help.set_footer(
             text = self.footer)
-        if cog := command.cog:
-            command_help.add_field(
-                name = 'Category :', 
-                value = f'{self.emojis.get(cog.qualified_name) if self.emojis.get(cog.qualified_name) else None} {cog.qualified_name}')
         can_run = 'No'
         with contextlib.suppress(commands.CommandError):
             if await command.can_run(self.context):
@@ -86,14 +82,10 @@ class CustomHelp(commands.HelpCommand):
         group_embed.set_thumbnail(url=self.context.me.display_avatar.url)
         for command in group.commands:
             group_embed.description += f'<:GeraltRightArrow:904740634982760459> `{command.qualified_name}` - {command.brief}\n'
-        if cog := command.cog:
-            group_embed.add_field(
-                name = 'Category', 
-                value = f'{self.emojis.get(cog.qualified_name) if self.emojis.get(cog.qualified_name) else None} {cog.qualified_name}')
         can_run = 'No'
         with contextlib.suppress(commands.CommandError):
             if await command.can_run(self.context):
-                can_run = "Yes"
+                can_run = 'Yes'
         group_embed.add_field(
             name = 'Can you use it?', 
             value = f'`{can_run}`')

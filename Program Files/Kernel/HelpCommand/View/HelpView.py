@@ -19,8 +19,8 @@ class HelpMenuUI(discord.ui.Select):
 
     async def callback(self, interaction:discord.Interaction):
         for cog, commands in self.mapping.items():
-            name = cog.qualified_name if cog else 'Essential'
-            description = cog.description if cog else 'Commands without category'
+            name = f'{cog.qualified_name}' if cog else 'Essential'
+            description = f'{cog.description}' if cog else 'Commands without category'
             cmds = cog.walk_commands() if cog else commands
             if self.values[0] == name:
                 emb = discord.Embed(
@@ -35,7 +35,7 @@ class HelpMenuUI(discord.ui.Select):
                 
 class HelpMenu(discord.ui.View):
     def __init__(self, help, mapping):
-        super().__init__(timeout = 50)
+        super().__init__(timeout = 60)
         self.help = help
         self.mapping = mapping
         self.color = 0x2F3136
@@ -43,7 +43,8 @@ class HelpMenu(discord.ui.View):
         self.main = discord.Embed(
             color = self.color,
             title = f'__Geralt is Here to Help__',
-            description = f'Well hello there dear user <:AkkoHi:898611360580141097> ! My name is **[Geralt#9638](https://bsod2528.wixsite.com/geralt)** and I am a very simple **Discord Bot** alive just to induce fun into your server, and roast your members alive ! Use the dropdown for more information\n\n**CATEGORIES PRESENT -**\n>>> `1.` `Fun` - .ghelp Fun\n `2.` `Mod` - .ghelp Mod\n `3.` `Puns` - .ghelp Puns\n `4.` `Quotes` - .ghelp Quotes\n `5.` `Utility` - .ghelp Utility',
+            description =   f'Well hello there dear user <:AkkoHi:898611360580141097> ! My name is **[Geralt#9638](https://bsod2528.wixsite.com/geralt)** and I am a very simple **Discord Bot** alive just to induce fun into your server, and roast your members alive ! Use the dropdown for more information\n\n**CATEGORIES PRESENT -**\n\n'
+                            f'>>> <:replygoin:897151741320122458> `Fun` - .ghelp Fun\n <:replygoin:897151741320122458> `Mod` - .ghelp Mod\n <:replygoin:897151741320122458> `Puns` - .ghelp Puns\n <:replygoin:897151741320122458> `Quotes` - .ghelp Quotes\n <:reply:897151692737486949> `Utility` - .ghelp Utility',
             timestamp = self.help.context.message.created_at)
         options = []
         for cog, commands in self.mapping.items():

@@ -24,8 +24,15 @@ class SelfStop(discord.ui.View):
         async def close(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
             await interaction.message.delete()
 
-        async def interaction_check(self, interaction : discord.Interaction) -> bool:
-            return await super().interaction_check(interaction)('Well, your not the owner of this interaction, get your invoked interaction and try it out !', ephemeral = True)
+    async def interaction_check(self, interaction:discord.Interaction):
+        inter_check = discord.Embed(
+            color = self.color,
+            title = 'SIKE !!',
+            description = f'<@{interaction.user.id}> ! <@{self.help.context.author.id}> INVOKED THE COMMAND, NOT YOU IDIOT !! ',
+            timestamp = self.help.context.message.created_at
+        )
+        await interaction.response.send_message(embed = inter_check, ephemeral = True)
+        return False
         
 class ExceptionButton(discord.ui.View):
     def __init__(self, bot):
