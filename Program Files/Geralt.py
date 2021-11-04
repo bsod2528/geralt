@@ -61,10 +61,10 @@ def av(ctx):
 
 async def on_run():
 	dbkey = {
-		"user"	:	"bsod",
+		"user"		:	"bsod",
 		"password"	:	"VPVS",
 		"database"	:	"geralt",
-		"host"	:	"127.0.0.1"
+		"host"		:	"127.0.0.1"
 		}
 	db = await asyncpg.create_pool(**dbkey)
 	await db.execute("CREATE TABLE IF NOT EXISTS users(id bigint PRIMARY KEY, data text);")
