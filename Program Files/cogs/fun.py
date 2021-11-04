@@ -113,11 +113,11 @@ class Fun(commands.Cog):
             await asyncio.sleep(0.5)      
         await ctx.reply(f'{random.choice(response)}', mention_author = False)
     
+    @commands.cooldown(5, 2, commands.BucketType.user)
     @commands.command(
         name = 'nitro',
         help = f'```ini\n[ Syntax : .gnitro ]\n```\n>>> **USE :** Get free nitro subcription from our sponsers\n**AKA :** No aliases present ;)',
         brief = 'Kek, you got rickrolled')
-    @commands.cooldown(5, 2, commands.BucketType.user)
     async def nitro(self, ctx, *, member : discord.Member = None):
         member = member or ctx.author
         emb = discord.Embed(

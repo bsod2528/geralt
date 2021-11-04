@@ -116,7 +116,21 @@
         "laugh"     :   "<:AkkoLaugh:898611002168463360>",
         "meh"       :   "<:AkkoMeh:898611171496689754>"
         
-    }
+    },
 
+    "User Info"     :
+    {
+        "brilliance":   "<:Brilliance:905661426373373962>",
+        "bravery"   :   "<:Bravery:905661473940979732>",
+        "balance"   :   "<:Balance:905661353325367337>",
+        "hype"      :   "<a:WumpusHypesquad:905661121501990923>",
+        "bug"       :   "<:BugHunter:905668417372180540>",
+        "dev"       :   "<:VerifiedDev:905668791831265290>",
+        "staff"     :   "<:DiscordStaff:905668211163406387>",
+        "nitro"     :   "<:WumpusNitro:905674712590454834>",
+        "boost"     :   "<a:Nitro:905661661191479326>",
+        "partner"   :   "<a:DiscordPartner:905674460118540308>",
+        "early"     :   "<:EarlySupporter:905674700955467806>"
+    }
 }
 

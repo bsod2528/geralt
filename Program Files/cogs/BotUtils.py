@@ -13,6 +13,7 @@ from discord.embeds import E
 from discord.enums import ButtonStyle
 from googleapiclient.discovery import build
 from discord.ext import commands
+from Kernel.Utils.Settings import get_uptime
 
 api_key = 'AIzaSyBEed4XMr_rS8y6LcdEFBmw3CCR7oLALXk'
 
@@ -100,6 +101,18 @@ class BotUtils(commands.Cog, discord.ui.View):
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label = 'Image Source', url = url))
         await ctx.reply(embed = emb, view = view, mention_author = False)
+
+    @commands.command(
+        name = 'uptime', 
+        aliases = ['up'], 
+        help = 'Shows how long I have been alive',
+        brief = '')
+    async def uptime(self, ctx:commands.Context):
+        emb = discord.Embed(
+            color = 0x2F3136,
+            description = f'Uptime: {discord.utils.format_dt(self.bot.uptime)} ({discord.utils.format_dt(self.bot.uptime)})',
+        )
+        await ctx.send(embed = emb)
 
     @commands.command(
         name = 'web', 

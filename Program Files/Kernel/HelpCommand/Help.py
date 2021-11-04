@@ -21,7 +21,7 @@ class CustomHelp(commands.HelpCommand):
             'Quotes'        :       '<:AkkoDab:898610956895154288>',
             'Error Handler' :       '<:WinCogs:898591890209910854>',
             'Jishaku'       :       '<:WinCMD:898572428379299880>',
-            'Information'   :       '<:WinInfo:905487484421546015>'
+            'Info'   :       '<:WinInfo:905487484421546015>'
         }
         self.color = 0x2F3136
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)

@@ -19,13 +19,13 @@ from discord import ui, Interaction, SelectOption, ButtonStyle, Embed
 from discord.ext.commands import Cog, Command, Group, DefaultHelpCommand
 	
 class Geralt(commands.Bot):
-	def __init__(self, **kwargs):
+	def __init__(self, *args, **kwargs):
 		super().__init__(
 			command_prefix = commands.when_mentioned_or('.g'), 
 			status = discord.Status.idle, 
 			intents = discord.Intents.all(),
 			activity = discord.Game(name = 'jls'))
-    
+
 	async def on_ready(self):
 		print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
 		total_members = list(bot.get_all_members())
