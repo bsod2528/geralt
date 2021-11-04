@@ -56,9 +56,11 @@ class Info(commands.Cog):
             perms = f'{" | ".join(permission)}'
         else:
             perms = ''
+        pfp = user.display_avatar.with_static_format('png')
 
         user_info = discord.Embed(
             title = f'{user.name} - {user}',
+            url = pfp,
             color = self.color)
         user_info.add_field(
             name = 'Acc. Created On :',

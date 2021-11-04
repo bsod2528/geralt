@@ -18,7 +18,7 @@ def user_permissions(permissions):
         perm.append('• Ban Guild Members')
     
     if permissions.kick_members:
-        perm.append('• Kick Guiild Members')
+        perm.append('• Kick Guild Members')
 
     if permissions.manage_channels:
         perm.append('• Manage Channels')
