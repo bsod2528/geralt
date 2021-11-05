@@ -1,37 +1,29 @@
 import discord, requests, random, sys, asyncio, datetime, logging, json, pathlib, asyncpg, webbrowser, os, time, aiohttp
 import Kernel.HelpCommand.Help as help
-from discord.components import Button
 from discord import activity, channel, mentions, user
-from discord.embeds import EmptyEmbed
-from discord.flags import Intents
-from discord.types.embed import EmbedField
-from discord.ui import view
 from google.auth import credentials
 from discord import DMChannel, message
-from discord.enums import ContentFilter
 from discord.ext import commands
-from discord.ext import tasks
-from discord.utils import find
-from discord.ext.commands.core import command, has_guild_permissions, has_permissions
-from typing import Coroutine, Optional, Union
-import Kernel.Utils.Buttons as Buttons
-from discord import ui, Interaction, SelectOption, ButtonStyle, Embed
-from discord.ext.commands import Cog, Command, Group, DefaultHelpCommand
-	
+from asyncdagpi import Client as BSOD
+from asyncdagpi import ImageFeatures 
+from typing import Union
+
 class Geralt(commands.Bot):
 	def __init__(self, *args, **kwargs):
 		super().__init__(
 			command_prefix = commands.when_mentioned_or('.g'), 
 			status = discord.Status.idle, 
 			intents = discord.Intents.all(),
-			activity = discord.Game(name = 'jls'))
+			activity = discord.Activity(type = discord.ActivityType.playing, name = 'jag ska snart gå.'))
+	
+	target_type = Union[discord.Member, discord.User, discord.PartialEmoji, discord.Guild, discord.Invite, str]
 
 	async def on_ready(self):
 		print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
 		total_members = list(bot.get_all_members())
 		total_channels = sum(1 for x in bot.get_all_channels())
 		chunk_guilds_on_startup = True,
-		case_insensitive = True,
+		case_insensitive = True	,
 		print(f'Number of Guilds : {len(bot.guilds)}')
 		print(f'Number of Large Guilds : {sum(g.large for g in bot.guilds)}')
 		print(f'Number of Chunked Guilds : {sum(g.chunked for g in bot.guilds)}')
