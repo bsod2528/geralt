@@ -103,18 +103,6 @@ class BotUtils(commands.Cog, discord.ui.View):
         await ctx.reply(embed = emb, view = view, mention_author = False)
 
     @commands.command(
-        name = 'uptime', 
-        aliases = ['up'], 
-        help = 'Shows how long I have been alive',
-        brief = '')
-    async def uptime(self, ctx:commands.Context):
-        emb = discord.Embed(
-            color = 0x2F3136,
-            description = f'Uptime: {discord.utils.format_dt(self.bot.uptime)} ({discord.utils.format_dt(self.bot.uptime)})',
-        )
-        await ctx.send(embed = emb)
-
-    @commands.command(
         name = 'web', 
         help = f'```ini\n[ Syntax : .gweb <search keyword> ]\n```\n>>> **USE :** Wanna find something quickly? Search Google!\n**AKA :** `.gsearch` `.ggoogle`', 
         brief = 'Searches Google for you!',
@@ -142,7 +130,7 @@ class BotUtils(commands.Cog, discord.ui.View):
             emb.timestamp = self.timestamp
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(embed=emb, view = Button.SelfStop(bot = self.bot), mention_author = False)
+        await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)
 
     @commands.command(
         name = 'nice', 

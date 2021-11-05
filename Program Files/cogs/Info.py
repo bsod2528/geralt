@@ -128,7 +128,7 @@ class Info(commands.Cog):
         guild_info.add_field(
             name = 'Guild Analytics :',
             value = f'<:replygoin:897151741320122458> • **<a:Owner:905750348457738291> Owner :** {guild.owner.mention}\n'
-                    f'<:replygoin:897151741320122458> • **<a:HappyBirthday:905754435379163176> Created On :**( {discord.utils.format_dt(guild.created_at)} )\n'
+                    f'<:replygoin:897151741320122458> • **<a:HappyBirthday:905754435379163176> Created On :** ( {discord.utils.format_dt(guild.created_at)} )\n'
                     f'<:replygoin:897151741320122458> • **<a:Info:905750331789561856> ID :** ` {guild.id} `\n'
                     f'<:reply:897151692737486949> • **<a:Verify:905748402871095336> Verification :** {guild.verification_level}\n')
         guild_info.add_field(

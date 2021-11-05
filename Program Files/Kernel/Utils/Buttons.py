@@ -17,19 +17,22 @@ from discord.ui.button import B, button
 from discord.user import BU
 
 class SelfStop(discord.ui.View):
-    def __init__(self, bot):
+    def __init__(self, ctx):
         super().__init__()
         self.color = 0x2F3136
+        self.ctx = ctx
 
     @discord.ui.button(label = 'Delete', style = ButtonStyle.blurple, emoji = '\U0001f5d1')
     async def close(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
             await interaction.message.delete()
 
     async def interaction_check(self, interaction:discord.Interaction):
+        if interaction.user.id == self.ctx.author.id:
+            return True
         inter_check = discord.Embed(
             color = self.color,
             title = 'SIKE !!',
-            description = f'<@{interaction.user.id}> ! YOU DIDNT INVOK THE COMMAND, NOT YOU IDIOT !! ')
+            description = f'<@{interaction.user.id}> ! YOU DIDNT INVOKE THE COMMAND, NOT YOU IDIOT !! ')
         await interaction.response.send_message(embed = inter_check, ephemeral = True)
         return False
         
@@ -53,9 +56,10 @@ class ExceptionButton(discord.ui.View):
         await interaction.response.send_message(f'```py\n{value}{traceback.format_exc()}\n```', ephemeral = True)
     
 class Die(discord.ui.View):
-    def __init__(self, bot):
-        super().__init__()
+    def __init__(die, self, bot):
+        super().__init__(timeout = 5)
         self.bot = bot
+        self.die = die
     
     @discord.ui.button(style = ButtonStyle.green, emoji = '<:WinSuccess:898571689623978054>')
     async def yes(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
@@ -67,16 +71,25 @@ class Die(discord.ui.View):
         await interaction.response.send_message('Thank you for sparing me!', ephemeral = True)
         self.stop()
 
-    async def interaction_check(self, interaction:discord.Interaction):
+    async def interaction_check(self, interaction : discord.Interaction):
+        if interaction.user == self.die.context.user:
+            return True
         inter_check = discord.Embed(
             color =  0x2F3136,
             title = 'SIKE !!',
             description = f'<@{interaction.user.id}> ! THIS IS A OWNER CMD BEACH !! ')
         await interaction.response.send_message(embed = inter_check, ephemeral = True)
         return False
+    
+    async def on_timeout(self): 
+        try:
+            for item in self.children:
+                item.disabled = True
+        except discord.NotFound:
+            return
 
 class Nitro(discord.ui.View):
-    
+ 
     @discord.ui.button(label = '\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001Claim\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001\u2001', style = ButtonStyle.green)
     async def nitro(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
         await interaction.response.send_message(content = '__**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**__\n\nhttps://imgur.com/NQinKJB', ephemeral = True)
