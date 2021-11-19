@@ -33,7 +33,7 @@ def user_permissions(permissions):
         perm.append('• Manage Member Roles')
     
     if permissions.mention_everyone:
-        perm.append('• Can <@everyone>')
+        perm.append('• Can ping @everyone')
     
     if permissions.mute_members:
         perm.append('• Can Mute Members')

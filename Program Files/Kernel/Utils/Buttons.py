@@ -11,10 +11,6 @@ from discord import emoji
 from discord.components import Button
 from discord.enums import T, ButtonStyle
 from discord.ext import commands
-from discord.ext.commands import cog
-from discord.ext.commands.cog import Cog
-from discord.ui.button import B, button
-from discord.user import BU
 
 class SelfStop(discord.ui.View):
     def __init__(self, ctx):
@@ -38,6 +34,7 @@ class SelfStop(discord.ui.View):
 class ExceptionButton(discord.ui.View):
     def __init__(self, ctx):
         super().__init__()
+        self.ctx = ctx
         
     @discord.ui.button(label = 'Exception', style = ButtonStyle.danger)
     async def exception(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
@@ -55,7 +52,7 @@ class ExceptionButton(discord.ui.View):
         await interaction.response.send_message(f'```py\n{value}{traceback.format_exc()}\n```', ephemeral = True)
     
     async def interaction_check(self, interaction : discord.Interaction):
-        if interaction.user.id == self.ctx.author.id:
+        if interaction.user == self.ctx.author.id:
             return True
         inter_check = discord.Embed(
             color = 0x2F3136,
@@ -72,26 +69,25 @@ class Die(discord.ui.View):
     
     @discord.ui.button(style = ButtonStyle.green, emoji = '<:WinSuccess:898571689623978054>')
     async def yes(self, button : discord.ui.button, interaction : discord.Interaction, *args) -> bool:
-        await interaction.response.send_message('Okay, Ill die FFS!', ephemeral = True)
+        await interaction.response.edit_message(content = f'Okay, Ill die FFS!', view = self)
         await self.bot.close()
 
     @discord.ui.button(style = ButtonStyle.red, emoji = '<:WinCritical:898571769114406942>')
     async def no(self, button : discord.ui.button, interaction : discord.Interaction):
-        await interaction.response.send_message('Thank you for sparing me!', ephemeral = True)
-
+        await interaction.response.edit_message(content = f'Thank you for sparing me!', view = self)
+    
     async def interaction_check(self, interaction : discord.Interaction):
         if interaction.user == self.ctx.author:
             return True
         inter_check = discord.Embed(
-            color = 0x2F3136,
             title = 'SIKE !!',
-            description = f'<@{interaction.user.id}> **! THIS IS A OWNER CMD BEACH !!** ')
+            color = 0x2F3136,
+            description = f'<@{interaction.user.id}> !! **YOU CANT KILL ME !!**')
         await interaction.response.send_message(embed = inter_check, ephemeral = True)
-        return False
 
 class Nitro(discord.ui.View):
     def __init__(self, ctx, member : discord.Member = None):
-        super().__init__(timeout = 60)
+        super().__init__()
         self.ctx = ctx
         self.member = member or ctx.author
 
@@ -100,7 +96,7 @@ class Nitro(discord.ui.View):
         await interaction.response.send_message(content = '__**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**__\n\nhttps://imgur.com/NQinKJB', ephemeral = True)
 
     async def interaction_check(self, interaction : discord.Interaction):
-        if interaction.id == self.member.id:
+        if interaction.user == self.ctx.author:
             return True
         inter_check = discord.Embed(
             color = 0x2F3136,

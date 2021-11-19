@@ -12,20 +12,20 @@ class CustomHelp(commands.HelpCommand):
             }
         )
         self.emojis = {
-            'Fun'           :       '<:PandaNice:904765669680226315>',
-            'Mod'           :       '<:ModBadge:904765450066473031>',
-            'AV'            :       '<:WinTerminal:898609124982554635>',
-            'BotUtils'       :       '<:WinGIT:898591166864441345>',
-            'Essential'     :       '<:WinCheck:898572324490604605>',
-            'Puns'          :       '<:uwu:902119529461727252>',
-            'Quotes'        :       '<:AkkoDab:898610956895154288>',
+            'AV'            :       '<:VerifiedDev:905668791831265290>',
+            'BotUtils'      :       '<:WinGIT:898591166864441345>',
             'Error Handler' :       '<:WinCogs:898591890209910854>',
-            'Jishaku'       :       '<:WinCMD:898572428379299880>',
-            'Info'   :       '<:WinInfo:905487484421546015>'
+            'Jishaku'       :       '<:WinTerminal:898609124982554635>',
+            'Puns'          :       '<:uwu:902119529461727252>',
+            'Quotes'        :       '<:AkkoDab:907104977401577472>',
+            'Info'          :       '<:WinInfo:905487484421546015>',
+            'Mod'           :       '<:Moderator:877796954011222047>',
+            'Fun'           :       '<a:WinBabyPat:898589341171978280>',
+            'Essential'     :       '<:WinCheck:898572324490604605>'
         }
         self.color = 0x2F3136
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        self.footer = 'Run .ghelp <command> for more info on each command'
+        self.footer = 'Run g.help <command> for more info on each command'
 
     async def send_bot_help(self, mapping):
         DropDown = HelpView.HelpMenu(self, mapping)
@@ -65,7 +65,7 @@ class CustomHelp(commands.HelpCommand):
                 can_run = 'Yes'  
         command_help.add_field(
             name = 'Can you use it?', 
-            value = f'<:GeraltRightArrow:904740634982760459> {can_run}')
+            value = f'<:reply:897151692737486949> {can_run}')
         if command._buckets and (cooldown := command._buckets._cooldown):
             command_help.add_field(
                 name = 'Cooldown', 

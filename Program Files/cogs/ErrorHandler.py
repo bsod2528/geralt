@@ -86,18 +86,17 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
             async with ctx.typing():
                 await asyncio.sleep(0.5)
             await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)
-
+        
         if isinstance(error, commands.MissingPermissions):
             emb = discord.Embed(
-                title = 'OOPS!',
+                title = 'SIKE !',
                 color = color)
             emb.add_field(
                 name = f'__***Missing Perms : {ctx.command}***__   {random.choice(mu)}',
-                value = f'```py\n{error} \n```\n')
-            emb.timestamp = self.timestamp
+                value = f'```py\n{error}\n```')
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)
+            await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mnetion_author = False)
 
         if isinstance(error, commands.NotOwner):
             emb = discord.Embed(
@@ -114,17 +113,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 title = 'Yikes !',
                 color = color)
             emb.add_field(
-                name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
-                value = f'```py\n {error}\n```')
-            emb.timestamp = self.timestamp
-            await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)
-        
-        if isinstance(error, MemberNotFound):
-            emb = discord.Embed(
-                title = 'Weee!',
-                color = color)
-            emb.add_field(
-                name = f'__***Args Missing : {ctx.command}***__   {random.choice(mu)}',
+                name = f'__***Args Missing : `{ctx.command}`***__   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)
@@ -134,7 +123,7 @@ class ErrorHandler(commands.Cog, name = 'Error Handler'):
                 title = 'Dang !',
                 color = color)
             emb.add_field(
-                name = f'__***Bad Args : {ctx.command}***__   {random.choice(mu)}',
+                name = f'__***Bad Args :***__ *`{ctx.command}`*   {random.choice(mu)}',
                 value = f'```py\n {error}\n```')
             emb.timestamp = self.timestamp
             await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)

@@ -1,3 +1,4 @@
+import io
 import asyncio
 import discord
 import random
@@ -8,6 +9,7 @@ import json
 from discord import user
 
 from discord.ext.commands import bot
+from discord.player import AudioSource
 from discord.ui.button import B
 import Kernel.Utils.Buttons as Button
 from discord.embeds import Embed
@@ -24,22 +26,19 @@ class Fun(commands.Cog):
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.json = json.load(open('Program Files\Emotes.json'))   
     def av(ctx):
-        return ctx.author.id == 750979369001811982
+        return ctx.author.id == 750979369001811982, 696214404836098078
    
-    @commands.command(
-        name = 'dm', 
-        help = f'```ini\n[ Syntax : .gdm <user/id> <message> ]\n```\n>>> **USE :** What can you not understand by the term\n**AKA :** None present ;)', 
-        brief = 'DM')
-    async def dm(self, ctx, user : discord.User, *, msg):
+    @commands.command()
+    async def spoiler(self, ctx, *, message):
         async with ctx.typing():
             await asyncio.sleep(0.5)
-            await ctx.send('Done')
-        await user.send(f'{msg}')
+        await ctx.reply(f'||{message}||', mention_author = False)
 
     @commands.command(
         aliases = ['gp', 'gping'], 
         help = f'```ini\n[ Syntax : .gghost <mention user> ]\n```\n>>> **USE :**Have fun ghost pinging your friends\n**AKA :** `gping` `gp`', 
         brief = 'Use it to ghost ping!')
+    @commands.check(av)
     async def ghost(self, ctx, member : discord.Member):
         emote = self.json
         alpha = [f'{emote["linus"]["kill"]}',
@@ -53,7 +52,7 @@ class Fun(commands.Cog):
             await asyncio.sleep(0.1)
         await ctx.send(f'{member.mention} {random.choice(alpha)}')
         await ctx.channel.purge(limit = 2)
-
+    
     @commands.command(
         help = f'```ini\n[ Syntax : .gchoose <opt.1> <opt.2> ]\n```\n>>> **USE :** For when you wanna settle the score some other way\n**AKA :** No aliases present ;)',
         brief = 'Either this or that !')
@@ -125,7 +124,8 @@ class Fun(commands.Cog):
             description = f"[__**{str(member)}**__](https://i.imgur.com/w9aiD6F.png) You've been gifted Nitro for __**1 month!**__\n Expires in __**24 hours**__",
             color = 0x2F3136)
         emb.set_thumbnail(url = 'https://i.imgur.com/w9aiD6F.png')
-        await ctx.send(embed = emb, view = Button.Nitro())
+        await ctx.send(embed = emb, view = Button.Nitro(ctx))
+    
     
 def setup(bot):
     bot.add_cog(Fun(bot))

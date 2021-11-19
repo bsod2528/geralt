@@ -2,16 +2,20 @@ import json
 import discord 
 import random
 import asyncio
+import codecs
+import aiohttp
 import datetime
 from discord.enums import VerificationLevel
 from discord.utils import resolve_annotation
 import Kernel.Info.InfoHelp as InfoHelp
 from discord import permissions
 from discord.ext import commands
-
+from bs4 import BeautifulSoup
 class Info(commands.Cog):
     
-    """Get information regarding server members"""
+    """
+    Get information regarding server members
+    """
 
     def __init__(self, bot):
         self.bot = bot
@@ -53,7 +57,7 @@ class Info(commands.Cog):
         fetched_user = await ctx.bot.fetch_user(user.id)
         permission = InfoHelp.user_permissions(user.guild_permissions)
         if permission:
-            perms = f'{" | ".join(permission)}'
+            perms = f'{" **`|`** ".join(permission)}'
         else:
             perms = ''
         pfp = user.display_avatar.with_static_format('png')
@@ -64,10 +68,12 @@ class Info(commands.Cog):
             color = self.color)
         user_info.add_field(
             name = 'Acc. Created On :',
-            value = f'{discord.utils.format_dt(user.created_at)}')
+            value = f'{discord.utils.format_dt(user.created_at, style = "D")}\n'
+                    f'( {discord.utils.format_dt(user.created_at, style = "R")} )')
         user_info.add_field(
             name = 'Joined Guild :',
-            value = f'{discord.utils.format_dt(user.joined_at)}')
+            value = f'{discord.utils.format_dt(user.joined_at, style = "D")}\n'
+                    f'( {discord.utils.format_dt(user.joined_at, style = "R")} )')
         user_info.add_field(
             name = 'Top Roles :',
             value = f'• {user.top_role.mention}',
@@ -124,11 +130,12 @@ class Info(commands.Cog):
 
         guild_info = discord.Embed(
             title = f'{guild}',
+            url = guild.icon,
             color = self.color)
         guild_info.add_field(
             name = 'Guild Analytics :',
             value = f'<:replygoin:897151741320122458> • **<a:Owner:905750348457738291> Owner :** {guild.owner.mention}\n'
-                    f'<:replygoin:897151741320122458> • **<a:HappyBirthday:905754435379163176> Created On :** ( {discord.utils.format_dt(guild.created_at)} )\n'
+                    f'<:replygoin:897151741320122458> • **<a:Woo:905754435379163176> Created On :** {discord.utils.format_dt(guild.created_at, style = "D")} ( {discord.utils.format_dt(guild.created_at, style = "R")} )\n'
                     f'<:replygoin:897151741320122458> • **<a:Info:905750331789561856> ID :** ` {guild.id} `\n'
                     f'<:reply:897151692737486949> • **<a:Verify:905748402871095336> Verification :** {guild.verification_level}\n')
         guild_info.add_field(
@@ -136,7 +143,7 @@ class Info(commands.Cog):
             value = f'<:replygoin:897151741320122458> • **<a:HumanBro:905748764432662549> No. of Humans :** {len(list(filter(lambda m: m.bot is False, guild.members)))}\n'
                     f'<:replygoin:897151741320122458> • **<a:BotLurk:905749164355379241> No. of Bots :** {len(list(filter(lambda m: m.bot, guild.members)))}\n'
                     f'<:replygoin:897151741320122458> • **<a:Users:905749451350638652> Total :** {ctx.guild.member_count}\n'
-                    f'<:reply:897151692737486949> • **Region :** {InfoHelp.guild_region(guild)} {InfoHelp.guild_region_emote(guild)}',
+                    f'<:reply:897151692737486949> • **<a:World:906831648732102677> Region :** {InfoHelp.guild_region(guild)} {InfoHelp.guild_region_emote(guild)}',
             inline = False)
         guild_info.add_field(
             name = 'Channels Present :',

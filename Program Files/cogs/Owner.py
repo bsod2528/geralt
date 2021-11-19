@@ -39,6 +39,16 @@ class AV(commands.Cog):
         return ctx.author.id == 750979369001811982 , 760823877034573864, 778251218505433098
 
     @commands.command(
+        name = 'dm', 
+        help = f'```ini\n[ Syntax : .gdm <user/id> <message> ]\n```\n>>> **USE :** What can you not understand by the term\n**AKA :** None present ;)', 
+        brief = 'DM')
+    async def dm(self, ctx, user : discord.User, *, msg):
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
+            await ctx.send('Done')
+        await user.send(f'{msg}')
+    
+    @commands.command(
         name = 'eval',
         aliases = ['e'],
         help = f'```ini\n[ Syntax : .geval <code here> ]\n```\n>>> __***Bot Owner command, dont even think about running this <:AkkoThink:898611207995543613>***__\n\n**USE :** Evalutes the code given by BSOD\n**AKA :** `.ge`',
@@ -67,7 +77,7 @@ class AV(commands.Cog):
             emb = discord.Embed(
                 description = f'```py\n{e.__class__.__name__} --> {e}\n```',
                 color = self.color)
-            return await ctx.send(embed = emb, view = Button.ExceptionButton(bot = self.bot))
+            return await ctx.send(embed = emb, view = Button.ExceptionButton(ctx))
         func = env["func"]
         try:
             with contextlib.redirect_stdout(stdout):
@@ -77,7 +87,7 @@ class AV(commands.Cog):
             emb = discord.Embed(
                 description = f'```py\n{value}{traceback.format_exc()}\n```',
                 color = 0x2F3136)
-            message = await ctx.send(embed = emb, view = Button.ExceptionButton(bot = self.bot))
+            message = await ctx.send(embed = emb, view = Button.ExceptionButton(ctx))
             await ctx.message.add_reaction('<:WinUnheck:898572376147623956>')
         else:
             value = stdout.getvalue()
@@ -118,7 +128,7 @@ class AV(commands.Cog):
                 await asyncio.sleep(0.5)
             message = await ctx.reply(f'{random.choice(unload)}')
             await asyncio.sleep(2)
-            await message.edit(f'{emote["Win"]["check"]} Cog Unloaded ', mention_author = False)
+            await message.edit(f'{emote["Win"]["check"]} Cog Unloaded ')
     
 
     @commands.command(
@@ -140,7 +150,7 @@ class AV(commands.Cog):
                 await asyncio.sleep(0.5)
             message = await ctx.reply(f'{random.choice(load)}')
             await asyncio.sleep(2)
-            await message.edit(f'{emote["Win"]["check"]} Cog Loaded ', mention_author = False)
+            await message.edit(f'{emote["Win"]["check"]} Cog Loaded ')
     
     @commands.command(
         name = 'reload',
@@ -154,7 +164,7 @@ class AV(commands.Cog):
         except Exception as e:
             async with ctx.typing():
                 await asyncio.sleep(0.5)
-            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}')
+            await ctx.reply(f'{emote["Win"]["critical"]} {type(e).__name__} - {e}', mention_author = False)
         else:
             reload  =   [f'Reloading Cog {emote["Girl"]["okay"]}',
                         f'The cog is being reloaded, please wait {emote["Girl"]["okay"]}',
@@ -185,7 +195,7 @@ class AV(commands.Cog):
     @commands.is_owner()
     async def die(self, ctx):
         emote = self.json
-        await ctx.reply(f'Do you really wanna kill me?', view = Button.Die(bot = self.bot), mention_author = False)
+        await ctx.reply(f'Do you really wanna kill me?', view = Button.Die(ctx, bot = self.bot), mention_author = False)
     
     @commands.command(
         name = 'toggle', 

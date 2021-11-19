@@ -11,13 +11,12 @@ from typing import Union
 class Geralt(commands.Bot):
 	def __init__(self, *args, **kwargs):
 		super().__init__(
+			
 			command_prefix = commands.when_mentioned_or('.g'), 
 			status = discord.Status.idle, 
 			intents = discord.Intents.all(),
 			activity = discord.Activity(type = discord.ActivityType.playing, name = 'jag ska snart gå.'))
 	
-	target_type = Union[discord.Member, discord.User, discord.PartialEmoji, discord.Guild, discord.Invite, str]
-
 	async def on_ready(self):
 		print(f'\n\nCame into life as {self.user} (ID: {self.user.id})')
 		total_members = list(bot.get_all_members())
@@ -33,7 +32,7 @@ class Geralt(commands.Bot):
 		print(f'Geralt is ready for action !')
 		await self.change_presence(
 			status = discord.Status.idle, 
-			activity = discord.Activity(type = discord.ActivityType.listening, name = f'@{self.user.name} help'))
+			activity = discord.Activity(type = discord.ActivityType.listening, name = f'.ghelp'))
 
 bot = Geralt()
 
@@ -44,7 +43,7 @@ logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(
 	filename = 'Geralt.log', 
 	encoding = 'utf-8', 
-	mode = 'w')
+	mode = 'a')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 

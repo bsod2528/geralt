@@ -26,7 +26,7 @@ class BotUtils(commands.Cog, discord.ui.View):
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.color = 0x2F3136
         self.emote = json.load(open('Program Files\Emotes.json'))   
-    
+        self._BotBase__cogs = commands.core._CaseInsensitiveDict()
     @commands.command( 
         help = f'```ini\n[ Syntax : .gabout ]\n```\n>>> **USE :** Elaborate details about me\n**AKA :** `.ginfo` `.gbotinfo`', 
         brief = 'Get Bot Info', 
@@ -41,7 +41,7 @@ class BotUtils(commands.Cog, discord.ui.View):
         emb.set_thumbnail(url = ctx.me.avatar)
         emb.add_field(
             name = 'Coded in:',
-            value=f'**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ<:reply:897151692737486949> Dependent On')
+            value = f'**Language :** **[`python 3.10.0`](https://www.python.org/)** <:WinTerminal:898609124982554635> \n**Library :** **[`discord.py 2.0`](https://github.com/Rapptz/discord.py)** <:WinPython:898614277018124308>\nㅤㅤㅤㅤ<:reply:897151692737486949> Dependent On')
         emb.add_field(
             name = 'Statistics:',
             value=f'**Servers :** `{len([g.id for g in self.bot.guilds])}`\n**Users :** `{len([g.id for g in self.bot.users])}`', inline = True)
@@ -95,12 +95,13 @@ class BotUtils(commands.Cog, discord.ui.View):
         url = result['items'][ran]['link']
         emb = discord.Embed(
             title = f'Your Choice of Image',
+            url = url,
             color = self.color)
         emb.timestamp = self.timestamp
-        emb.set_image(url = url)
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(label = 'Image Source', url = url))
-        await ctx.reply(embed = emb, view = view, mention_author = False)
+        emb.set_footer(
+            text = 'Click on the heading for Image Source '
+        )
+        await ctx.reply(embed = emb, view = Button.SelfStop(ctx), mention_author = False)
 
     @commands.command(
         name = 'web', 
@@ -122,7 +123,7 @@ class BotUtils(commands.Cog, discord.ui.View):
     
         for item in images:
     
-            imagelist = "\n".join([f"{'> <:reply:897151692737486949>' if len(images) == index+1 else '> <:replygoin:897151741320122458>'} **[{item['title']}]({item['link']})**" for index, item in enumerate(images)])
+            imagelist = "\n".join([f"{'> <:reply:897151692737486949> •' if len(images) == index+1 else '> <:replygoin:897151741320122458> •'} **[{item['title']}]({item['link']})**" for index, item in enumerate(images)])
             emb = discord.Embed(
                 title = f'Your search results below - ',
                 description = f'\n{imagelist}',

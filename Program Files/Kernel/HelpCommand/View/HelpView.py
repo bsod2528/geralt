@@ -19,7 +19,7 @@ class HelpMenuUI(discord.ui.Select):
 
     async def callback(self, interaction:discord.Interaction):
         for cog, commands in self.mapping.items():
-            name = f'{cog.qualified_name}' if cog else 'Essential'
+            name = f'{cog.qualified_name}' if cog else f'<:WinCheck:898572324490604605> Essential'
             description = f'{cog.description}' if cog else 'Commands without category'
             cmds = cog.walk_commands() if cog else commands
             if self.values[0] == name:
@@ -43,8 +43,15 @@ class HelpMenu(discord.ui.View):
         self.main = discord.Embed(
             color = self.color,
             title = f'__Geralt is Here to Help__',
-            description =   f'Well hello there dear user <:AkkoHi:898611360580141097> ! My name is **[Geralt#9638](https://bsod2528.wixsite.com/geralt)** and I am a very simple **Discord Bot** alive just to induce fun into your server, and roast your members alive ! Use the dropdown for more information\n\n**CATEGORIES PRESENT -**\n\n'
-                            f'>>> <:replygoin:897151741320122458> `BotUtils` - .ghelp BotUtils\n <:replygoin:897151741320122458> `Fun` - .ghelp Fun\n <:replygoin:897151741320122458> `Information` - .ghelp Information\n <:replygoin:897151741320122458> `Mod` - .ghelp Mod\n <:replygoin:897151741320122458> `Puns` - .ghelp Puns\n <:reply:897151692737486949> `Quotes` - .ghelp Quotes\n',
+            description =   f'Well hello there dear user <:AkkoHi:907105026462347334> ! My name is [**`Geralt#9638`**](https://cdn.discordapp.com/avatars/873204919593730119/f7fa349c1100489a68a32672e6a55edc.png?size=1024) and I am a very simple Discord Bot alive just to induce fun into your server, and roast your members alive ! Use the dropdown for more information\n\n'
+                            f'__**CATEGORIES PRESENT**__ -\n'
+                            f'<:replygoin:897151741320122458> `1.` • Fun - .ghelp Fun\n'
+                            f'<:replygoin:897151741320122458> `2.` • Mod - .ghelp Mod\n'
+                            f'<:replygoin:897151741320122458> `3.` • Puns - .ghelp Puns\n'
+                            f'<:replygoin:897151741320122458> `4.` • Quotes - .ghelp Quotes\n'
+                            f'<:replygoin:897151741320122458> `5.` • BotUtils - .ghelp BotUtils\n'
+                            f'<:reply:897151692737486949> `6.` • Info - .ghelp Info',
+            url = 'https://bsod2528.wixsite.com/geralt',
             timestamp = self.help.context.message.created_at)
         options = []
         for cog, commands in self.mapping.items():
