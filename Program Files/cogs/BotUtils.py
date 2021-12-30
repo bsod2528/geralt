@@ -15,7 +15,7 @@ from googleapiclient.discovery import build
 from discord.ext import commands
 from Kernel.Utils.Settings import get_uptime
 
-api_key = 'AIzaSyBEed4XMr_rS8y6LcdEFBmw3CCR7oLALXk'
+api_key = 'AIzaSyBEed4XMr_rS8y6Lcdsadasldsaid' # this doesnt work - so dont worry about it :D
 
 class BotUtils(commands.Cog, discord.ui.View):
     
