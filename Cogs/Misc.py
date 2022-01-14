@@ -47,6 +47,7 @@ class Misc(commands.Cog):
         PING_EMB.timestamp = self.bot.Timestamp
         await ctx.reply(embed = PING_EMB, mention_author = False)
     
+    # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of implementing buttons for System Usage [ PSUTIl ] and Latest Commits on Github :)
     @commands.command(
         name    =   "info",
         aliases =   ["about"],
