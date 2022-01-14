@@ -4,13 +4,15 @@ import discord
 import datetime
 import itertools
 
+from discord.ext import commands
 from discord.enums import ButtonStyle
+from inspect import iscoroutinefunction
 
 PAIN    =   "This can't be handled by you at the moment, invoke your very own command <:SarahPray:920484222421045258>"
 COLOUR  =   discord.Colour.from_rgb(117, 128, 219)
 
 # Gets latest commits from Github and Format them to make it look sexy :D
-def format_commit(COMMIT):
+def Format_Commit(COMMIT):
     short, _, _     = COMMIT.message.partition("\n")
     Commit_Desc     = short[0:40] + "..." if len(short) > 40 else short
     Short_Hash      = COMMIT.hex[0:6]
@@ -22,9 +24,10 @@ def format_commit(COMMIT):
 def Latest_Commit(MAX : int = 3):
     Repository    = pygit2.Repository(".git")
     Commits = list(itertools.islice(Repository.walk(Repository.head.target, pygit2.GIT_SORT_TOPOLOGICAL), MAX))
-    return "\n".join(format_commit(C) for C in Commits)
+    return "\n".join(Format_Commit(C) for C in Commits)
 
 # Sub - Class for " Bot Info " command.
+# A huge shoutout and thanks to Zeus432 [ Github User ID ] for the amazing idea of adding these buttons :D
 class Info(discord.ui.View):
     def __init__(self, ctx, bot):
         super().__init__()
@@ -82,3 +85,18 @@ class Info(discord.ui.View):
         if INTERACTION.user == self.ctx.author:
             return True
         await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+
+# Sub - Class for Confirmation based commands which utilises buttons.
+class Confirmation(discord.ui.View):
+    def __init__(self, Yes : iscoroutinefunction, No : iscoroutinefunction):
+        super().__init__()
+        self.Yes    = Yes
+        self.No     = No
+    
+    @discord.ui.button(label = "Yes", style = ButtonStyle.blurple, emoji = "<:WinCheck:898572324490604605>")
+    async def YES(self, BUTTON : discord.ui.Button, INTERACTION : discord.Interaction):
+        await self.Yes(self, BUTTON,  INTERACTION)
+    
+    @discord.ui.button(label = "No", style = ButtonStyle.danger, emoji = "<:WinUncheck:898572376147623956> ")
+    async def NO(self, BUTTON : discord.ui.Button, INTERACTION : discord.Interaction):
+        await self.No(self, BUTTON,  INTERACTION)   
