@@ -1,4 +1,6 @@
 import os
+import time
+import asyncio
 import asyncpg
 
 async def TOTAL_LINES(Path : str, FileType : str = ".py"):
@@ -10,7 +12,7 @@ async def TOTAL_LINES(Path : str, FileType : str = ".py"):
             #elif L.is_dir():
                 Lines += await TOTAL_LINES(L.Path, FileType)
     return Lines
-    
+
 class DB_FUNCS:
     def __init__(self):
     

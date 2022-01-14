@@ -39,10 +39,10 @@ class Misc(commands.Cog):
         PING.append(WEBSOCKET_PING)
 
         PING_EMB = discord.Embed(
-            title = "__My Latency__",
-            description =   f"{EMOTE['Needed']['RG']} - Typing : `{round(TYPING_PING, 1)} ms`\n"
-                            f"{EMOTE['Needed']['RG']} - Discord API : `{WEBSOCKET_PING:,.0f} ms`\n"
-                            f"{EMOTE['Needed']['R']} - Database : `{round(DB_PING, 1)} ms`",
+            title = "__ My Latencies : __",
+            description =   f"""```yaml\n> PostGreSQL     : {round(DB_PING, 1)} ms
+> Discord API    : {WEBSOCKET_PING:,.0f} ms
+> Message Typing : {round(TYPING_PING, 1)} ms\n```""",
             colour = self.bot.colour)
         PING_EMB.timestamp = self.bot.Timestamp
         await ctx.reply(embed = PING_EMB, mention_author = False)
@@ -56,7 +56,7 @@ class Misc(commands.Cog):
         INFO_EMB    =   discord.Embed(
             title = "__Geralt : Da Bot__",
             url = self.bot.PFP,
-            description =   f"Hi <a:Waves:920726389869641748> [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after costruction ]. I'm made by **BSOD#3375**\n\nCame to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\nYou can check out my [**Github**](https://github.com/BSOD2528/Geralt) or by clicking the `Github Commits` button :D ",
+            description =   f"Hi <a:Waves:920726389869641748> [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#3375**\n\nCame to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\nYou can check out my [**Github**](https://github.com/BSOD2528/Geralt) or by clicking the `Github Commits` button :D ",
             colour = self.bot.colour)
         INFO_EMB.add_field(
             name = "General Statistics :",
