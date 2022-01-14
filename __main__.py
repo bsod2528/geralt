@@ -9,7 +9,10 @@ from discord.webhook.async_ import Webhook
 from Kernel.Utilities.Essential import DB_FUNCS
 
 COGS_EXTENSIONS    =   [
-    "Cogs.Misc"
+   "Cogs.Misc",
+   "Cogs.Developer",
+   "Cogs.ErrorHandler",
+   "jishaku"
 ]
 
 KERNEL  =   json.load(open("Kernel\Credentials\Config.json"))
@@ -31,50 +34,25 @@ class Geralt(commands.Bot):
     def __init__(self, *ARGS, **KWARGS) -> None:
         
         super().__init__(
-            Intents =   discord.Intents.all(),
+            Intents =   discord.Intents.all,
             status  =   discord.Status.do_not_disturb,
             command_prefix  =  commands.when_mentioned_or(KERNEL["Init"]["Prefix"]),
             activity    =   discord.Activity(type = discord.ActivityType.playing, name = "Waking up to Die"))
 
-        self.Kernel =   KERNEL
-        self.DT =   discord.utils.format_dt
-        self.PFP    =   KERNEL["Init"]["PFP"]
+        self.Kernel         =   KERNEL
+        self.PFP            =   KERNEL["Init"]["PFP"]
+        self.DT             =   discord.utils.format_dt
         self.description    =   KERNEL["Init"]["Description"]
-        self.colour  =   discord.Colour.from_rgb(117, 128, 219)
-        self.Timestamp  =   datetime.datetime.now(datetime.timezone.utc)
-
-        for COGS in COGS_EXTENSIONS:
-            try:
-                self.load_extension(COGS)
-            except Exception as e:
-                print(f"Failed to load extension {COGS}\n{type(e).__name__}: {e}")
-
-    async def RELOAD(self, *, COGS : str):
-        self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK  =   Webhook.from_url(KERNEL["Tokens"]["Discord_WebHook"], session = self.session)
-        for COGS in COGS_EXTENSIONS:
-            try:
-                self.reload_extension(COGS)
-            except Exception as EXCEPTION:
-                self.WEBHOOK.send(f"{COGS} wasn't able to be reloaded")
+        self.Mention        =   discord.AllowedMentions.none()
+        self.Error_Channel  =   KERNEL["Init"]["ErrorChannel"]
+        self.colour         =   discord.Colour.from_rgb(117, 128, 219)
+        self.Timestamp      =   datetime.datetime.now(datetime.timezone.utc)
         
-    async def LOAD(self, *, COGS : str):
-        self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK  =   Webhook.from_url(KERNEL["Tokens"]["Discord_WebHook"], session = self.session)
         for COGS in COGS_EXTENSIONS:
             try:
                 self.load_extension(COGS)
-            except Exception as EXCEPTION:
-                self.WEBHOOK.send(f"{COGS} wasn't able to be loaded")
-    
-    async def UNLOAD(self, *, COGS : str):
-        self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK  =   Webhook.from_url(KERNEL["Tokens"]["Discord_WebHook"], session = self.session)
-        for COGS in COGS_EXTENSIONS:
-            try:
-                self.unload_extension(COGS)
-            except Exception as EXCEPTION:
-                self.WEBHOOK.send(f"{COGS} wasn't able to be unloaded")
+            except Exception as EXCEPT:
+                print(f"{COGS} : {EXCEPT}")
     
     async def on_ready(self):
         self.session    =   aiohttp.ClientSession()
