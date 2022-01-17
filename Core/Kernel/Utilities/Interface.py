@@ -105,3 +105,16 @@ class Confirmation(discord.ui.View):
     @discord.ui.button(label = "No", style = ButtonStyle.danger, emoji = "<:WinUncheck:898572376147623956> ")
     async def NO(self, BUTTON : discord.ui.Button, INTERACTION : discord.Interaction):
         await self.No(self, BUTTON,  INTERACTION)   
+
+# Sub - Class for User Info command.
+class UserInf(discord.ui.View):
+    def __init__(self, bot, ctx, *, USER : discord.User):
+        super().__init__()
+        self.bot            =   bot
+        self.ctx            =   ctx
+        self.USER           =   USER
+        self.MISC_EMB       :   discord.Embed   =   None
+        self.ASSETS_EMB     :   discord.Embed   =   None
+        self.GENERAL_EMB    :   discord.Embed   =   None
+        self.CURRENT_EMB    :   discord.Embed   =   None
+        self.ACTIVITY_EMB   :   discord.Embed   =   None

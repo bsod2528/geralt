@@ -7,9 +7,8 @@ from discord.ext import commands
 from discord.ext.commands import bot
 
 #from __main__ import EMOTE
-from Core.Kernel.Utilities.Interface import Info
-from Core.Kernel.Utilities.Essential import TOTAL_LINES as TL
-from Core.Kernel.Utilities.Essential import MISC
+from Core.Kernel.Utilities.Interface import Info, Select
+from Core.Kernel.Utilities.Essential import TOTAL_LINES as TL, MISC
 
 class Misc(commands.Cog):
     def __init__(self, bot):
@@ -77,5 +76,9 @@ class Misc(commands.Cog):
         INFO_EMB.timestamp = self.bot.Timestamp
         await ctx.reply(embed = INFO_EMB, mention_author = False, view = Info(ctx, bot))
     
+    @commands.command()
+    async def test(self, ctx):
+        await ctx.send("hi", view = Select())
+
 def setup(bot):
     bot.add_cog(Misc(bot))
