@@ -1,16 +1,19 @@
+from unicodedata import name
 import discord
 import asyncio
 
 from discord.ext import commands
 from discord.enums import ButtonStyle
 
-from Kernel.Utilities.Interface import Confirmation
-from Kernel.Utilities.Interface import PAIN
+from Core.Kernel.Utilities.Interface import Confirmation
+from Core.Kernel.Utilities.Interface import PAIN
+from __main__ import KERNEL
 
 class Developer(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-   
+    
+    # Shuts the bot down in a friendly manner.
     @commands.command(
         name    =   "die", 
         aliases =   ["snap"], 
@@ -31,7 +34,8 @@ class Developer(commands.Cog):
             await UI.response.edit("Seems like I'm gonna be alive for a bit longer",view = None, allowed_mentions = self.bot.Mention)
             UI.stop()
         Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
-   
+    
+    # Loads extension of choice
     @commands.command(
         name    =   "load",
         aliases =   ["l"],
@@ -44,7 +48,7 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
                 return
             try:
-                self.bot.load_extension(f"Cogs.{COG}")
+                self.bot.load_extension(f"Core.Cogs.{COG}")
             except Exception as EXCEPT:
                 await UI.response.edit(f"Couldn't load **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = None, allowed_mentions = self.bot.Mention)
             else:
@@ -58,6 +62,7 @@ class Developer(commands.Cog):
             await UI.response.edit(f"Seems like you don't want to load **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = None, allowed_mentions = self.bot.Mention)
         Confirmation.response    = await ctx.reply(f"Do you want to load : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
 
+    # Unloads extension of choice
     @commands.command(
         name    =   "unload",
         aliases =   ["ul"],
@@ -70,7 +75,7 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
                 return
             try:
-                self.bot.unload_extension(f"Cogs.{COG}")
+                self.bot.unload_extension(f"Core.Cogs.{COG}")
             except Exception as EXCEPT:
                 await UI.response.edit(f"Couldn't unload **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = None, allowed_mentions = self.bot.Mention)
             else:
@@ -86,6 +91,7 @@ class Developer(commands.Cog):
             await asyncio.sleep(0.2)
         Confirmation.response    = await ctx.reply(f"Do you want to unload : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     
+    # Reloads extension of choice
     @commands.command(
         name    =   "reload",
         aliases =   ["rl"],
@@ -98,7 +104,7 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
                 return
             try:
-                self.bot.reload_extension(f"Cogs.{COG}")
+                self.bot.reload_extension(f"Core.Cogs.{COG}")
             except Exception as EXCEPT:
                 await UI.response.edit(f"Couldn't reload **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = None, allowed_mentions = self.bot.Mention)
             else:
@@ -114,11 +120,35 @@ class Developer(commands.Cog):
             await asyncio.sleep(0.2)
         Confirmation.response    = await ctx.reply(f"Do you want to reload : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
 
-    @commands.command()
-    async def test(self, ctx):
-        time = self.bot.Timestamp
-        await ctx.send(f"{discord.utils.format_dt(time, style = 'D')}")
+    # Group of Commands used for changing presence and toggling no prefix
+    @commands.group(
+        name    =   "dev",
+        aliases =   ["devmode"],
+        brief   =   "Simple Dev Stuff",
+        help    =   "Simple commands for dev to do")
+    @commands.is_owner()
+    async def dev(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
 
-
+    @dev.command(
+        name    =   "on",
+        brief   =   "Sets Status Offline",
+        help    =   "Sets the bot status as Invisible")
+    async def on(self, ctx):
+        await self.bot.change_presence(
+            status  =   discord.Status.invisible)
+        await ctx.message.add_reaction("<:Offline:905757032521551892>")
+    
+    @dev.command(
+        name    =   "off",
+        brief   =   "Sets Status Idle",
+        help    =   "Sets the bot status as Idle")
+    async def off(self, ctx):
+        await self.bot.change_presence(
+            status  =   discord.Status.idle,
+            activity    =   discord.Activity(type = discord.ActivityType.listening, name = ".ghelp"))
+        await ctx.message.add_reaction("<:Idle:905757063064453130>")
+    
 def setup(bot):
     bot.add_cog(Developer(bot))

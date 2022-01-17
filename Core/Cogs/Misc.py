@@ -1,12 +1,15 @@
 import time
+from unicodedata import name
 import discord
 import asyncio
 
 from discord.ext import commands
 from discord.ext.commands import bot
 
-from __main__ import EMOTE
-from Kernel.Utilities.Interface import Info
+#from __main__ import EMOTE
+from Core.Kernel.Utilities.Interface import Info
+from Core.Kernel.Utilities.Essential import TOTAL_LINES as TL
+from Core.Kernel.Utilities.Essential import MISC
 
 class Misc(commands.Cog):
     def __init__(self, bot):
@@ -54,6 +57,7 @@ class Misc(commands.Cog):
         brief   =   "Get info on me",
         help    =   "Receive full information regarding me.")
     async def info(self, ctx):
+        total_members = list(self.bot.get_all_members())
         INFO_EMB    =   discord.Embed(
             title = "__Geralt : Da Bot__",
             url = self.bot.PFP,
@@ -61,12 +65,17 @@ class Misc(commands.Cog):
             colour = self.bot.colour)
         INFO_EMB.add_field(
             name = "General Statistics :",
-            value = f"**<:ReplyContinued:930634770004725821> - Base Language :** <:WinPython:898614277018124308> __Python 3.10.0__\n**<:Reply:930634822865547294> - Base Library :** <a:Discord:930855436670889994> [**Discord.py**](https://github.com/Rapptz/discord.py)")
+            value = f"**<:ReplyContinued:930634770004725821> - Guilds In :** `{len(self.bot.guilds)}`" \
+                    f"\n**<:Reply:930634822865547294> - Channels In :** `{sum(1 for x in self.bot.get_all_channels())}`")
+        INFO_EMB.add_field(
+            name = "Program Statistics :",
+            value = f"**<:ReplyContinued:930634770004725821> - Base Language :** <:WinPython:898614277018124308> [**Python 3.10.0**](https://www.python.org/downloads/release/python-3100/)" \
+                    f"\n**<:Reply:930634822865547294> - Base Library :** <a:Discord:930855436670889994> [**Discord.py**](https://github.com/Rapptz/discord.py)")
         INFO_EMB.set_thumbnail(url = self.bot.PFP)
         async with ctx.typing():
             await asyncio.sleep(0.5)
         INFO_EMB.timestamp = self.bot.Timestamp
         await ctx.reply(embed = INFO_EMB, mention_author = False, view = Info(ctx, bot))
-  
+    
 def setup(bot):
     bot.add_cog(Misc(bot))

@@ -6,19 +6,20 @@ import datetime
 
 from discord.ext import commands
 from discord.webhook.async_ import Webhook
-from Kernel.Utilities.Essential import DB_FUNCS
+
+from Core.Kernel.Utilities.Essential import DB_FUNCS
 
 COGS_EXTENSIONS    =   [
-   "Cogs.Misc",
-   "Cogs.Developer",
-   "Cogs.ErrorHandler",
+   "Core.Cogs.Misc",
+   "Core.Cogs.Developer",
+   "Core.Cogs.ErrorHandler",
    "jishaku"
 ]
 
-KERNEL  =   json.load(open("Kernel\Credentials\Config.json"))
+KERNEL  =   json.load(open("Core\Kernel\Credentials\Config.json"))
 TOKEN   =   KERNEL["Tokens"]["Discord"]
 DB_URL  =   KERNEL["DB"]["URL"]
-EMOTE   =   json.load(open("Kernel\Credentials\Emotes.json"))
+#EMOTE   =   json.load(open("Core\Kernel\Credentials\Emotes.json"))
 
 Timestamp   =   datetime.datetime.now(datetime.timezone.utc)
 
@@ -35,19 +36,18 @@ class Geralt(commands.Bot):
         
         super().__init__(
             Intents =   discord.Intents.all,
-            status  =   discord.Status.do_not_disturb,
+            status  =   discord.Status.online,
             command_prefix  =  commands.when_mentioned_or(KERNEL["Init"]["Prefix"]),
             activity    =   discord.Activity(type = discord.ActivityType.playing, name = "Waking up to Die"))
 
         self.Kernel         =   KERNEL
         self.PFP            =   KERNEL["Init"]["PFP"]
-        self.DT             =   discord.utils.format_dt
+        self.DT             =   discord.utils.format_dt        
         self.description    =   KERNEL["Init"]["Description"]
         self.Mention        =   discord.AllowedMentions.none()
-        self.Error_Channel  =   KERNEL["Init"]["ErrorChannel"]
         self.colour         =   discord.Colour.from_rgb(117, 128, 219)
         self.Timestamp      =   datetime.datetime.now(datetime.timezone.utc)
-        
+
         for COGS in COGS_EXTENSIONS:
             try:
                 self.load_extension(COGS)
@@ -55,13 +55,15 @@ class Geralt(commands.Bot):
                 print(f"{COGS} : {EXCEPT}")
     
     async def on_ready(self):
+        if not hasattr(self, "uptime"):
+            self.uptime     =   discord.utils.utcnow()
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK  =   Webhook.from_url(KERNEL["Tokens"]["Discord_WebHook"], session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(KERNEL["Tokens"]["Discord_WebHook"], session = self.session)
         await self.change_presence(
             status  =   discord.Status.idle,
             activity    =   discord.Activity(type = discord.ActivityType.listening, name = ".ghelp")) 
         await self.WEBHOOK.send(f"<:replytop:925219706879758406> - Came alive as **{self.user}**\n<:reply:897151692737486949> - {self.DT(self.Timestamp, style = 'F')}")
-
+    
     def RUN(self):
         super().run(TOKEN, reconnect = True)
  

@@ -2,16 +2,28 @@ import os
 import time
 import asyncio
 import asyncpg
+import aiofiles
 
 async def TOTAL_LINES(Path : str, FileType : str = ".py"):
     Lines = 0
-    for L in os.scandir(Path):
-        if L.is_file():
-            if L.path.endswith(".py"):
-               # Lines += len((await (await aiofiles.open(L.Path, 'r')).read()).split("\n"))
-            #elif L.is_dir():
-                Lines += await TOTAL_LINES(L.Path, FileType)
+    for i in os.scandir(Path):
+        if i.is_file():
+            if i.path.endswith(FileType):
+                Lines += len((await (await aiofiles.open(i.path, 'r')).read()).split("\n"))
+        elif i.is_dir():
+            Lines += await TOTAL_LINES(i.path, FileType)
     return Lines
+
+async def MISC(Path : str, FileType: str = '.py', File_Has: str = 'def'):
+    Count_Lines = 0
+    for i in os.scandir(Path):
+        if i.is_file():
+            if i.path.endswith(FileType):
+                Count_Lines += len([line for line in (await (await aiofiles.open(i.path, 'r')).read()).split("\n") if
+                                   File_Has in line])
+        elif i.is_dir():
+            Count_Lines += await MISC(i.path, FileType, File_Has)
+    return Count_Lines
 
 class DB_FUNCS:
     def __init__(self):
