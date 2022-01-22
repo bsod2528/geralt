@@ -1,39 +1,39 @@
 import io
-from re import I
-import sys
+import json
 import aiohttp
-import discord
+import disnake
 import datetime
 import traceback
 
-from discord.ext import commands
-from discord.enums import ButtonStyle
-from discord.webhook.async_ import Webhook
+from disnake.ext import commands
+from disnake.enums import ButtonStyle
+from disnake.webhook.async_ import Webhook
 
 from __main__ import KERNEL
-from Core.Kernel.Utilities.Interface import PAIN
+from Source.Kernel.Views.Interface import PAIN
 
-class ErrorView(discord.ui.View):
+
+class ErrorView(disnake.ui.View):
     def __init__(self, ctx, ERROR):
         super().__init__()
         self.ctx    =   ctx
         self.ERROR  =   ERROR
 
-    @discord.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
-    async def Error(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
+    @disnake.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
+    async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         ERROR   =   getattr(self.ERROR, "original", self.ERROR)
-        ERROR_EMB   =   discord.Embed(
+        ERROR_EMB   =   disnake.Embed(
             title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
-            description = f"```yaml\n Best Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))} \n```\n",   
+            description = f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))}\n```\n",   
             colour = 0x2F3136)
         await INTERACTION.response.send_message(embed = ERROR_EMB, ephemeral = True)    
     
-    @discord.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
-    async def Delete(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
+    @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
+    async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
         await INTERACTION.message.delete()
 
-    async def interaction_check(self, INTERACTION : discord.Interaction) -> bool:
+    async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.ctx.author:
                 return True
             await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
@@ -43,7 +43,7 @@ class ErrorHandler(commands.Cog):
         self.bot        =   bot        
         self.session    =   aiohttp.ClientSession()
         self.WEBHOOK    =   Webhook.from_url(KERNEL["Tokens"]["Error"], session = self.session)
-        self.TS         =   discord.utils.format_dt(datetime.datetime.now(datetime.timezone.utc), style = "F")
+        self.TS         =   disnake.utils.format_dt(datetime.datetime.now(datetime.timezone.utc), style = "F")
         self.Footer     =   "Please click on the Traceback button for proper information on where you have gone wrong :D"        
         
     @commands.Cog.listener()
@@ -54,7 +54,7 @@ class ErrorHandler(commands.Cog):
             return
         
         if isinstance(ERROR, commands.DisabledCommand):
-            DISABLED_EMB    =   discord.Embed(
+            DISABLED_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
                 description = f"```py\n {ERROR} \n```<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)
@@ -63,7 +63,7 @@ class ErrorHandler(commands.Cog):
             await ctx.reply(embed = DISABLED_EMB, mention_author = False, view = ErrorView(ctx, ERROR))
     
         if  isinstance(ERROR, commands.BotMissingPermissions):
-            BOT_MISSING_PERMS_EMB   =   discord.Embed(
+            BOT_MISSING_PERMS_EMB   =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
                 description = f"```py\n {ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)
@@ -72,7 +72,7 @@ class ErrorHandler(commands.Cog):
             await ctx.reply(embed = BOT_MISSING_PERMS_EMB, mention_author = False, view = ErrorView(ctx, ERROR))
         
         if isinstance(ERROR, commands.MissingPermissions):
-            MISSING_PERMS_EMB   =   discord.Embed(
+            MISSING_PERMS_EMB   =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
                 description = f"```py\n {ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)
@@ -81,16 +81,10 @@ class ErrorHandler(commands.Cog):
             await ctx.reply(embed = MISSING_PERMS_EMB, mention_author = False, view = ErrorView(ctx, ERROR))
 
         if isinstance(ERROR, commands.NotOwner):
-            NOT_OWNER_EMB   =   discord.Embed(
-                title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
-                colour = 0x2F3136)
-            NOT_OWNER_EMB.set_footer(text = self.Footer)
-            await ctx.trigger_typing()
-            await ctx.reply(embed = NOT_OWNER_EMB, mention_author = False, view = ErrorView(ctx, ERROR))
+            pass
         
         if isinstance(ERROR, commands.MissingRequiredArgument):
-            ARGS_MISSING_EMB    =   discord.Embed(
+            ARGS_MISSING_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
                 description = f"```py\n {ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)
@@ -99,7 +93,7 @@ class ErrorHandler(commands.Cog):
             await ctx.reply(embed = ARGS_MISSING_EMB, mention_author = False, view = ErrorView(ctx, ERROR))
         
         if isinstance(ERROR, commands.BadArgument):
-            BAD_ARGS_EMB    =   discord.Embed(
+            BAD_ARGS_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
                 description = f"```py\n {ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)    
@@ -107,7 +101,7 @@ class ErrorHandler(commands.Cog):
             await ctx.reply(embed = BAD_ARGS_EMB,mention_author = False, view = ErrorView(ctx, ERROR)   )
 
         if isinstance(ERROR, commands.errors.CommandOnCooldown):
-            COOLDOWN_EMB    =   discord.Embed(
+            COOLDOWN_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
                 description = f"```py\n {ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)
@@ -126,7 +120,7 @@ class ErrorHandler(commands.Cog):
                                     f"- Command Name  :   {ctx.message.content}\n" \
                                     f"** Occured in DM's **"
             ERROR_STR   =   "".join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))
-            ERROR_EMB   =   discord.Embed(
+            ERROR_EMB   =   disnake.Embed(
                 title = "Error Boi <:Pain:911261018582306867>",
                 description = f"```yaml\n{COMMAND_DATA} \n```\n```py\n {ERROR_STR}\n```",
                 colour = 0x2F3136)       
@@ -135,10 +129,13 @@ class ErrorHandler(commands.Cog):
             if len(ERROR_STR) < 2000:
                 try:
                     await SEND_ERROR.send(embed = ERROR_EMB)
-                except(discord.HTTPException, discord.Forbidden):
-                    await SEND_ERROR.send(embed = ERROR_EMB, file = discord.File(io.StringIO(ERROR_STR), filename = "Traceback.py"))
+                    await SEND_ERROR.send("||Break Point||")
+                except(disnake.HTTPException, disnake.Forbidden):
+                    await SEND_ERROR.send(embed = ERROR_EMB, file = disnake.File(io.StringIO(ERROR_STR), filename = "Traceback.py"))
+                    await SEND_ERROR.send("||Break Point||")
             else:
-                await SEND_ERROR.send(embed = ERROR_EMB, file = discord.File(io.StringIO(ERROR_STR), filename = "Traceback.py"))
+                await SEND_ERROR.send(embed = ERROR_EMB, file = disnake.File(io.StringIO(ERROR_STR), filename = "Traceback.py"))
+                await SEND_ERROR.send("||Break Point||")
 
 def setup(bot):
     bot.add_cog(ErrorHandler(bot))

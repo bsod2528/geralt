@@ -1,3 +1,4 @@
-Core/Cogs/__pycache__
-Core/Kernel/Credentials/
-Core/Kernel/Utilities/__pycache__
+Source/Cogs/__pycache__
+Source/Kernel/Credentials/
+Source/Kernel/Views/__pycache__
+Source/Kernel/Utilities/__pycache__
