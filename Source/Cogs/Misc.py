@@ -59,7 +59,7 @@ class Misc(commands.Cog):
     
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of implementing buttons for System Usage [ PSUTIl ] and Latest Commits on Github :)
     @commands.command(
-        name    =   "infa",
+        name    =   "info",
         aliases =   ["about"],
         brief   =   "Get info on me",
         help    =   "Receive full information regarding me.")
