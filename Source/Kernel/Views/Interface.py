@@ -3,6 +3,7 @@ import psutil
 import disnake
 import datetime
 import itertools
+import traceback
 
 from disnake.enums import ButtonStyle
 
@@ -133,3 +134,28 @@ class PFP(disnake.ui.View):
         if INTERACTION.user == self.ctx.author:
             return True
         await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+
+class Traceback(disnake.ui.View):
+    def __init__(self, ctx, error):
+        super().__init__()
+        self.ctx    =   ctx
+        self.ERROR  =   error
+
+    @disnake.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
+    async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        ERROR   =   getattr(self.ERROR, "original", self.ERROR)
+        ERROR_EMB   =   disnake.Embed(
+            title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
+            description = f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))}\n```\n",   
+            colour = 0x2F3136)
+        await INTERACTION.response.send_message(embed = ERROR_EMB, ephemeral = True)    
+    
+    @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
+    async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
+        await INTERACTION.message.delete()
+
+    async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
+            if INTERACTION.user == self.ctx.author:
+                return True
+            await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)

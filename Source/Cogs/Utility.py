@@ -12,7 +12,7 @@ class Information(commands.Cog):
 
     @commands.command(
         name    =   "avatar",
-        aliases =   ["pfp", "pp", "dp"],
+        aliases =   ["pfp", "pp", "dp", "av"],
         brief   =   "View a persons PFP",
         help    =   "See the user's PFP in an enlarged manner")
     async def avatar(self, ctx, *, USER : disnake.Member = None):

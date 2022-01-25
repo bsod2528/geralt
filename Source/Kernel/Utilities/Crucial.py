@@ -1,8 +1,10 @@
 import os
 import json
-import aiofiles
+import time
+import asyncio
 import asyncpg
-import discord
+import disnake
+import aiofiles
 
 EMOTE   =   json.load(open(r"Source\Kernel\Utilities\Emote.json"))
 
@@ -29,8 +31,8 @@ async def MISC(Path : str, FileType: str = '.py', File_Has: str = 'def'):
             Count_Lines += await MISC(i.path, FileType, File_Has)
     return Count_Lines
 
-async def FETCH_WEBHOOK(channel) -> discord.Webhook:
-    if isinstance(channel, discord.Thread):
+async def FETCH_WEBHOOK(channel) -> disnake.Webhook:
+    if isinstance(channel, disnake.Thread):
         channel = channel.parent
     webhook_list = await channel.webhooks()
     if webhook_list:
