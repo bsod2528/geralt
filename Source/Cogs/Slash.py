@@ -52,7 +52,7 @@ class Slash(commands.Cog):
         if interaction.author != self.bot.owner:
             await interaction.response.send_message(content = f"**{interaction.author}**, this is an owner only command .__.", ephemeral = True)
             return
-        await interaction.response.send_message(content = f"Okay **{interaction.author}** - I shall go to eternal sleep <:rooContemplateExistence:919902906839339018>", ephemeral = True)
+        await interaction.response.send_message(content = f"Okay **{interaction.author}** - I shall go to eternal sleep <:rooContemplateExistence:919902906839339018>", ephemeral = False)
         await self.bot.close()
     
     @commands.slash_command(

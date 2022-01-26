@@ -35,7 +35,7 @@ class Geralt(commands.Bot):
     """Geralt's custom sub - class"""
     def __init__(self, *ARGS, **KWARGS) -> None:
         super().__init__(
-            Intents =   disnake.Intents.members,
+            Intents =   disnake.Intents.all,
             status  =   disnake.Status.online,
             sync_commmands  = True,
             command_prefix  =  commands.when_mentioned_or(KERNEL["Init"]["Prefix"]),

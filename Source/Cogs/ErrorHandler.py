@@ -98,7 +98,7 @@ class ErrorHandler(commands.Cog):
                 title = "Error Boi <:Pain:911261018582306867>",
                 description = f"```yaml\n{command_data} \n```\n```py\n {error_str}\n```",
                 colour = 0x2F3136)       
-            error_emb.timestamp = self.bot.timestamp                     
+            error_emb.timestamp = self.bot.Timestamp                     
             send_error  =   self.webhook
             if len(error_str) < 2000:
                 try:
