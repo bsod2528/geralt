@@ -65,8 +65,8 @@ class Fun(commands.Cog):
                 value   =   f"```json\n{MESSAGE}\n```")
             DELETE_EMB.timestamp    =   self.bot.Timestamp
             await ctx.reply(embed = DELETE_EMB, allowed_mentions = self.bot.Mention)
-        except Exception as e:
-            await ctx.send(f"No snipe : {e}")
+        except:
+            await ctx.send("No deleted messages to snipe.")
 
     # Snipes for edited messages
     @snipe.command(
@@ -90,8 +90,8 @@ class Fun(commands.Cog):
                 value   =   f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.DT(POST_TIME)}\n```json\n{POST_MESSAGE}\n```",
                 inline  =   False)
             await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention)
-        except Exception as e:
-            await ctx.send(f"No snipe : {e}")
+        except:
+            await ctx.send("No edited messages to snipe.")
 
 def setup(bot):
     bot.add_cog(Fun(bot))
