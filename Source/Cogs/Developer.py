@@ -40,14 +40,14 @@ class Developer(commands.Cog):
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            await UI.response.edit("Okay then, I shall go to eternal sleep", view = None, allowed_mentions = self.bot.Mention)
+            await UI.response.edit(content = "Okay then, I shall go to eternal sleep", view = None, allowed_mentions = self.bot.Mention)
             UI.stop()
             await self.bot.close()
 
         async def NO(UI : disnake.ui.View, BUTTON: disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            await UI.response.edit("Seems like I'm gonna be alive for a bit longer",view = None, allowed_mentions = self.bot.Mention)
+            await UI.response.edit(content = "Seems like I'm gonna be alive for a bit longer",view = None, allowed_mentions = self.bot.Mention)
             UI.stop()
         Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     
@@ -175,27 +175,11 @@ class Developer(commands.Cog):
         help    =   "Reloads the Extension mentioned.")
     @commands.is_owner()
     async def reload(self, ctx, *, COG : str):
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-            if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-                return
-            try:
-                self.bot.reload_extension(f"Source.Cogs.{COG}")
-            except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't reload **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = None, allowed_mentions = self.bot.Mention)
-            else:
-                await UI.response.edit(content = f"Reloaded : **{COG}** <:RavenPray:914410353155244073>", view = None, allowed_mentions = self.bot.Mention)
-            UI.stop()
-
-        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-            if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-                return
-            await UI.response.edit(content = f"Seems like you don't want to reload **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = None, allowed_mentions = self.bot.Mention)
-        async with ctx.typing():
-            await asyncio.sleep(0.2)
-        Confirmation.response    = await ctx.reply(f"Do you want to reload : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
-
+        try:
+            self.bot.reload_extension(f"Source.Cogs.{COG}")
+            await ctx.reply(f"**{COG}** : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.Mention)
+        except Exception as EXCEPT:
+            await ctx.reply(f"Couldn't reload **{COG}** : `{EXCEPT}`", allowed_mentions = self.bot.Mention)
     # Group of Commands used for changing presence and toggling no prefix
     @commands.group(
         name    =   "dev",

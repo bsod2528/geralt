@@ -72,7 +72,7 @@ class Slash(commands.Cog):
             description =   f"""```yaml\n> PostGreSQL     : {round(DB_PING, 1)} ms
 > Discord API    : {WEBSOCKET_PING:,.0f} ms```""",
             colour = self.bot.colour)
-        PING_EMB.timestamp = self.bot.Timestamp
+        PING_EMB.timestamp = disnake.utils.utcnow()
         await interaction.response.send_message(embed = PING_EMB, ephemeral = True)
 
 def setup(bot):

@@ -36,7 +36,7 @@ class Info(disnake.ui.View):
         super().__init__()
         self.ctx = ctx
         self.bot = bot
-        self.Timestamp  =   datetime.datetime.now(datetime.timezone.utc)
+        self.Timestamp  =   disnake.utils.utcnow()
 
     # Misc. Stats like No. of lines, functions and classes.
     @disnake.ui.button(label = "Misc.", style = ButtonStyle.blurple, emoji = "<a:WumpusVibe:905457020575031358>")

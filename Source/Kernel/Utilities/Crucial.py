@@ -1,7 +1,5 @@
 import os
 import json
-import time
-import asyncio
 import asyncpg
 import disnake
 import aiofiles
@@ -31,6 +29,7 @@ async def MISC(Path : str, FileType: str = '.py', File_Has: str = 'def'):
             Count_Lines += await MISC(i.path, FileType, File_Has)
     return Count_Lines
 
+# Make a webhook if it's own is not present.
 async def FETCH_WEBHOOK(channel) -> disnake.Webhook:
     if isinstance(channel, disnake.Thread):
         channel = channel.parent
@@ -43,7 +42,6 @@ async def FETCH_WEBHOOK(channel) -> disnake.Webhook:
         name    =   "Geralt Webhook", 
         avatar  =   await channel.guild.me.display_avatar.read())
     return hook
-
 
 # Database related queries
 class DB_FUNCS:

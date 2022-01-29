@@ -66,6 +66,15 @@ class ErrorHandler(commands.Cog):
             await ctx.trigger_typing()
             await ctx.reply(embed = ARGS_MISSING_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
         
+        if isinstance(error, commands.MemberNotFound):
+            MEMBER_MISSING_EMB    =   disnake.Embed(
+                title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
+                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                colour = 0x2F3136)
+            MEMBER_MISSING_EMB.set_footer(text = self.Footer)
+            await ctx.trigger_typing()
+            await ctx.reply(embed = MEMBER_MISSING_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
+
         if isinstance(error, commands.BadArgument):
             BAD_ARGS_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
@@ -98,7 +107,7 @@ class ErrorHandler(commands.Cog):
                 title = "Error Boi <:Pain:911261018582306867>",
                 description = f"```yaml\n{command_data} \n```\n```py\n {error_str}\n```",
                 colour = 0x2F3136)       
-            error_emb.timestamp = self.bot.Timestamp                     
+            error_emb.timestamp = disnake.utils.utcnow()           
             send_error  =   self.webhook
             if len(error_str) < 2000:
                 try:

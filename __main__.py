@@ -1,10 +1,11 @@
+import os
 import json
 import disnake
 import asyncpg
 import aiohttp
 import datetime
 
-from disnake.ext import commands
+from disnake.ext import commands    
 from disnake.webhook.async_ import Webhook
 
 COGS_EXTENSIONS    =   [
@@ -17,6 +18,8 @@ COGS_EXTENSIONS    =   [
    "Source.Cogs.Moderation",
    "Source.Cogs.ErrorHandler"
 ]
+
+os.environ["JISHAKU_HIDE"] = "True"
 
 KERNEL  =   json.load(open(r"Source\Kernel\Credentials\Config.json"))
 TOKEN   =   KERNEL["Tokens"]["Discord"]
@@ -35,7 +38,7 @@ class Geralt(commands.Bot):
     """Geralt's custom sub - class"""
     def __init__(self, *ARGS, **KWARGS) -> None:
         super().__init__(
-            Intents =   disnake.Intents.all,
+            intents =   disnake.Intents.all(),
             status  =   disnake.Status.online,
             sync_commmands  = True,
             command_prefix  =  commands.when_mentioned_or(KERNEL["Init"]["Prefix"]),
@@ -48,7 +51,6 @@ class Geralt(commands.Bot):
         self.description    =   KERNEL["Init"]["Description"]
         self.Mention        =   disnake.AllowedMentions.none()
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
-        self.Timestamp      =   datetime.datetime.now(datetime.timezone.utc)
 
         for COGS in COGS_EXTENSIONS:
             try:
@@ -64,13 +66,12 @@ class Geralt(commands.Bot):
         await self.change_presence(
             status  =   disnake.Status.idle,
             activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp")) 
-        await self.WEBHOOK.send(f"<:ReplyTop:931694333009207387>  - Came alive as **{self.user}**\n<:Reply:930634822865547294> - {self.DT(self.Timestamp, style = 'F')}")
+        await self.WEBHOOK.send(f"<:ReplyTop:931694333009207387>  - Came alive as **{self.user}**\n<:Reply:930634822865547294> - {self.DT(disnake.utils.utcnow(), style = 'F')}")
 
-    
     async def on_slash_command_error(self, interaction : disnake.ApplicationCommandInteraction, error : commands.CommandError):
         ERROR_EMB   =   disnake.Embed(
             title       =   f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED",
-            description = f"```py\n{error}\n```<:Reply:930634822865547294> **Occurance :** {self.DT(self.Timestamp)}",
+            description = f"```py\n{error}\n```<:Reply:930634822865547294> **Occurance :** {self.DT(disnake.utils.utcnow())}",
             colour      = 0x2F3136)
         await interaction.response.send_message(embed = ERROR_EMB, ephemeral = True)
         return

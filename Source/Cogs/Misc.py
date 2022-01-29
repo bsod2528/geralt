@@ -54,7 +54,7 @@ class Misc(commands.Cog):
 > Discord API    : {WEBSOCKET_PING:,.0f} ms
 > Message Typing : {round(TYPING_PING, 1)} ms\n```""",
             colour = self.bot.colour)
-        PING_EMB.timestamp = self.bot.Timestamp
+        PING_EMB.timestamp = disnake.utils.utcnow()
         await ctx.reply(embed = PING_EMB, mention_author = False)
     
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of implementing buttons for System Usage [ PSUTIl ] and Latest Commits on Github :)
@@ -81,7 +81,7 @@ class Misc(commands.Cog):
         INFO_EMB.set_thumbnail(url = self.bot.PFP)
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        INFO_EMB.timestamp = self.bot.Timestamp
+        INFO_EMB.timestamp = disnake.utils.utcnow()
         await ctx.reply(embed = INFO_EMB, mention_author = False, view = Interface.Info(ctx, bot))
 
     @commands.group(
@@ -109,7 +109,7 @@ class Misc(commands.Cog):
         BUG_EMB.add_field(
             name    =   "Below Holds the Bug",
             value   =   f"```css\n[ {BUG} ]\n```")
-        BUG_EMB.timestamp   =   self.bot.Timestamp
+        BUG_EMB.timestamp   =   disnake.utils.utcnow()
         
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
@@ -148,7 +148,7 @@ class Misc(commands.Cog):
         FB_EMB.add_field(
             name    =   "Below Holds the Feedback",
             value   =   f"```json\n{FB}\n```")
-        FB_EMB.timestamp   =   self.bot.Timestamp
+        FB_EMB.timestamp   =   disnake.utils.utcnow()
         
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
@@ -188,7 +188,5 @@ class Misc(commands.Cog):
         await ctx.trigger_typing()
         await ctx.reply(f"Here you go <:NanoTick:925271358735257651>", file = disnake.File(io.StringIO(JSON_DATA), filename = "Message-Raw-Data.json"), allowed_mentions = self.bot.Mention)
     
-    
-
 def setup(bot):
     bot.add_cog(Misc(bot))

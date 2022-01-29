@@ -18,13 +18,13 @@ class Fun(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, PRE_EDIT, POST_EDIT):
-        self.PRE_EDIT[PRE_EDIT.channel.id] =   (PRE_EDIT.content, PRE_EDIT.author, PRE_EDIT.channel.id, PRE_EDIT.created_at)
+        self.PRE_EDIT[PRE_EDIT.channel.id] =   (PRE_EDIT.jump_url, PRE_EDIT.content, PRE_EDIT.author, PRE_EDIT.channel.id, PRE_EDIT.created_at)
         self.POST_EDIT[POST_EDIT.channel.id] =   (POST_EDIT.content, POST_EDIT.author, POST_EDIT.channel.id, POST_EDIT.edited_at)
 
     # Mimics a user by sending a webhook as them.
     @commands.command(
         name    =   "as", 
-            brief   =   "Send a Webhook",
+        brief   =   "Send a Webhook",
         help    =   "Send a webhook message as the user you mentioned")
     async def echo(self, ctx, USER : disnake.Member, *, MESSAGE):
         WBHK = await CRUCIAL.FETCH_WEBHOOK(ctx.channel)
@@ -58,15 +58,15 @@ class Fun(commands.Cog):
             MESSAGE, AUTHOR, CHANNEL, TIME    =   self.DELETE[ctx.channel.id]    
             DELETE_EMB   =   disnake.Embed(
                 title   =   "Sniped Deleted Message",
-                description =   f"**<:ReplyContinued:930634770004725821> - Message Author :** {AUTHOR.mention} (`{AUTHOR.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{CHANNEL}> (`{CHANNEL}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.DT(TIME)}",
+                description =   f"**<:ReplyContinued:930634770004725821> - [Message Author :]({ctx.message.author.display_avatar.url})** {AUTHOR.mention} (`{AUTHOR.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{CHANNEL}> (`{CHANNEL}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.DT(TIME)}",
                 colour  =   self.bot.colour)
             DELETE_EMB.add_field(
                 name    =   "Message Content",
                 value   =   f"```json\n{MESSAGE}\n```")
-            DELETE_EMB.timestamp    =   self.bot.Timestamp
+            DELETE_EMB.timestamp    =   disnake.utils.utcnow()
             await ctx.reply(embed = DELETE_EMB, allowed_mentions = self.bot.Mention)
-        except Exception as e:
-            await ctx.send(f"No snipe : {e}")
+        except:
+            await ctx.reply("No one has deleted. any messages as of now <a:HumanBro:905748764432662549>", allowed_mentions = self.bot.Mention)
 
     # Snipes for edited messages
     @snipe.command(
@@ -76,11 +76,13 @@ class Fun(commands.Cog):
         help    =   "Get the details of the recently edited message")
     async def edit(self, ctx):
         try:    
-            MESSAGE, AUTHOR, CHANNEL, PRE_TIME          =   self.PRE_EDIT[ctx.channel.id]    
+            URL, MESSAGE, AUTHOR, CHANNEL, PRE_TIME          =   self.PRE_EDIT[ctx.channel.id]    
             POST_MESSAGE, AUTHOR, CHANNEL, POST_TIME    =   self.POST_EDIT[ctx.channel.id]    
+            View    =   disnake.ui.View()
+            View.add_item(disnake.ui.Button(label = "Jump to Message", style = disnake.ButtonStyle.link, url = URL, emoji = "<a:ChainLink:936158619030941706>"))
             EDIT_EMB   =   disnake.Embed(
                 title   =   "Sniped Edited Message",
-                description =   f"**<:ReplyContinued:930634770004725821> - Message Author :** {AUTHOR.mention} (`{AUTHOR.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{CHANNEL}> (`{CHANNEL}`)\n**<:Reply:930634822865547294> - Message Sent At :** {self.bot.DT(PRE_TIME)}",
+                description =   f"**<:ReplyContinued:930634770004725821> - [Message Author :]({ctx.message.author.display_avatar.url})** {AUTHOR.mention} (`{AUTHOR.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{CHANNEL}> (`{CHANNEL}`)\n**<:Reply:930634822865547294> - Message Sent At :** {self.bot.DT(PRE_TIME)}",
                 colour  =   self.bot.colour)
             EDIT_EMB.add_field(
                 name    =   "Before Edit",
@@ -89,9 +91,9 @@ class Fun(commands.Cog):
                 name    =   "After Edit",
                 value   =   f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.DT(POST_TIME)}\n```json\n{POST_MESSAGE}\n```",
                 inline  =   False)
-            await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention)
-        except Exception as e:
-            await ctx.send(f"No snipe : {e}")
+            await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention, view = View)
+        except:
+            await ctx.reply("No one has edited any messages as of now <a:BotLurk:905749164355379241>", allowed_mentions = self.bot.Mention)
 
 def setup(bot):
     bot.add_cog(Fun(bot))
