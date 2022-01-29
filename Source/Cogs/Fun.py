@@ -66,7 +66,11 @@ class Fun(commands.Cog):
             DELETE_EMB.timestamp    =   disnake.utils.utcnow()
             await ctx.reply(embed = DELETE_EMB, allowed_mentions = self.bot.Mention)
         except:
+<<<<<<< HEAD
             await ctx.reply("No one has deleted. any messages as of now <a:HumanBro:905748764432662549>", allowed_mentions = self.bot.Mention)
+=======
+            await ctx.send("No deleted messages to snipe.")
+>>>>>>> d821cfdd81495a8cb23218159a9c7b719308082b
 
     # Snipes for edited messages
     @snipe.command(
@@ -91,9 +95,15 @@ class Fun(commands.Cog):
                 name    =   "After Edit",
                 value   =   f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.DT(POST_TIME)}\n```json\n{POST_MESSAGE}\n```",
                 inline  =   False)
+<<<<<<< HEAD
             await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention, view = View)
         except:
             await ctx.reply("No one has edited any messages as of now <a:BotLurk:905749164355379241>", allowed_mentions = self.bot.Mention)
+=======
+            await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention)
+        except:
+            await ctx.send("No edited messages to snipe.")
+>>>>>>> d821cfdd81495a8cb23218159a9c7b719308082b
 
 def setup(bot):
     bot.add_cog(Fun(bot))
