@@ -1,4 +1,3 @@
-from sys import prefix
 import disnake
 import humanize
 
@@ -53,7 +52,7 @@ class Utility(commands.Cog):
 
         GENERAL_EMB =   disnake.Embed(
             title   =   f":scroll: {USER}'s Information",
-            colour  =   self.bot.colour)
+            colour  =   USER.colour)
         GENERAL_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> General Info :",
             value   =   f"> **<:ReplyContinued:930634770004725821> - Name :** {USER.mention} \n" \
@@ -70,7 +69,7 @@ class Utility(commands.Cog):
 
         GUILD_EMB   =   disnake.Embed(
             title   =   f":scroll: {USER} in {ctx.guild}",
-            colour  =   self.bot.colour)
+            colour  =   USER.colour)
         GUILD_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Permissions Present :",
             value   =   f"> **<:Reply:930634822865547294> -** {PERMS}")
@@ -87,7 +86,7 @@ class Utility(commands.Cog):
 
         MISC_EMB    =   disnake.Embed(
             title   =   f":scroll: {USER} - Misc. Information",
-            colour  =   self.bot.colour)
+            colour  =   USER.colour)
         MISC_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Badges Present :",
             value   =   f"> **<:Reply:930634822865547294> - **{FLAGS.USER_BADGES(USER= USER, FETCH_USER = FETCHED_USER) if FLAGS.USER_BADGES(USER= USER, FETCH_USER = FETCHED_USER) else '`No Badges Present`'}")
@@ -106,7 +105,7 @@ class Utility(commands.Cog):
         PFP_EMB =   disnake.Embed(
             title = f":scroll: {USER}'s PFP",
             description =   f"[**JPG Format**]({USER.display_avatar.with_static_format('jpg')}) **|** [**PNG Format**]({USER.display_avatar.with_static_format('png')}) **|** [**WEBP Format**]({USER.display_avatar.with_static_format('webp')})",
-            colour = self.bot.colour)
+            colour = USER.colour)
         PFP_EMB.set_image(url = AVATAR)
         PFP_EMB.timestamp = disnake.utils.utcnow()
 

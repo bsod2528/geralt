@@ -1,5 +1,7 @@
 import os
 import json
+from sys import prefix
+from typing import List, Optional
 import disnake
 import asyncpg
 import aiohttp
@@ -29,10 +31,11 @@ Timestamp   =   datetime.datetime.now(datetime.timezone.utc)
 
 async def DB_CONNECT(): 
     try:
+        print("- Establishing connection with my database.")
         Geralt.DB    =  await asyncpg.create_pool(dsn = DB_URL)
-        print("Connected to the database")
+        print("- Connection established successfully.")
     except Exception as EXCEPTION:
-        print(f"Couldnt connect due to : {EXCEPTION}")
+        print(f"- Couldnt connect due to : {EXCEPTION}")
 
 class Geralt(commands.Bot):
     """Geralt's custom sub - class"""
@@ -44,19 +47,24 @@ class Geralt(commands.Bot):
             command_prefix  =  commands.when_mentioned_or(KERNEL["Init"]["Prefix"]),
             activity    =   disnake.Activity(type = disnake.ActivityType.playing, name = "Waking up to Die"))
 
-        self.owner          =   750979369001811982
         self.Kernel         =   KERNEL
+        self.owner          =   750979369001811982
         self.PFP            =   KERNEL["Init"]["PFP"]
         self.DT             =   disnake.utils.format_dt        
         self.description    =   KERNEL["Init"]["Description"]
         self.Mention        =   disnake.AllowedMentions.none()
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
 
+        print("- Loading all Cogs.")
         for COGS in COGS_EXTENSIONS:
             try:
                 self.load_extension(COGS)
             except Exception as EXCEPT:
-                print(f"{COGS} : {EXCEPT}")
+                print(f"- {COGS} : {EXCEPT}")
+        
+        print("- Cogs Successfully Loaded.")
+
+    print("- Waking up")
     
     async def on_ready(self):
         if not hasattr(self, "uptime"):
@@ -67,6 +75,7 @@ class Geralt(commands.Bot):
             status  =   disnake.Status.idle,
             activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp")) 
         await self.WEBHOOK.send(f"<:ReplyTop:931694333009207387>  - Came alive as **{self.user}**\n<:Reply:930634822865547294> - {self.DT(disnake.utils.utcnow(), style = 'F')}")
+        print("- Awakened")
 
     async def on_slash_command_error(self, interaction : disnake.ApplicationCommandInteraction, error : commands.CommandError):
         ERROR_EMB   =   disnake.Embed(

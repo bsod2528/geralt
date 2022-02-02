@@ -35,13 +35,13 @@ async def FETCH_WEBHOOK(channel) -> disnake.Webhook:
         channel = channel.parent
     webhook_list = await channel.webhooks()
     if webhook_list:
-        for hook in webhook_list:
-            if hook.token:
-                return hook
-    hook = await channel.create_webhook(
+        for HOOK in webhook_list:
+            if HOOK.token:
+                return HOOK
+    WEBHOOK = await channel.create_webhook(
         name    =   "Geralt Webhook", 
         avatar  =   await channel.guild.me.display_avatar.read())
-    return hook
+    return WEBHOOK
 
 # Database related queries
 class DB_FUNCS:
