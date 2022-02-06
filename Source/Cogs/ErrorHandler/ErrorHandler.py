@@ -13,6 +13,7 @@ from __main__ import KERNEL
 import Source.Kernel.Views.Interface as Interface
 
 class ErrorHandler(commands.Cog):
+    """Global Error Handling"""
     def __init__(self, bot):
         self.bot        =   bot        
         self.session    =   aiohttp.ClientSession()

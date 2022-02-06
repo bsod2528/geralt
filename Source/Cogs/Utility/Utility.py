@@ -8,6 +8,7 @@ import Source.Kernel.Utilities.Flags as FLAGS
 from Source.Kernel.Views.Paginator import Paginator
 
 class Utility(commands.Cog):
+    """Utility Commands"""
     def __init__(self, bot):
         self.bot    =   bot
 
@@ -15,9 +16,9 @@ class Utility(commands.Cog):
     @commands.command(
         name    =   "avatar",
         aliases =   ["pfp", "pp", "dp", "av"],
-        brief   =   "View a persons PFP",
-        help    =   "See the user's PFP in an enlarged manner")
+        brief   =   "View a persons PFP")
     async def avatar(self, ctx, *, USER : disnake.Member = None):
+        """See the user's PFP in an enlarged manner"""
         USER    =   USER or ctx.author
         PFP_EMB =   disnake.Embed(
             title   =   f"{str(USER)}'s Avatar",
@@ -32,9 +33,9 @@ class Utility(commands.Cog):
     @commands.command(
         name    =   "userinfo",
         aliases =   ["user", "ui"],
-        brief   =   "Get user information",
-        help    =   "Get entire details about a user.")
+        brief   =   "Get user information")
     async def userinfo(self, ctx, *, USER : disnake.Member = None):
+        """Get entire details about a user."""
         USER    =   USER or ctx.author
         ROLES   =   ""
         for ROLE in USER.roles:
@@ -48,7 +49,7 @@ class Utility(commands.Cog):
             PERMS   =   f"{' **|** '}".join(PERMISSIONS)
         AVATAR  =   USER.display_avatar.with_static_format("png")
         ACTIVITY = disnake.utils.find(lambda act: isinstance(act, disnake.CustomActivity), USER.activities)
-        ACTIVITY_HOLDER = f"`{disnake.utils.remove_markdown(ACTIVITY.name)}`" if ACTIVITY and ACTIVITY.name else f'`{USER} `has no activity at the moment.'
+        ACTIVITY_HOLDER = f"`{disnake.utils.remove_markdown(ACTIVITY.name)}`" if ACTIVITY and ACTIVITY.name else f'`{USER}` has no activity at the moment.'
 
         GENERAL_EMB =   disnake.Embed(
             title   =   f":scroll: {USER}'s Information",
@@ -117,15 +118,15 @@ class Utility(commands.Cog):
     @commands.command(
         name    =   "serverinfo",
         aliases =   ["si", "gi"],
-        brief   =   "Get guild information",
-        help    =   "Get entire details about the guild.")
+        brief   =   "Get guild information")
     @commands.guild_only()
     async def server_info(self, ctx):
+        """Get entire details about the guild."""
         USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', ctx.guild.members))),
                         len(list(filter(lambda U    :   str(U.status) == 'idle', ctx.guild.members))),
                         len(list(filter(lambda U    :   str(U.status) == 'dnd', ctx.guild.members))),
                         len(list(filter(lambda U    :   str(U.status) == 'offline', ctx.guild.members)))]
-        
+
         GENERAL_EMB =   disnake.Embed(
             title   =   f":scroll: {ctx.guild.name}'s Information",
             colour  =   self.bot.colour)

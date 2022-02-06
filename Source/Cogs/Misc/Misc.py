@@ -13,9 +13,8 @@ from disnake.webhook.async_ import Webhook
 from __main__ import KERNEL
 import Source.Kernel.Views.Interface as Interface
 
-
-
 class Misc(commands.Cog):
+    """Miscellaneous Commands"""
     def __init__(self, bot):
         self.bot = bot
         self.session    =   aiohttp.ClientSession()
@@ -25,9 +24,9 @@ class Misc(commands.Cog):
     @commands.command(
         name    =   "ping",
         aliases =   ["pong"],
-        brief   =   "You ping Me",
-        help    =   "Get proper latency timings of the bot.")
+        brief   =   "You ping Me")
     async def ping(self, ctx):
+        """Get proper latency timings of the bot."""
         PING    =   []
         
         # Latency for TYPING
@@ -61,10 +60,9 @@ class Misc(commands.Cog):
     @commands.command(
         name    =   "info",
         aliases =   ["about"],
-        brief   =   "Get info on me",
-        help    =   "Receive full information regarding me.")
+        brief   =   "Get info on me")
     async def info(self, ctx):
-        total_members = list(self.bot.get_all_members())
+        """Receive full information regarding me."""
         INFO_EMB    =   disnake.Embed(
             title = "__Geralt : Da Bot__",
             url = self.bot.PFP,
@@ -87,18 +85,18 @@ class Misc(commands.Cog):
     @commands.group(
         name    =   "report",
         aliases =   ["r"],
-        brief   =   "Report Something",
-        help    =   "Send a message to the Developer regarding a bug or a request.")
+        brief   =   "Report Something")
     @commands.guild_only()
     async def report(self, ctx):
+        """Send a message to the Developer regarding a bug or a request."""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
     
     @report.command(
         name    =   "bug",
-        brief   =   "Report a bug",
-        help    =   "Send a bug to the dev if you find any.")
+        brief   =   "Report a bug")
     async def bug(self, ctx, *, BUG):
+        """Send a bug to the dev if you find any."""
         BUG_INFO    =   f"- Reported By   :   {ctx.author} / {ctx.author.id}\n" \
                         f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
                         f"- @ Channel     :   {ctx.channel} / {ctx.channel.id}"
@@ -135,9 +133,9 @@ class Misc(commands.Cog):
     @report.command(
         name    =   "feedback",
         aliases =   ["fb"],
-        brief   =   "Send your feeback",
-        help    =   "Send a feedback to the dev if you find any.")
+        brief   =   "Send your feeback")
     async def feedback(self, ctx, *, FB):
+        """Send a feedback to the dev if you find any."""
         FB_INFO =   f"- Sent By       :   {ctx.author} / {ctx.author.id}\n" \
                     f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
                     f"- @ Channel     :   {ctx.channel} / {ctx.channel.id}"
@@ -174,9 +172,9 @@ class Misc(commands.Cog):
     @commands.command(
         name    =   "json",
         aliases =   ["raw"],
-        brief   =   "Sends JSON Data",
-        help    =   "Get the JSON Data for a message.")
+        brief   =   "Sends JSON Data")
     async def json(self, ctx, MESSAGE : typing.Optional[disnake.Message]):
+        """Get the JSON Data for a message."""
         MESSAGE :   disnake.Message = getattr(ctx.message.reference, "resolved", MESSAGE)
         if not MESSAGE:
             await ctx.reply(f"**{ctx.author}**, please reply to the message you want to see the raw message on.")

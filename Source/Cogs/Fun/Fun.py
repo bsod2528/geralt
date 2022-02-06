@@ -5,10 +5,11 @@ from disnake.ext import commands
 import Source.Kernel.Utilities.Crucial as CRUCIAL
 
 class Fun(commands.Cog):
+    """Simple commands that induce Fun"""
     def __init__(self, bot):
         self.bot            =   bot
         self.DELETE         =   {}  # ---
-        self.PRE_EDIT       =   {}  #   |-- > Snipe command related dictionaries
+        self.PRE_EDIT       =   {}  #    |-- > Snipe command related dictionaries
         self.POST_EDIT      =   {}  # --=
 
     # Listeners for "snipe" command
@@ -24,9 +25,9 @@ class Fun(commands.Cog):
     # Mimics a user by sending a webhook as them.
     @commands.command(
         name    =   "as", 
-        brief   =   "Send a Webhook",
-        help    =   "Send a webhook message as the user you mentioned")
+        brief   =   "Send a Webhook")
     async def echo(self, ctx, USER : disnake.Member, *, MESSAGE):
+        """Send a webhook message as the user you mentioned"""
         WBHK = await CRUCIAL.FETCH_WEBHOOK(ctx.channel)
         thread = disnake.utils.MISSING
         if isinstance(ctx.channel, disnake.Thread):
@@ -41,9 +42,9 @@ class Fun(commands.Cog):
     # Snipe command as a group
     @commands.group(
         name    =   "snipe",
-        aliases =   ["s"],
-        brief   =   "Get edited / deleted messages")
+        aliases =   ["s"])
     async def snipe(self, ctx):
+        """Get edited / deleted messages"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
     
@@ -51,9 +52,9 @@ class Fun(commands.Cog):
     @snipe.command(
         name    =   "delete",
         aliases =   ["del", "d"],
-        brief   =   "Snipe Deleted Messages",
-        help    =   "Get the details of the recently deleted message")
+        brief   =   "Snipe Deleted Messages")
     async def delete(self, ctx):
+        """Get the details of the recently deleted message"""
         try:    
             MESSAGE, AUTHOR, CHANNEL, TIME    =   self.DELETE[ctx.channel.id]    
             DELETE_EMB   =   disnake.Embed(
@@ -72,9 +73,9 @@ class Fun(commands.Cog):
     @snipe.command(
         name    =   "edit",
         aliases =   ["ed", "e"],
-        brief   =   "Snipe Edited Messages",
-        help    =   "Get the details of the recently edited message")
+        brief   =   "Snipe Edited Messages")
     async def edit(self, ctx):
+        """Get the details of the recently edited message"""
         try:    
             URL, MESSAGE, AUTHOR, CHANNEL, PRE_TIME          =   self.PRE_EDIT[ctx.channel.id]    
             POST_MESSAGE, AUTHOR, CHANNEL, POST_TIME    =   self.POST_EDIT[ctx.channel.id]    
