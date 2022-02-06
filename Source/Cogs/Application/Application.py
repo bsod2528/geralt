@@ -6,7 +6,8 @@ from disnake.ext import commands
 
 import Source.Kernel.Utilities.Crucial as CRUCIAL
 
-class Slash(commands.Cog):
+class Application(commands.Cog):
+    """Discord Application Commands"""
     def __init__(self, bot):
         self.bot    =   bot
         self.TS         =   disnake.utils.format_dt(datetime.datetime.now(datetime.timezone.utc), style = "F")
@@ -42,7 +43,7 @@ class Slash(commands.Cog):
             avatar_url  =   user.display_avatar.url, 
             username    =   user.display_name, 
             thread      =   thread)
-        await interaction.response.defer(f"Done **{interaction.author}** <:NanoTick:925271358735257651>")
+        await interaction.response.send_message(f"Done **{interaction.author}** <:NanoTick:925271358735257651>", ephemeral = True)
     
     @commands.slash_command(
         name        =   "die",
@@ -76,4 +77,4 @@ class Slash(commands.Cog):
         await interaction.response.send_message(embed = PING_EMB, ephemeral = True)
 
 def setup(bot):
-    bot.add_cog(Slash(bot))
+    bot.add_cog(Application(bot))
