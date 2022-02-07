@@ -43,31 +43,55 @@ async def FETCH_WEBHOOK(channel) -> disnake.Webhook:
         avatar  =   await channel.guild.me.display_avatar.read())
     return WEBHOOK
 
-# Database related queries
-class DB_FUNCS:
-    def __init__(self):
-    
-        async def EXECUTE(self, *ARGS, **KWARGS):
-            """Execute SQL query"""
-            QUERY   =   await asyncpg.pool.Pool.execute(*ARGS, **KWARGS)
-            return QUERY
-        
-        async def EXECUTE_MANY(self, *ARGS, **KWARGS):
-            """Execute multiple SQL queries"""
-            QUERY   =   await asyncpg.pool.Pool.executemany(*ARGS, **KWARGS)
-            return QUERY
-        
-        async def FETCH(self, *ARGS, **KWARGS):
-            """Fetches data from table"""
-            QUERY   =   await asyncpg.pool.Pool.fetch(*ARGS, **KWARGS)
-            return QUERY
+# Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
+class Plural:
+    def __init__(self, value):
+        self.value = value
+    def __format__(self, format_spec):
+        v = self.value
+        singular, sep, plural = format_spec.partition('|')
+        plural = plural or f'{singular}s'
+        if abs(v) != 1:
+            return f'{v} {plural}'
+        return f'{v} {singular}'
 
-        async def FETCH_ROW(self, *ARGS, **KWARGS):
-            """Fetches data from row"""
-            QUERY   =   await asyncpg.pool.Pool.fetchrow(*ARGS, **KWARGS)
-            return QUERY
+class TabulateData:
+    def __init__(self):
+        self._widths    =   []
+        self._columns   =   []
+        self._rows      =   []
+
+    def columns(self, columns):
+        self._columns = columns
+        self._widths = [len(c) + 2 for c in columns]
+
+    def row_add(self, row):
+        rows    =   [str(r) for r in row]
+        self._rows.append(rows)
+        for index, element in enumerate(rows):
+            width = len(element) + 2
+            if width > self._widths[index]:
+                self._widths[index] = width
+
+    def rows_added(self, rows):
+        for row in rows:
+            self.row_add(row)
+
+    def render(self):
+        sep =   "+".join("-"* w for w in self._widths)
+        sep =   f"+{sep}+"
         
-        async def FETCH_VALUE(self, *ARGS, **KWARGS):
-            """Fetches data from a given value"""
-            QUERY   =   await asyncpg.pool.Pool.fetchval(*ARGS, **KWARGS)
-            return QUERY
+        to_draw =   [sep]
+
+        def get_entry(d):
+            elem    =   "|".join(f"{e:^{self._widths[i]}}" for i, e in enumerate(d))
+            return f"|{elem}|"
+
+        to_draw.append(get_entry(self._columns))
+        to_draw.append(sep)
+
+        for row in self._rows:
+            to_draw.append(get_entry(row))
+
+        to_draw.append(sep)
+        return "\n".join(to_draw)

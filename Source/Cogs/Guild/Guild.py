@@ -1,4 +1,3 @@
-from re import A
 import disnake
 import asyncio
 import asyncpg as PSQL
@@ -77,6 +76,6 @@ class Guild(commands.Cog):
             await UI.response.edit(content = f"Okay <:HaroldSaysOkay:907110916104007681> Seems like I'm not adding {ctx.guild.name}'s information today <:SarahThonk:907109849437982750>", allowed_mentions = self.bot.Mention)
             BUTTON.disabled = True
         Confirmation.response = await ctx.reply("Are you sure you want to **add** all the information stored in the database <:BallManHmm:933398958263386222>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
-
+    
 def setup(bot):
     bot.add_cog(Guild(bot))

@@ -1,4 +1,6 @@
 import io
+import time
+import asyncpg
 import disnake
 import asyncio
 import textwrap
@@ -33,6 +35,15 @@ class Developer(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
     
+    def cleanup_code(self, content):
+        """Automatically removes code blocks from the code."""
+        # remove ```py\n```
+        if content.startswith('```') and content.endswith('```'):
+            return '\n'.join(content.split('\n')[1:-1])
+
+        # remove `foo`
+        return content.strip('` \n')
+
     # Shuts the bot down in a friendly manner.
     @commands.command(
         name    =   "die", 
@@ -294,6 +305,43 @@ class Developer(commands.Cog):
         View = Paginator.Paginator(ctx, EMBEDS = EMBED_LIST)
         await ctx.trigger_typing()
         await ctx.reply(embed = EMBED_LIST[0], view = View, allowed_mentions = self.bot.Mention)
-    
+
+    # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
+    @commands.command(
+        name    =   "sql",
+        brief   =   "Query DB")
+    @commands.is_owner()
+    async def sql(self, ctx, *, QUERY : str):
+        """Run SQL Queries"""
+        QUERY = self.cleanup_code(QUERY)
+        
+        MULTI_STATE = QUERY.count(";") > 1
+        if MULTI_STATE:
+            METHOD = self.bot.DB.execute
+        else:
+            METHOD = self.bot.DB.fetch
+        try:
+            DB_START    =   time.perf_counter()
+            RESULTS     =   await METHOD(QUERY)
+            LATENCY     =   (time.perf_counter() - DB_START) * 1000.0
+        except Exception:
+            return await ctx.message.author.send(f"**<:GeraltRightArrow:904740634982760459> You made a mistake for :**\n```py\n{QUERY}\n```\n```py\n{traceback.format_exc()}\n```")
+
+        ROWS    =   len(RESULTS)
+        if MULTI_STATE or ROWS == 0:
+            return await ctx.send(f"`{LATENCY:.2f}ms: {RESULTS}`")
+
+        HEADERS =   list(RESULTS[0].keys())
+        TABLE   =   CRUCIAL.TabulateData()
+        TABLE.columns(HEADERS)
+        TABLE.rows_added(list(R.values()) for R in RESULTS)
+        RENDERED    =   TABLE.render()
+
+        FINAL = f"**<:GeraltRightArrow:904740634982760459> Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms**```prolog\n{RENDERED}\n```\n"
+        if len(FINAL) > 2000:
+            await ctx.reply("Too much data to send at once...", file = disnake.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
+        else:
+            await ctx.reply(FINAL, allowed_mentions = self.bot.Mention)
+
 def setup(bot):
     bot.add_cog(Developer(bot))
