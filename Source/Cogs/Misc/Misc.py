@@ -49,7 +49,7 @@ class Misc(commands.Cog):
 
         PING_EMB = disnake.Embed(
             title = "__ My Latencies : __",
-            description =   f"""```yaml\n> PostGreSQL     : {round(DB_PING, 1)} ms
+            description =   f"""```prolog\n> PostGreSQL     : {round(DB_PING, 1)} ms
 > Discord API    : {WEBSOCKET_PING:,.0f} ms
 > Message Typing : {round(TYPING_PING, 1)} ms\n```""",
             colour = self.bot.colour)

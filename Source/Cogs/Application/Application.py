@@ -70,7 +70,7 @@ class Application(commands.Cog):
         PING.append(WEBSOCKET_PING)
         PING_EMB = disnake.Embed(
             title = "__ My Latencies : __",
-            description =   f"""```yaml\n> PostGreSQL     : {round(DB_PING, 1)} ms
+            description =   f"""```prolog\n> PostGreSQL     : {round(DB_PING, 1)} ms
 > Discord API    : {WEBSOCKET_PING:,.0f} ms```""",
             colour = self.bot.colour)
         PING_EMB.timestamp = disnake.utils.utcnow()
