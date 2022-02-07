@@ -1,5 +1,4 @@
 import io
-import json
 import aiohttp
 import disnake
 import datetime
@@ -18,7 +17,7 @@ class ErrorHandler(commands.Cog):
         self.bot        =   bot        
         self.session    =   aiohttp.ClientSession()
         self.webhook    =   Webhook.from_url(KERNEL["Tokens"]["Error"], session = self.session)
-        self.TS         =   disnake.utils.format_dt(datetime.datetime.now(datetime.timezone.utc), style = "F")
+        self.TS         =   disnake.utils.format_dt(disnake.utils.utcnow(), style = "F")
         self.Footer     =   "Please click on the Traceback button for proper information on where you have gone wrong :D"        
         
     @commands.Cog.listener()
@@ -61,11 +60,11 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             ARGS_MISSING_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```py\n {error} \n```\nClick on the `Syntax` Button for the proper syntax of `{ctx.command}`\n\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)
             ARGS_MISSING_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = ARGS_MISSING_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
+            await ctx.reply(embed = ARGS_MISSING_EMB, mention_author = False, view = Interface.CommandSyntax(ctx, error))
         
         if isinstance(error, commands.MemberNotFound):
             MEMBER_MISSING_EMB    =   disnake.Embed(

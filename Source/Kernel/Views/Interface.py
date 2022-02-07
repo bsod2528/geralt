@@ -45,7 +45,7 @@ class Info(disnake.ui.View):
         STATS_EMB   =   disnake.Embed(
             title = "<:VerifiedDev:905668791831265290> Miscellaneous Statistics :",
             description =   f"\n**Been Up Since :** {disnake.utils.format_dt(Time, style = 'F')}"
-                            f"```yaml\n- Total Classes   : {await MISC('Source/', '.py', 'class'):,}" \
+                            f"```prolog\n- Total Classes   : {await MISC('Source/', '.py', 'class'):,}" \
                             f"\n- Total Functions : {await MISC('Source/', '.py', 'def'):,}"
                             f"\n- Total Lines     : {await TL('Source', '.py'):,}```",
             colour = COLOUR)
@@ -62,7 +62,7 @@ class Info(disnake.ui.View):
 
         SYS_USAGE   =   disnake.Embed(
             title = "<:WinCogs:898591890209910854> System Usage :",
-            description =   f"```yaml\n> CPU Used          : {CPU_Usage:.2f} %\n" \
+            description =   f"```prolog\n> CPU Used          : {CPU_Usage:.2f} %\n" \
                             f"> CPU Core Count    : {Core_Count} Cores\n" \
                             f"> Memory Used       : {RAM_Usage:.2f} Megabytes\n" \
                             f"> Memory Available  : {Mem_GB:.3f} GB [ {Mem_Per} % ]\n" \
@@ -157,5 +157,43 @@ class Traceback(disnake.ui.View):
 
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.ctx.author:
+                return True
+            await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+
+class CommandSyntax(disnake.ui.View):
+    def __init__(self, ctx, error):
+        super().__init__()
+        self.CTX    =   ctx
+        self.ERROR  =   error
+
+    @disnake.ui.button(label = "Syntax", style = ButtonStyle.blurple, emoji = "<a:CoffeeSip:907110027951742996>")
+    async def Syntax(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        COMMAND_NAME = f"{self.CTX.clean_prefix}{self.CTX.command} {self.CTX.command.signature}"
+        SYNTAX_EMB  =   disnake.Embed(
+            title   =   f"<:GeraltRightArrow:904740634982760459> COMMAND SYNTAX : {self.CTX.clean_prefix}{self.CTX.command}",
+            description =   f"\n```prolog\n{COMMAND_NAME}" \
+                            f"\n{' ' * (len([item[::-1] for item in COMMAND_NAME[::-1].split(self.ERROR.param.name[::-1], 1)][::-1][0]) - 1)}{'-' * (len(self.ERROR.param.name) + 2)}" \
+                            f"\n{self.ERROR.param.name} is a required argument which you have not passed\n```",
+            colour  =   0x2F3136)
+        SYNTAX_EMB.timestamp    =   disnake.utils.utcnow()
+        await INTERACTION.response.send_message(embed = SYNTAX_EMB, ephemeral = True)
+
+
+    @disnake.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
+    async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        ERROR   =   getattr(self.ERROR, "original", self.ERROR)
+        ERROR_EMB   =   disnake.Embed(
+            title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
+            description = f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))}\n```\n",   
+            colour = 0x2F3136)
+        await INTERACTION.response.send_message(embed = ERROR_EMB, ephemeral = True)    
+
+    @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
+    async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
+        await INTERACTION.message.delete()
+
+    async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
+            if INTERACTION.user == self.CTX.author:
                 return True
             await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)

@@ -146,10 +146,6 @@ class Geralt(commands.Bot):
         await interaction.response.send_message(embed = ERROR_EMB, ephemeral = True)
         return
 
-    async def CLOSE(self):
-        await super().close()
-        await self.session.close()
-
     def RUN(self):
         super().run(TOKEN, reconnect = True)
  
