@@ -22,6 +22,10 @@ class ErrorHandler(commands.Cog):
         
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
+
+        if hasattr(ctx.command, "on_error"):
+            return
+
         error   =   getattr(error, "original", error)
             
         if isinstance(error, commands.CommandNotFound):
@@ -34,7 +38,7 @@ class ErrorHandler(commands.Cog):
                 colour = 0x2F3136)
             DISABLED_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = DISABLED_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
+            return await ctx.reply(embed = DISABLED_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
     
         if  isinstance(error, commands.BotMissingPermissions):
             BOT_MISSING_PERMS_EMB   =   disnake.Embed(
@@ -43,7 +47,7 @@ class ErrorHandler(commands.Cog):
                 colour = 0x2F3136)
             BOT_MISSING_PERMS_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = BOT_MISSING_PERMS_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
+            return await ctx.reply(embed = BOT_MISSING_PERMS_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
         
         if isinstance(error, commands.MissingPermissions):
             MISSING_PERMS_EMB   =   disnake.Embed(
@@ -52,10 +56,10 @@ class ErrorHandler(commands.Cog):
                 colour = 0x2F3136)
             MISSING_PERMS_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = MISSING_PERMS_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
+            return await ctx.reply(embed = MISSING_PERMS_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
 
         if isinstance(error, commands.NotOwner):
-            pass
+            return
         
         if isinstance(error, commands.MissingRequiredArgument):
             ARGS_MISSING_EMB    =   disnake.Embed(
@@ -64,7 +68,7 @@ class ErrorHandler(commands.Cog):
                 colour = 0x2F3136)
             ARGS_MISSING_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = ARGS_MISSING_EMB, mention_author = False, view = Interface.CommandSyntax(ctx, error))
+            return await ctx.reply(embed = ARGS_MISSING_EMB, mention_author = False, view = Interface.CommandSyntax(ctx, error))
         
         if isinstance(error, commands.MemberNotFound):
             MEMBER_MISSING_EMB    =   disnake.Embed(
@@ -73,7 +77,7 @@ class ErrorHandler(commands.Cog):
                 colour = 0x2F3136)
             MEMBER_MISSING_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = MEMBER_MISSING_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
+            return await ctx.reply(embed = MEMBER_MISSING_EMB, mention_author = False, view = Interface.Traceback(ctx, error))
 
         if isinstance(error, commands.BadArgument):
             BAD_ARGS_EMB    =   disnake.Embed(
@@ -81,7 +85,8 @@ class ErrorHandler(commands.Cog):
                 description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
                 colour = 0x2F3136)    
             BAD_ARGS_EMB.set_footer(text = self.Footer)
-            await ctx.reply(embed = BAD_ARGS_EMB,mention_author = False, view = Interface.Traceback(ctx, error)   )
+            await ctx.trigger_typing()
+            return await ctx.reply(embed = BAD_ARGS_EMB,mention_author = False, view = Interface.Traceback(ctx, error))
 
         if isinstance(error, commands.errors.CommandOnCooldown):
             COOLDOWN_EMB    =   disnake.Embed(
@@ -90,7 +95,7 @@ class ErrorHandler(commands.Cog):
                 colour = 0x2F3136)
             COOLDOWN_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
-            await ctx.reply(embed = COOLDOWN_EMB,mention_author = False, view = Interface.Traceback(ctx, error))
+            return await ctx.reply(embed = COOLDOWN_EMB,mention_author = False, view = Interface.Traceback(ctx, error))
 
         else:
             if ctx.guild:
@@ -105,7 +110,7 @@ class ErrorHandler(commands.Cog):
             error_str   =   "".join(traceback.format_exception(type(error), error, error.__traceback__))
             error_emb   =   disnake.Embed(
                 title = "Error Boi <:Pain:911261018582306867>",
-                description = f"```yaml\n{command_data} \n```\n```py\n {error_str}\n```",
+                description = f"```prolog\n{command_data} \n```\n```py\n {error_str}\n```",
                 colour = 0x2F3136)       
             error_emb.timestamp = disnake.utils.utcnow()           
             send_error  =   self.webhook

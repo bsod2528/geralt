@@ -22,7 +22,7 @@ def Format_Commit(COMMIT):
     Timezone        = datetime.timezone(datetime.timedelta(minutes = COMMIT.commit_time_offset))
     Commit_Time     = datetime.datetime.fromtimestamp(COMMIT.commit_time).astimezone(Timezone)
     Timestamp       = disnake.utils.format_dt(Commit_Time, style = "R")
-    return f"<:GeraltRightArrow:904740634982760459> [**`{Short_Hash}`**](<https://github.com/BSOD2528/Geralt/commit/{COMMIT.hex}>) **: {Commit_Desc} -** [ {Timestamp} ]"
+    return f"<:GeraltRightArrow:904740634982760459> [**`{Short_Hash}`**](<https://github.com/BSOD2528/Geralt/commit/{COMMIT.hex}>) : {Commit_Desc} - [ {Timestamp} ]"
 
 def Latest_Commit(MAX : int = 5):
     Repository    = pygit2.Repository(".git")
@@ -183,7 +183,7 @@ class CommandSyntax(disnake.ui.View):
     async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         ERROR   =   getattr(self.ERROR, "original", self.ERROR)
         ERROR_EMB   =   disnake.Embed(
-            title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
+            title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.CTX.command}",
             description = f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))}\n```\n",   
             colour = 0x2F3136)
         await INTERACTION.response.send_message(embed = ERROR_EMB, ephemeral = True)    

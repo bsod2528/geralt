@@ -209,6 +209,15 @@ class Developer(commands.Cog):
             await ctx.send_help(ctx.command)
 
     @dev.command(
+        name    =   "total-guilds",
+        aliases =   ["tg"],
+        brief   =   "Sends Guild List")
+    async def total_guilds(self, ctx):
+        """Sends the entire guild list."""
+        await ctx.reply(f"Currently in `{len(self.bot.guilds)}` Guilds.", allowed_mentions = self.bot.Mention)
+        await ctx.send(f" ".join([f"> **- {g.name} :** {g.owner.mention} (`{g.id}`)\n" for g in self.bot.guilds]) + "", allowed_mentions = self.bot.Mention)
+
+    @dev.command(
         name    =   "on",
         brief   =   "Sets Status Offline")
     async def on(self, ctx):

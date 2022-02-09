@@ -1,15 +1,10 @@
 import os
 import json
-import typing
-from unicodedata import name
-from discord import Guild
 import disnake
 import asyncpg
 import aiohttp
 import datetime
-import humanize
 
-from typing import List, Dict
 from disnake.ext import commands    
 from disnake.webhook.async_ import Webhook
 

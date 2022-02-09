@@ -134,7 +134,7 @@ class Misc(commands.Cog):
         name    =   "feedback",
         aliases =   ["fb"],
         brief   =   "Send your feeback")
-    async def feedback(self, ctx, *, FB):
+    async def feedback(self, ctx, *, FEEDBACK):
         """Send a feedback to the dev if you find any."""
         FB_INFO =   f"- Sent By       :   {ctx.author} / {ctx.author.id}\n" \
                     f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -145,7 +145,7 @@ class Misc(commands.Cog):
             colour  =   0x2F3136)
         FB_EMB.add_field(
             name    =   "Below Holds the Feedback",
-            value   =   f"```json\n{FB}\n```")
+            value   =   f"```json\n{FEEDBACK}\n```")
         FB_EMB.timestamp   =   disnake.utils.utcnow()
         
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
