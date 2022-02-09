@@ -10,3 +10,4 @@ Source/Cogs/Developer/__pycache__
 Source/Cogs/Moderation/__pycache__
 Source/Kernel/Utilities/__pycache__
 Source/Cogs/ErrorHandler/__pycache__
+.vscode
