@@ -1,9 +1,11 @@
+from click import command
 import disnake
 import humanize
+import asyncpg as PSQL
 
 from disnake.ext import commands
 
-import Source.Kernel.Views.Interface as UI
+import Source.Kernel.Views.Interface as Interface
 import Source.Kernel.Utilities.Flags as FLAGS
 from Source.Kernel.Views.Paginator import Paginator
 
@@ -27,7 +29,7 @@ class Utility(commands.Cog):
         AVATAR  = USER.display_avatar.with_static_format("png")
         PFP_EMB.set_image(url = AVATAR)
         PFP_EMB.timestamp = disnake.utils.utcnow()
-        await ctx.reply(embed = PFP_EMB, mention_author = False, view = UI.PFP(ctx, self.bot))
+        await ctx.reply(embed = PFP_EMB, mention_author = False, view = Interface.PFP(ctx, self.bot))
     
     # Get user's information
     @commands.command(
@@ -193,6 +195,116 @@ class Utility(commands.Cog):
         View = Paginator(ctx, EMBEDS = EMBED_LIST)
         await ctx.trigger_typing()
         await ctx.reply(embed = EMBED_LIST[0], view = View, allowed_mentions = self.bot.Mention)
+
+    @commands.group(
+        name    =   "todo",
+        aliases =   ["td"],
+        brief   =   "List User's Todo List.")
+    async def todo(self, ctx):
+        """Sends Todo sub - commands"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @todo.command(
+        name    =   "add",
+        brief   =   "Add item to your list.")
+    async def todo_add(self, ctx, *, TASK : str):
+        """Add tasks to your todo list."""
+        try:
+            await self.bot.DB.execute(f"INSERT INTO todo (user_name, user_id, discriminator, task, task_created_at, url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING task_id", ctx.author.name, ctx.author.id, ctx.author.discriminator, TASK, ctx.message.created_at, ctx.message.jump_url)
+            TASK_ID =   await self.bot.DB.fetchval(f"SELECT task_id FROM todo WHERE task = $1", TASK)
+            await ctx.reply(f"Successfully added task.\n<:Reply:930634822865547294> **Task ID -** `{TASK_ID}`")
+        except PSQL.UniqueViolationError:
+            await ctx.reply(f"The current task is already present.")
+    
+    @todo.command(
+        name    =   "list",
+        aliases =   ["show"],
+        brief   =   "See your todo list.")  
+    async def todo_list(self, ctx):
+        """See your entire todo list."""
+        TODO_LIST   =   await self.bot.DB.fetch(f"SELECT * FROM todo WHERE user_id = $1", ctx.author.id)
+        TASK_LIST   =   []
+        SERIAL_NO   =   0
+        for TASKS in TODO_LIST:
+            TASK_LIST.append(f"> [**{SERIAL_NO}. -**]({TASKS['url']}) {TASKS['task']}" f"\n> <:Reply:930634822865547294> **ID :** `{TASKS['task_id']}` - ({self.bot.DT(TASKS['task_created_at'], style = 'R')})\n")
+            SERIAL_NO   +=  1
+        
+        if not TODO_LIST:
+            await ctx.reply(f"You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>`")
+        
+        else:
+            TODO_LIST_EMB   =   disnake.Embed(
+            title   =   f"{ctx.author}'s Todo List :",
+            description =   f"".join(TASK for TASK in TASK_LIST),
+            colour  =   self.bot.colour)
+            TODO_LIST_EMB.set_thumbnail(url = ctx.author.display_avatar.url)
+            TODO_LIST_EMB.set_footer(text = f"Run {ctx.clean_prefix}todo for more sub - commands.")
+            TODO_LIST_EMB.timestamp =   disnake.utils.utcnow()
+            await ctx.reply(embed = TODO_LIST_EMB, mention_author = False)
+
+    @todo.command(
+        name    =   "edit",
+        brief   =   "Edit task")    
+    async def todo_edit(self, ctx, ID : int, *, EDITED : commands.clean_content):
+        """Edit a particular task."""
+
+        if ID != await self.bot.DB.fetchval(f"SELECT * FROM todo WHERE task_id = $1", ID):
+            await ctx.reply(f"`{ID}` - is a task either which you do not own or is not present in the database.")
+        else:
+            await self.bot.DB.execute(f"UPDATE todo SET task = $1 WHERE task_id = $2", EDITED, ID)
+            await self.bot.DB.execute(f"UPDATE todo SET url = $1 WHERE task_id = $2", ctx.message.jump_url, ID)
+            await ctx.reply(f"Successfully edited **Task ID -** `{ID}`")
+
+    @todo.command(
+        name    =   "remove",
+        brief   =   "Removes Task")
+    async def todo_remove(self, ctx, *, ID : int):
+        """Remove a particular task."""
+        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+            if INTERACTION.user != ctx.author:
+                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            
+            if ID != await self.bot.DB.fetchval(f"SELECT * FROM todo WHERE task_id = $1", ID):
+                return await UI.response.edit(content = f"<:GeraltRightArrow:904740634982760459> Task ID - `{ID}` : is a task either which you do not own or is not present in the database.", view = None)
+            else:
+                await self.bot.DB.execute(f"DELETE FROM todo WHERE task_id = $1", ID)
+                await UI.response.edit(content = f"Successfully removed **Task ID -** `{ID}`", view = None)
+
+        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+            if INTERACTION.user != ctx.author:
+                await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+                return
+            await UI.response.edit(content = f"Okay then, I haven't removed Task ID - `{ID}` from your list.", view = None)
+        
+        Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to remove Task ID - `{ID}` from your list?", view = Interface.Confirmation(YES, NO))    
+
+    @todo.command(
+        name    =   "clear",
+        aliases =   ["delete", "del", "cl"],
+        brief   =   "Delete Todo Tasks.")
+    async def todo_clear(self, ctx):
+        """Delete your entire todo list."""
+        TOTAL   =   await self.bot.DB.fetch(f"SELECT FROM todo WHERE user_id = $1", ctx.author.id)
+        if TOTAL == 0:
+            await ctx.reply("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>`")
+        else:
+            async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+                DELETE_LIST =   await self.bot.DB.execute(f"DELETE FROM todo WHERE user_id = $1", ctx.author.id)
+                if INTERACTION.user != ctx.author:
+                    return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+                
+                if not DELETE_LIST:
+                    await UI.response.edit("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>`", view = None)
+                else:
+                    await UI.response.edit(content = f"Successfully deleted `{len(TOTAL)}` tasks from your list.", view = None)
+            
+            async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+                if INTERACTION.user != ctx.author:
+                    return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+                await UI.response.edit(content = "Okay then, I haven't deleted any `tasks` from your list.", view = None)
+        
+            Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(TOTAL)}` tasks in your list?", view = Interface.Confirmation(YES, NO))
 
 def setup(bot):
     bot.add_cog(Utility(bot))
