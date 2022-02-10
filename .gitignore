@@ -3,11 +3,12 @@ Source/Cogs/__pycache__
 Source/Kernel/Credentials/
 Source/Cogs/Fun/__pycache__
 Source/Cogs/Misc/__pycache__
-Source/Cogs/Slash/__pycache__
 Source/Kernel/Views/__pycache__
+Source/Cogs/Guild/__pycache__/
 Source/Cogs/Utility/__pycache__
 Source/Cogs/Developer/__pycache__
 Source/Cogs/Moderation/__pycache__
 Source/Kernel/Utilities/__pycache__
 Source/Cogs/ErrorHandler/__pycache__
+Source/Cogs/Application/__pycache__
 .vscode
