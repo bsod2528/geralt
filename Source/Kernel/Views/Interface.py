@@ -33,13 +33,13 @@ def Latest_Commit(MAX : int = 5):
 # A huge shoutout and thanks to Zeus432 [ Github User ID ] for the amazing idea of adding these buttons :D
 class Info(disnake.ui.View):
     def __init__(self, ctx, bot):
-        super().__init__()
+        super().__init__(timeout = None)
         self.ctx = ctx
         self.bot = bot
         self.Timestamp  =   disnake.utils.utcnow()
 
     # Misc. Stats like No. of lines, functions and classes.
-    @disnake.ui.button(label = "Misc.", style = ButtonStyle.blurple, emoji = "<a:WumpusVibe:905457020575031358>")
+    @disnake.ui.button(label = "Misc.", style = ButtonStyle.blurple, emoji = "<a:WumpusVibe:905457020575031358>", custom_id = "Geralt-Stats")
     async def STATS(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         Time    =   disnake.utils.utcnow()
         STATS_EMB   =   disnake.Embed(
@@ -52,7 +52,7 @@ class Info(disnake.ui.View):
         await INTERACTION.response.send_message(embed = STATS_EMB, ephemeral = True)
         
     # Shows System Usage at the current moment.
-    @disnake.ui.button(label = "System Info", style = ButtonStyle.blurple, emoji = "<a:Info:905750331789561856>")
+    @disnake.ui.button(label = "System Info", style = ButtonStyle.blurple, emoji = "<a:Info:905750331789561856>", custom_id = "Geralt-Sys-Usage")
     async def SYS_USAGE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         Core_Count  =   psutil.cpu_count()
         CPU_Usage   =   psutil.cpu_percent()
@@ -72,7 +72,7 @@ class Info(disnake.ui.View):
         await INTERACTION.response.send_message(embed = SYS_USAGE, ephemeral = True)
     
     # Get latest Github commits
-    @disnake.ui.button(label = "Github Commits", style = ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>")
+    @disnake.ui.button(label = "Github Commits", style = ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>", custom_id = "Geralt-Commits")
     async def COMMITS(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         COMMIT_EMB  =   disnake.Embed(
             title = "<:WinGIT:898591166864441345> My Latest Changes :",
@@ -82,7 +82,7 @@ class Info(disnake.ui.View):
         await INTERACTION.response.send_message(embed = COMMIT_EMB, ephemeral = True)
     
     # Delete the entire message
-    @disnake.ui.button(label = "Delete", style = ButtonStyle.danger, emoji = "<a:Trash:906004182463569961>")
+    @disnake.ui.button(label = "Delete", style = ButtonStyle.danger, emoji = "<a:Trash:906004182463569961>", custom_id = "Geralt-Delete")
     async def DELETE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await INTERACTION.response.send_message("Deleting the whole message as you wish", ephemeral = True)
         await INTERACTION.message.delete()
@@ -96,9 +96,9 @@ class Info(disnake.ui.View):
 class Confirmation(disnake.ui.View):
     def __init__(self, YES, NO):
         super().__init__()
-        self.Yes    = YES
-        self.No     = NO
-    
+        self.Yes        =   YES
+        self.No         =   NO
+
     @disnake.ui.button(label = "Yes", style = ButtonStyle.blurple, emoji = "<:WinCheck:898572324490604605>")
     async def YES(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await self.Yes(self, BUTTON,  INTERACTION)

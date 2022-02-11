@@ -17,8 +17,7 @@ class ErrorHandler(commands.Cog):
         self.bot        =   bot        
         self.session    =   aiohttp.ClientSession()
         self.webhook    =   Webhook.from_url(KERNEL["Tokens"]["Error"], session = self.session)
-        self.TS         =   disnake.utils.format_dt(disnake.utils.utcnow(), style = "F")
-        self.Footer     =   "Please click on the Traceback button for proper information on where you have gone wrong :D"        
+        self.Footer     =   "Click on the buttons for info."        
         
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -34,7 +33,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.DisabledCommand):
             DISABLED_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)
             DISABLED_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
@@ -43,7 +42,7 @@ class ErrorHandler(commands.Cog):
         if  isinstance(error, commands.BotMissingPermissions):
             BOT_MISSING_PERMS_EMB   =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)
             BOT_MISSING_PERMS_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
@@ -52,7 +51,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             MISSING_PERMS_EMB   =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)
             MISSING_PERMS_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
@@ -64,7 +63,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             ARGS_MISSING_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\nClick on the `Syntax` Button for the proper syntax of `{ctx.command}`\n\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```\nClick on the `Syntax` Button for the proper syntax of `{ctx.command}`\n\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)
             ARGS_MISSING_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
@@ -73,7 +72,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.MemberNotFound):
             MEMBER_MISSING_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)
             MEMBER_MISSING_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
@@ -82,7 +81,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.BadArgument):
             BAD_ARGS_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)    
             BAD_ARGS_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()
@@ -91,7 +90,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.errors.CommandOnCooldown):
             COOLDOWN_EMB    =   disnake.Embed(
                 title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
-                description = f"```py\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.TS}",
+                description = f"```prolog\n {error} \n```\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
                 colour = 0x2F3136)
             COOLDOWN_EMB.set_footer(text = self.Footer)
             await ctx.trigger_typing()

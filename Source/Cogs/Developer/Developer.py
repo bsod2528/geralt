@@ -55,14 +55,18 @@ class Developer(commands.Cog):
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            await UI.response.edit(content = "Okay then, I shall go to eternal sleep", view = None, allowed_mentions = self.bot.Mention)
+            for View in UI.children:
+                View.disabled = True
+            await INTERACTION.response.edit_message(content = "Okay then, I shall go to eternal sleep", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
             await self.bot.close()
 
         async def NO(UI : disnake.ui.View, BUTTON: disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            await UI.response.edit(content = "Seems like I'm gonna be alive for a bit longer",view = None, allowed_mentions = self.bot.Mention)
+            for View in UI.children:
+                View.disabled = True
+            await INTERACTION.response.edit_message(content = "Seems like I'm gonna be alive for a bit longer",view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
         Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     

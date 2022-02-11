@@ -222,7 +222,7 @@ class Utility(commands.Cog):
         """See your entire todo list."""
         TODO_LIST   =   await self.bot.DB.fetch(f"SELECT * FROM todo WHERE user_id = $1", ctx.author.id)
         TASK_LIST   =   []
-        SERIAL_NO   =   0
+        SERIAL_NO   =   1
         for TASKS in TODO_LIST:
             TASK_LIST.append(f"> [**{SERIAL_NO}. -**]({TASKS['url']}) {TASKS['task']}" f"\n> <:Reply:930634822865547294> **ID :** `{TASKS['task_id']}` - ({self.bot.DT(TASKS['task_created_at'], style = 'R')})\n")
             SERIAL_NO   +=  1
@@ -245,7 +245,7 @@ class Utility(commands.Cog):
         brief   =   "Edit task")    
     async def todo_edit(self, ctx, ID : int, *, EDITED : commands.clean_content):
         """Edit a particular task."""
-
+        
         if ID != await self.bot.DB.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", ID, ctx.author.name):
             await ctx.reply(f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{ID}` - is a task either which you do not own or is not present in the database <:DutchySMH:930620665139191839>")
         else:
@@ -254,24 +254,28 @@ class Utility(commands.Cog):
 
     @todo.command(
         name    =   "remove",
+        aliases =   ["finished", "done"],
         brief   =   "Removes Task")
     async def todo_remove(self, ctx, *, ID : int):
         """Remove a particular task."""
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-            
+            for View in UI.children:
+                View.disabled = True  
             if ID != await self.bot.DB.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", ID, ctx.author.name):
-                return await UI.response.edit(content = f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{ID}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = None)
+                return await INTERACTION.response.edit_message(content = f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{ID}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = None)
             else:
                 await self.bot.DB.execute(f"DELETE FROM todo WHERE task_id = $1", ID)
-                await UI.response.edit(content = f"Successfully removed **Task ID -** `{ID}` <:HaroldSaysOkay:907110916104007681>", view = None)
+                await INTERACTION.response.edit_message(content = f"Successfully removed **Task ID -** `{ID}` <:HaroldSaysOkay:907110916104007681>", view = UI)
 
         async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+            for View in UI.children:
+                View.disabled = True  
+            await INTERACTION.response.edit_message(content = f"Okay then, I haven't removed Task ID - `{ID}` from your list <:DuckSip:917006564265705482>", view = UI)
+            
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                return
-            await UI.response.edit(content = f"Okay then, I haven't removed Task ID - `{ID}` from your list <:DuckSip:917006564265705482>", view = None)
+                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
         
         Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to remove Task ID - `{ID}` from your list <:BallManHmm:933398958263386222>", view = Interface.Confirmation(YES, NO))    
 
@@ -289,16 +293,19 @@ class Utility(commands.Cog):
                 DELETE_LIST =   await self.bot.DB.execute(f"DELETE FROM todo WHERE user_id = $1", ctx.author.id)
                 if INTERACTION.user != ctx.author:
                     return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                
+                for View in UI.children:
+                    View.disabled = True  
                 if not DELETE_LIST:
-                    await UI.response.edit("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:CoffeeSip:907110027951742996>", view = None)
+                    await INTERACTION.response.edit_message("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:CoffeeSip:907110027951742996>", view = UI)
                 else:
-                    await UI.response.edit(content = f"Successfully deleted `{len(TOTAL)}` tasks from your list <:ICool:940786050681425931>.", view = None)
+                    await INTERACTION.response.edit_message(content = f"Successfully deleted `{len(TOTAL)}` tasks from your list <:ICool:940786050681425931>.", view = UI)
             
             async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
                 if INTERACTION.user != ctx.author:
                     return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                await UI.response.edit(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = None)
+                for View in UI.children:
+                    View.disabled = True  
+                await INTERACTION.response.edit_message(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = UI)
         
             Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(TOTAL)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(YES, NO))
 

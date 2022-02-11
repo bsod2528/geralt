@@ -63,7 +63,7 @@ class Fun(commands.Cog):
                 colour  =   self.bot.colour)
             DELETE_EMB.add_field(
                 name    =   "Message Content",
-                value   =   f"```json\n{MESSAGE}\n```")
+                value   =   f"```prolog\n{MESSAGE}\n```")
             DELETE_EMB.timestamp    =   disnake.utils.utcnow()
             await ctx.reply(embed = DELETE_EMB, allowed_mentions = self.bot.Mention)
         except:
@@ -87,10 +87,10 @@ class Fun(commands.Cog):
                 colour  =   self.bot.colour)
             EDIT_EMB.add_field(
                 name    =   "Before Edit",
-                value   =   f"```json\n{MESSAGE}\n```")
+                value   =   f"```prolog\n{MESSAGE}\n```")
             EDIT_EMB.add_field(
                 name    =   "After Edit",
-                value   =   f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.DT(POST_TIME)}\n```json\n{POST_MESSAGE}\n```",
+                value   =   f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.DT(POST_TIME)}\n```prolog\n{POST_MESSAGE}\n```",
                 inline  =   False)
             await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention, view = View)
         except:

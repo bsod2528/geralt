@@ -8,6 +8,8 @@ import datetime
 from disnake.ext import commands    
 from disnake.webhook.async_ import Webhook
 
+import Source.Kernel.Views.Interface as Interface
+
 COGS_EXTENSIONS    =   [
    "jishaku",           
    "Source.Cogs.Fun",
@@ -57,6 +59,7 @@ class Geralt(commands.Bot):
         self.description    =   KERNEL["Init"]["Description"]
         self.Mention        =   disnake.AllowedMentions.none()
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
+        self.Persistent     =   False
 
         print("- Loading all Cogs.")
         for COGS in COGS_EXTENSIONS:
@@ -122,6 +125,10 @@ class Geralt(commands.Bot):
         await self.session.close()
 
     async def on_ready(self):
+        if not self.Persistent:
+            self.add_view(Interface.Info(commands.context, commands.Bot))
+            self.Persistent   =   True
+            
         if not hasattr(self, "uptime"):
             self.uptime     =   disnake.utils.utcnow()
         self.session    =   aiohttp.ClientSession()
