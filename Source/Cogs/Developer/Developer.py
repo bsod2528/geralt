@@ -350,11 +350,11 @@ class Developer(commands.Cog):
         TABLE.rows_added(list(R.values()) for R in RESULTS)
         RENDERED    =   TABLE.render()
 
-        FINAL = f"**<:GeraltRightArrow:904740634982760459> Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms**```prolog\n{RENDERED}\n```\n"
+        FINAL = f"{RENDERED}\n"
         if len(FINAL) > 2000:
-            await ctx.reply("Too much data to send at once...", file = disnake.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
+            await ctx.reply(f"<:ReplyContinued:930634770004725821> - Too much data to send at once...\n<:Reply:930634822865547294> - Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms", file = disnake.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
         else:
-            await ctx.reply(FINAL, allowed_mentions = self.bot.Mention)
+            await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms\n```prolog\n{FINAL}\n```", allowed_mentions = self.bot.Mention)
 
 def setup(bot):
     bot.add_cog(Developer(bot))

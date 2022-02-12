@@ -1,3 +1,4 @@
+from faulthandler import disable
 import pygit2
 import psutil
 import disnake
@@ -135,6 +136,7 @@ class PFP(disnake.ui.View):
             return True
         await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
 
+# Error - Handler View
 class Traceback(disnake.ui.View):
     def __init__(self, ctx, error):
         super().__init__()
@@ -160,6 +162,7 @@ class Traceback(disnake.ui.View):
                 return True
             await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
 
+# Error - Handler View for commands.BadArgumemt
 class CommandSyntax(disnake.ui.View):
     def __init__(self, ctx, error):
         super().__init__()
@@ -197,3 +200,13 @@ class CommandSyntax(disnake.ui.View):
             if INTERACTION.user == self.CTX.author:
                 return True
             await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+    
+# Nitro Command View
+class Nitro(disnake.ui.View):
+    def __init__(self, USER : disnake.Member = None):
+        super().__init__()
+
+    @disnake.ui.button(label = "Avail Nitro", style = ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>")
+    async def Nitro(self, BUTTON : disnake.ui.Button, INTERACTION : disnake.Interaction):
+        await INTERACTION.user.send(content = f"discord.gift/8kSkH4Qzny4kGHzutnmZ7Asv")
+        await INTERACTION.response.send_message(content = '**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**\n\nhttps://imgur.com/NQinKJB', ephemeral = True)

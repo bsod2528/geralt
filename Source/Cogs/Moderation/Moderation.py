@@ -19,19 +19,19 @@ class Moderation(commands.Cog):
             elif USER == ctx.author:
                 raise commands.BadArgument("Self Sabotage, nice... I'm not doing it -")
             elif USER == ctx.guild.me:
-                raise commands.BadArgument(f"If you're gonna hurt me - use some other bot.")
+               raise commands.BadArgument(f"If you're gonna hurt me - use some other bot.")
             elif USER.top_role > ctx.guild.me.top_role:
                 raise commands.BadArgument(f"{USER} has a higher role than me. Raise my powers.")
-            return True
+            return 
         
     @commands.command(
         name    =   "kick",
         brief   =   "Kicks User")
     async def kick(self, ctx, USER : disnake.Member, *, REASON : str = "Not Provided"):
         """Teach them a lesson by kicking them out."""
+        self.Check_Hierarchy(ctx, USER)
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             
-            self.Check_Hierarchy(ctx, USER)
             await USER.kick(reason = f"{USER} - {REASON} by {ctx.author}")
             KICK_EMB    =   disnake.Embed(
                 title   =   f"Kick - Has Occured.",
@@ -64,9 +64,9 @@ class Moderation(commands.Cog):
         brief   =   "Bans User")
     async def ban(self, ctx, USER : disnake.Member, *, REASON : str = "Not Provided"):
         """Ban toxic users"""
+        self.Check_Hierarchy(ctx, USER)
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             
-            self.Check_Hierarchy(ctx, USER)
             await USER.ban(reason = f"{USER} - {REASON} by {ctx.author}")
             BAN_EMB     =   disnake.Embed(
                 title   =   f"Ban Hammer Has Spoken",
@@ -93,7 +93,6 @@ class Moderation(commands.Cog):
                 return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
     
         Interface.Confirmation.response = await ctx.send(f"Are you sure you want to ban {USER.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
-    
     
 def setup(bot):
     bot.add_cog(Moderation(bot))

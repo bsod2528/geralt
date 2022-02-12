@@ -4,6 +4,7 @@ import disnake
 import asyncpg
 import aiohttp
 import datetime
+import colorama as COLOUR
 
 from disnake.ext import commands    
 from disnake.webhook.async_ import Webhook
@@ -30,13 +31,15 @@ DB_URL  =   KERNEL["DB"]["URL"]
 
 Timestamp   =   datetime.datetime.now(datetime.timezone.utc)
 
+COLOUR.init()
+
 async def DB_CONNECT(): 
     try:
-        print("- Establishing connection with my database.")
+        print(COLOUR.Fore.CYAN + "- Establishing connection with my database." + COLOUR.Style.RESET_ALL)
         Geralt.DB    =  await asyncpg.create_pool(dsn = DB_URL)
-        print("- Connection established successfully.")
+        print(COLOUR.Fore.GREEN + "- Connection established successfully." + COLOUR.Style.RESET_ALL)
     except Exception as EXCEPTION:
-        print(f"- Couldnt connect due to : {EXCEPTION}")
+        print(COLOUR.Fore.RED + f"- Couldnt connect due to : {EXCEPTION}" + COLOUR.Style.RESET_ALL)
 
 async def SESSION_CREATE():
     Geralt.session  =   aiohttp.ClientSession()
@@ -61,16 +64,16 @@ class Geralt(commands.Bot):
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
         self.Persistent     =   False
 
-        print("- Loading all Cogs.")
+        print(COLOUR.Fore.CYAN + "- Loading all Cogs." + COLOUR.Style.RESET_ALL)
         for COGS in COGS_EXTENSIONS:
             try:
                 self.load_extension(COGS)
             except Exception as EXCEPT:
-                print(f"- {COGS} : {EXCEPT}")
+                print(COLOUR.Fore.RED + f"- {COGS} : {EXCEPT}" + COLOUR.Style.RESET_ALL)
         
-        print("- Cogs Successfully Loaded.")
+        print(COLOUR.Fore.GREEN + "- Cogs Successfully Loaded." + COLOUR.Style.RESET_ALL)
 
-    print("- Waking up")
+    print(COLOUR.Fore.CYAN + "- Waking up" + COLOUR.Style.RESET_ALL)
     
     async def on_guild_join(self, GUILD):
         """Sends a Webhook upon joining a guild"""
@@ -137,7 +140,7 @@ class Geralt(commands.Bot):
             status  =   disnake.Status.idle,
             activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp")) 
         await self.WEBHOOK.send(f"<:ReplyTop:931694333009207387>  - Came alive as **{self.user}**\n<:Reply:930634822865547294> - {self.DT(disnake.utils.utcnow(), style = 'F')}")
-        print("- Awakened")
+        print(COLOUR.Fore.GREEN + "- Awakened" + COLOUR.Style.RESET_ALL)
         await self.session.close()
 
     async def on_slash_command_error(self, interaction : disnake.ApplicationCommandInteraction, error : commands.CommandError):

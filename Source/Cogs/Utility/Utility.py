@@ -1,3 +1,4 @@
+from re import A
 from click import command
 import disnake
 import humanize
@@ -224,7 +225,7 @@ class Utility(commands.Cog):
         TASK_LIST   =   []
         SERIAL_NO   =   1
         for TASKS in TODO_LIST:
-            TASK_LIST.append(f"> [**{SERIAL_NO}. -**]({TASKS['url']}) {TASKS['task']}" f"\n> <:Reply:930634822865547294> **ID :** `{TASKS['task_id']}` - ({self.bot.DT(TASKS['task_created_at'], style = 'R')})\n")
+            TASK_LIST.append(f"> [**{SERIAL_NO}. -**]({TASKS['url']}) {TASKS['task']}" f"\n> <:Reply:930634822865547294> **ID :** `{TASKS['task_id']}` - {self.bot.DT(TASKS['task_created_at'], style = 'R')}\n")
             SERIAL_NO   +=  1
         
         if not TODO_LIST:
@@ -308,6 +309,6 @@ class Utility(commands.Cog):
                 await INTERACTION.response.edit_message(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = UI)
         
             Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(TOTAL)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(YES, NO))
-
+        
 def setup(bot):
     bot.add_cog(Utility(bot))

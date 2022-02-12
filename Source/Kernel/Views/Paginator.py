@@ -94,4 +94,4 @@ class Paginator(disnake.ui.View):
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.CTX.author:
                 return True
-            await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)    
