@@ -3,6 +3,7 @@ import disnake
 from disnake.ext import commands
 
 import Source.Kernel.Utilities.Crucial as CRUCIAL
+import Source.Kernel.Views.Interface as Interface
 
 class Fun(commands.Cog):
     """Simple commands that induce Fun"""
@@ -95,6 +96,28 @@ class Fun(commands.Cog):
             await ctx.reply(embed = EDIT_EMB, allowed_mentions = self.bot.Mention, view = View)
         except:
             await ctx.reply("No one has edited any messages as of now <a:BotLurk:905749164355379241>", allowed_mentions = self.bot.Mention)
-            
+
+    @commands.command(
+        name    =   "nitro",
+        brief   =   "Gift Nitro")
+    async def nitro(self, ctx, *, USER : disnake.Member = None):
+        """Gift a user free nitro!"""
+        if USER is None:
+            NITRO_EMB   =   disnake.Embed(
+            title   =   "<a:Nitro:905661661191479326> Nitro Has Been Gifted!",
+            description =   f">>> {ctx.author.mention} has been gifted nitro classic by {ctx.guild.me.mention} <a:WumpusHypesquad:905661121501990923>.\n<:Reply:930634822865547294> **-** **{ctx.author}** click on the button below to avail the nitro.",
+            colour  =   0x2F3136)
+            NITRO_EMB.set_thumbnail(url = "https://i.imgur.com/w9aiD6F.png")
+            NITRO_EMB.timestamp = disnake.utils.utcnow()    
+            await ctx.send(embed = NITRO_EMB, view = Interface.Nitro(USER))
+        else:
+            NITRO_EMB   =   disnake.Embed(
+                title   =   "<a:Nitro:905661661191479326> Nitro Has Been Gifted!",
+                description =   f">>> <@{USER.id}> has been gifted nitro classic by {ctx.author.mention} <a:WumpusHypesquad:905661121501990923>.\n<:Reply:930634822865547294> **-** **{USER}** click on the button below to avail the nitro.",
+                colour  =   0x2F3136)
+            NITRO_EMB.set_thumbnail(url = "https://i.imgur.com/w9aiD6F.png")
+            NITRO_EMB.timestamp = disnake.utils.utcnow()
+            await ctx.send(embed = NITRO_EMB, view = Interface.Nitro(USER))
+
 def setup(bot):
     bot.add_cog(Fun(bot))
