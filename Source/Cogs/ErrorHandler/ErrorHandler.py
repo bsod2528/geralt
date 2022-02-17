@@ -123,6 +123,8 @@ class ErrorHandler(commands.Cog):
             else:
                 await send_error.send(embed = error_emb, file = disnake.File(io.StringIO(error_str), filename = "Traceback.py"))
                 await send_error.send("||Break Point||")
+        
+        self.session.close()
 
 def setup(bot):
     bot.add_cog(ErrorHandler(bot))

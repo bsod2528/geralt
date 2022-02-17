@@ -17,7 +17,7 @@ class Paginator(disnake.ui.View):
             self.LEFT.disabled = True
             self.MAX_LEFT.disabled = True
 
-    @disnake.ui.button(label = "<<", style = ButtonStyle.gray)
+    @disnake.ui.button(label = "<<", style = ButtonStyle.gray, custom_id = "<<")
     async def MAX_LEFT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
         self.CURRENT    =   0
         self.LEFT.disabled = True
@@ -32,7 +32,7 @@ class Paginator(disnake.ui.View):
 
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = self)
     
-    @disnake.ui.button(label = "<", style = ButtonStyle.blurple)
+    @disnake.ui.button(label = "<", style = ButtonStyle.blurple, custom_id = "<")
     async def LEFT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
         self.CURRENT    -=  1
         
@@ -53,7 +53,7 @@ class Paginator(disnake.ui.View):
 
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
     
-    @disnake.ui.button(label = ">", style = ButtonStyle.blurple)
+    @disnake.ui.button(label = ">", style = ButtonStyle.blurple, custom_id = ">")
     async def RIGHT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
         self.CURRENT    +=  1
 
@@ -71,7 +71,7 @@ class Paginator(disnake.ui.View):
 
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
     
-    @disnake.ui.button(label = ">>", style = ButtonStyle.gray)
+    @disnake.ui.button(label = ">>", style = ButtonStyle.gray, custom_id = ">>")
     async def MAX_RIGHT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = False):
         self.CURRENT    =   self.TOTAL - 1
         
@@ -87,7 +87,7 @@ class Paginator(disnake.ui.View):
         
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
 
-    @disnake.ui.button(label = "Exit", style = ButtonStyle.danger)
+    @disnake.ui.button(label = "Exit", style = ButtonStyle.danger, custom_id = "Delete")
     async def DELETE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await INTERACTION.message.delete()
 

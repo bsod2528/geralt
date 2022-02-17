@@ -1,10 +1,9 @@
-from re import A
-from click import command
 import disnake
 import humanize
 import asyncpg as PSQL
 
 from disnake.ext import commands
+from disnake.enums import ButtonStyle
 
 import Source.Kernel.Views.Interface as Interface
 import Source.Kernel.Utilities.Flags as FLAGS
@@ -263,9 +262,10 @@ class Utility(commands.Cog):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
             for View in UI.children:
-                View.disabled = True  
+                View.disabled = True
+                View.style  =   ButtonStyle.grey  
             if ID != await self.bot.DB.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", ID, ctx.author.name):
-                return await INTERACTION.response.edit_message(content = f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{ID}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = None)
+                return await INTERACTION.response.edit_message(content = f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{ID}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = UI)
             else:
                 await self.bot.DB.execute(f"DELETE FROM todo WHERE task_id = $1", ID)
                 await INTERACTION.response.edit_message(content = f"Successfully removed **Task ID -** `{ID}` <:HaroldSaysOkay:907110916104007681>", view = UI)
@@ -273,6 +273,7 @@ class Utility(commands.Cog):
         async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             for View in UI.children:
                 View.disabled = True  
+                View.style  =   ButtonStyle.grey
             await INTERACTION.response.edit_message(content = f"Okay then, I haven't removed Task ID - `{ID}` from your list <:DuckSip:917006564265705482>", view = UI)
             
             if INTERACTION.user != ctx.author:
@@ -296,6 +297,7 @@ class Utility(commands.Cog):
                     return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
                 for View in UI.children:
                     View.disabled = True  
+                    View.style  =   ButtonStyle.grey
                 if not DELETE_LIST:
                     await INTERACTION.response.edit_message("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:CoffeeSip:907110027951742996>", view = UI)
                 else:
@@ -306,6 +308,7 @@ class Utility(commands.Cog):
                     return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
                 for View in UI.children:
                     View.disabled = True  
+                    View.style  =   ButtonStyle.grey
                 await INTERACTION.response.edit_message(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = UI)
         
             Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(TOTAL)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(YES, NO))

@@ -5,6 +5,7 @@ import datetime
 from disnake.ext import commands
 
 import Source.Kernel.Utilities.Crucial as CRUCIAL
+import Source.Kernel.Views.Interface as Interface
 
 class Application(commands.Cog):
     """Discord Application Commands"""
@@ -75,6 +76,12 @@ class Application(commands.Cog):
             colour = self.bot.colour)
         PING_EMB.timestamp = disnake.utils.utcnow()
         await interaction.response.send_message(embed = PING_EMB, ephemeral = True)
+
+    @commands.slash_command(
+        name        =   "stupidity-survey",
+        description =   "Simple survey showcasing how stupid you are.")
+    async def stupidity(self, INTERACTION : disnake.ApplicationCommandInteraction):
+        await INTERACTION.response.send_modal(modal = Interface.Modal(self.bot))
 
 def setup(bot):
     bot.add_cog(Application(bot))

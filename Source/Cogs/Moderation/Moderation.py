@@ -94,5 +94,53 @@ class Moderation(commands.Cog):
     
         Interface.Confirmation.response = await ctx.send(f"Are you sure you want to ban {USER.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     
+    @commands.command(
+        name    =   "mute",
+        brief   =   "Mutes User")
+    async def mute(self, ctx, USER : disnake.Member, *, REASON : str = "Not Provided"):
+        """Mute toxic users"""
+        self.Check_Hierarchy(ctx, USER)
+        ROLE    =   disnake.utils.get(ctx.guild.roles, name = "Mute")
+        if ROLE in USER.roles:
+                await ctx.send(f"**{USER}** already has the role and is currently muted <a:LifeSucks:932255208044650596>")                
+        else:        
+            async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+                if not ROLE:
+                    CREATE_ROLE =   await ctx.guild.create_role(name = "Mute", permissions = disnake.Permissions(66560), reason = "There was no Mute Role present.")
+                    for GUILD in ctx.guild.channels:
+                        await GUILD.set_permissions(ROLE, send_messages = False, read_messages = True, view_channel = True)
+            
+                for View in UI.children:
+                    View.disabled = True            
+            
+                try:
+                    await USER.add_roles(ROLE, reason = REASON)
+                except Exception as e:
+                    await ctx.send(e)
+
+                MUTE_EMB     =   disnake.Embed(
+                    title   =   f"Mute Has Occured",
+                    description =   f">>> {USER.mention} has been **muted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{USER.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+                    colour  =   self.bot.colour)
+                MUTE_EMB.add_field(
+                    name    =   f"Reason :",
+                    value   =   f"```prolog\n{REASON}\n```")
+                MUTE_EMB.timestamp = disnake.utils.utcnow()
+                MUTE_EMB.set_thumbnail(url = USER.display_avatar.url)
+                await INTERACTION.response.edit_message(content = f"\u2001", embed = MUTE_EMB, view = UI)
+
+                if INTERACTION.user != ctx.author:
+                    return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+
+            async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+                for View in UI.children:
+                    View.disabled = True
+                await INTERACTION.response.edit_message(content = f"**{USER.mention}** will not be muted.", allowed_mentions = self.bot.Mention, view = UI)
+
+                if INTERACTION.user != ctx.author:
+                    return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+
+            Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **mute** {USER.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+
 def setup(bot):
     bot.add_cog(Moderation(bot))

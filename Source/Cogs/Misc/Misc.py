@@ -3,8 +3,10 @@ import time
 import json
 import typing
 import aiohttp
+from click import style
 import disnake
 import asyncio
+import humanize
 
 from disnake.ext import commands
 from disnake.ext.commands import bot
@@ -21,6 +23,7 @@ class Misc(commands.Cog):
         self.BUG        =   Webhook.from_url(KERNEL["Tokens"]["Bug"], session = self.session)
         self.REPORT     =   Webhook.from_url(KERNEL["Tokens"]["Report"], session = self.session)
 
+    @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.command(
         name    =   "ping",
         aliases =   ["pong"],
@@ -64,9 +67,9 @@ class Misc(commands.Cog):
     async def info(self, ctx):
         """Receive full information regarding me."""
         INFO_EMB    =   disnake.Embed(
-            title = "__Geralt : Da Bot__",
+            title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url = self.bot.PFP,
-            description =   f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#3375**\n\nCame to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\nYou can check out my [**Github**](https://github.com/BSOD2528/Geralt) or by clicking the `Github Commits` button :D ",
+            description =   f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#3375**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D ",
             colour = self.bot.colour)
         INFO_EMB.add_field(
             name = "General Statistics :",
@@ -80,7 +83,7 @@ class Misc(commands.Cog):
         async with ctx.typing():
             await asyncio.sleep(0.5)
         INFO_EMB.timestamp = disnake.utils.utcnow()
-        await ctx.reply(embed = INFO_EMB, mention_author = False, view = Interface.Info(ctx, bot))
+        await ctx.reply(embed = INFO_EMB, mention_author = False, view = Interface.Info(self.bot, ctx))
 
     @commands.group(
         name    =   "report",
@@ -185,6 +188,16 @@ class Misc(commands.Cog):
         JSON_DATA       =   json.dumps(MESSAGE_DATA, indent = 4)
         await ctx.trigger_typing()
         await ctx.reply(f"Here you go <:NanoTick:925271358735257651>", file = disnake.File(io.StringIO(JSON_DATA), filename = "Message-Raw-Data.json"), allowed_mentions = self.bot.Mention)
-    
+
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    @commands.command(
+        name    =   "uptime",
+        aliases =   ["ut"],
+        brief   =   "Returns Uptime")
+    async def uptime(self, ctx):
+        """Sends my uptime -- how long I've been online for"""
+        TIME    =   disnake.utils.utcnow() - self.bot.uptime
+        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been `online` for -\n>>> <:ReplyContinued:930634770004725821> - Exactly : {humanize.precisedelta(TIME)}\n<:Reply:930634822865547294> - Roughly Since : {self.bot.DT(self.bot.uptime, style = 'R')} <a:CoffeeSip:907110027951742996>")
+
 def setup(bot):
     bot.add_cog(Misc(bot))

@@ -57,6 +57,7 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
                 View.disabled = True
+                View.style  =   ButtonStyle.grey
             await INTERACTION.response.edit_message(content = "Okay then, I shall go to eternal sleep", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
             await self.bot.close()
@@ -66,6 +67,7 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
                 View.disabled = True
+                View.style  =   ButtonStyle.grey
             await INTERACTION.response.edit_message(content = "Seems like I'm gonna be alive for a bit longer",view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
         Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
@@ -141,21 +143,25 @@ class Developer(commands.Cog):
         """Loads the Extension mentioned."""
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-                return
+                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+            for View in UI.children:
+                View.disabled   =   True
+                View.style  =   ButtonStyle.grey
             try:
                 self.bot.load_extension(f"Source.Cogs.{COG}")
             except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't load **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = None, allowed_mentions = self.bot.Mention)
+                await UI.response.edit(content = f"Couldn't load **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = UI, allowed_mentions = self.bot.Mention)
             else:
-                await UI.response.edit(content = f"Loaded : **{COG}** <:RavenPray:914410353155244073>", view = None, allowed_mentions = self.bot.Mention)
+                await UI.response.edit(content = f"Loaded : **{COG}** <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
 
         async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-                return
-            await UI.response.edit(content = f"Seems like you don't want to load **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = None, allowed_mentions = self.bot.Mention)
+                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.grey
+            await UI.response.edit(content = f"Seems like you don't want to load **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = UI, allowed_mentions = self.bot.Mention)
         Confirmation.response    = await ctx.reply(f"Do you want to load : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
 
     # Unloads extension of choice
@@ -168,21 +174,25 @@ class Developer(commands.Cog):
         """Unloads the Extension mentioned."""
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-                return
+                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.grey
             try:
                 self.bot.unload_extension(f"Source.Cogs.{COG}")
             except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't unload **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = None, allowed_mentions = self.bot.Mention)
+                await UI.response.edit(content = f"Couldn't unload **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = UI, allowed_mentions = self.bot.Mention)
             else:
-                await UI.response.edit(content = f"Unloaded : **{COG}** <:RavenPray:914410353155244073>", view = None, allowed_mentions = self.bot.Mention)
+                await UI.response.edit(content = f"Unloaded : **{COG}** <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
 
         async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-                return
-            await UI.response.edit(content = f"Seems like you don't want to unload **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = None, allowed_mentions = self.bot.Mention)
+                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.grey
+            await UI.response.edit(content = f"Seems like you don't want to unload **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = UI, allowed_mentions = self.bot.Mention)
         async with ctx.typing():
             await asyncio.sleep(0.2)
         Confirmation.response    = await ctx.reply(f"Do you want to unload : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)

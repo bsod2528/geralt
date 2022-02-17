@@ -25,14 +25,17 @@ class Guild(commands.Cog):
         brief   =   "Shows Stored Information")
     async def show_info(self, ctx):
         """Shows the entire information"""
-        GUILD_ID    =   await self.bot.DB.fetchval(f"SELECT * FROM guild_info WHERE id = $1", ctx.guild.id)
-        OWNER_ID    =   await self.bot.DB.fetchval(f"SELECT * FROM guild_info WHERE owner_id = $1", ctx.guild.owner_id)
+        GUILD_INFO  =   await self.bot.DB.fetchval(f"SELECT * FROM guild_info WHERE name = $1", ctx.guild.name)
+        GUILD       =   []
+        for INFO in GUILD_INFO:
+            GUILD.append(f"{INFO['name']}")
+
         SHOW_EMB    =   disnake.Embed(
             title   =   f"{ctx.guild.name}",
             colour  =   self.bot.colour)
         SHOW_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Stored Information :",
-            value   =   f"```prolog\nGuild ID : {GUILD_ID}\nGuild Name : {ctx.guild.name}\nGuild Owner ID : {OWNER_ID}\n```")
+            value   =   f"".join(INFO for INFO in GUILD))
         await ctx.send(embed = SHOW_EMB)
 
     @data.command(

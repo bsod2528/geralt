@@ -1,10 +1,12 @@
-from faulthandler import disable
+from tkinter.tix import Tree
 import pygit2
 import psutil
 import disnake
 import datetime
+import platform
 import itertools
 import traceback
+import cpuinfo as CPU
 
 from disnake.enums import ButtonStyle
 
@@ -33,19 +35,20 @@ def Latest_Commit(MAX : int = 5):
 # Sub - Class for " Bot Info " command.
 # A huge shoutout and thanks to Zeus432 [ Github User ID ] for the amazing idea of adding these buttons :D
 class Info(disnake.ui.View):
-    def __init__(self, ctx, bot):
+    def __init__(self, bot, ctx):
         super().__init__(timeout = None)
-        self.ctx = ctx
         self.bot = bot
+        self.ctx = ctx
         self.Timestamp  =   disnake.utils.utcnow()
+        self.add_item(disnake.ui.Button(label = "Dashboard", emoji = "<:AkkoComfy:907104936368685106>", url = "https://bsod2528.github.io/Posts/Geralt"))
 
     # Misc. Stats like No. of lines, functions and classes.
-    @disnake.ui.button(label = "Misc.", style = ButtonStyle.blurple, emoji = "<a:WumpusVibe:905457020575031358>", custom_id = "Geralt-Stats")
+    @disnake.ui.button(label = "Misc.", style = ButtonStyle.blurple, emoji = "<a:WumpusVibe:905457020575031358>", custom_id = "Stats")
     async def STATS(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         Time    =   disnake.utils.utcnow()
         STATS_EMB   =   disnake.Embed(
             title = "<:VerifiedDev:905668791831265290> Miscellaneous Statistics :",
-            description =   f"\n**Been Up Since :** {disnake.utils.format_dt(Time, style = 'F')}"
+            description =   f"\n**Been Up Since :** {disnake.utils.format_dt(self.Timestamp, style = 'F')}"
                             f"```prolog\n- Total Classes   : {await MISC('Source/', '.py', 'class'):,}" \
                             f"\n- Total Functions : {await MISC('Source/', '.py', 'def'):,}"
                             f"\n- Total Lines     : {await TL('Source', '.py'):,}```",
@@ -53,27 +56,32 @@ class Info(disnake.ui.View):
         await INTERACTION.response.send_message(embed = STATS_EMB, ephemeral = True)
         
     # Shows System Usage at the current moment.
-    @disnake.ui.button(label = "System Info", style = ButtonStyle.blurple, emoji = "<a:Info:905750331789561856>", custom_id = "Geralt-Sys-Usage")
+    @disnake.ui.button(label = "System Info", style = ButtonStyle.blurple, emoji = "<a:Info:905750331789561856>", custom_id = "Usage")
     async def SYS_USAGE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        # defer here
+        await INTERACTION.response.defer(ephemeral = True, with_message=True)
         Core_Count  =   psutil.cpu_count()
         CPU_Usage   =   psutil.cpu_percent()
         Mem_Per     =   psutil.virtual_memory().percent
         Mem_GB      =   psutil.virtual_memory().available / 1024 ** 3
         RAM_Usage   =   psutil.Process().memory_full_info().uss / 1024 ** 2
+        CPU_Name    =   CPU.get_cpu_info()["brand_raw"]
 
         SYS_USAGE   =   disnake.Embed(
             title = "<:WinCogs:898591890209910854> System Usage :",
             description =   f"```prolog\n> CPU Used          : {CPU_Usage:.2f} %\n" \
+                            f"> CPU Name          : {CPU_Name}\n" \
                             f"> CPU Core Count    : {Core_Count} Cores\n" \
                             f"> Memory Used       : {RAM_Usage:.2f} Megabytes\n" \
                             f"> Memory Available  : {Mem_GB:.3f} GB [ {Mem_Per} % ]\n" \
                             f"> Operating System  : Windows 10 Pro 10.0.19042\n```",
             colour = COLOUR)
         SYS_USAGE.timestamp =   self.Timestamp
-        await INTERACTION.response.send_message(embed = SYS_USAGE, ephemeral = True)
+        # send here
+        await INTERACTION.followup.send(embed = SYS_USAGE, ephemeral = True)
     
     # Get latest Github commits
-    @disnake.ui.button(label = "Github Commits", style = ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>", custom_id = "Geralt-Commits")
+    @disnake.ui.button(label = "Github Commits", style = ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>", custom_id = "Commits")
     async def COMMITS(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         COMMIT_EMB  =   disnake.Embed(
             title = "<:WinGIT:898591166864441345> My Latest Changes :",
@@ -82,17 +90,6 @@ class Info(disnake.ui.View):
         COMMIT_EMB.timestamp = self.Timestamp
         await INTERACTION.response.send_message(embed = COMMIT_EMB, ephemeral = True)
     
-    # Delete the entire message
-    @disnake.ui.button(label = "Delete", style = ButtonStyle.danger, emoji = "<a:Trash:906004182463569961>", custom_id = "Geralt-Delete")
-    async def DELETE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        await INTERACTION.response.send_message("Deleting the whole message as you wish", ephemeral = True)
-        await INTERACTION.message.delete()
-   
-    async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
-        if INTERACTION.user == self.ctx.author:
-            return True
-        await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-
 # Sub - Class for Confirmation based commands which utilises buttons.
 class Confirmation(disnake.ui.View):
     def __init__(self, YES, NO):
@@ -145,17 +142,20 @@ class Traceback(disnake.ui.View):
 
     @disnake.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
     async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        BUTTON.disabled = True
+        BUTTON.style    =   ButtonStyle.green
         ERROR   =   getattr(self.ERROR, "original", self.ERROR)
         ERROR_EMB   =   disnake.Embed(
             title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
             description = f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))}\n```\n",   
             colour = 0x2F3136)
+        await INTERACTION.message.edit(view = self)
         await INTERACTION.response.send_message(embed = ERROR_EMB, ephemeral = True)    
     
     @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
     async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
         await INTERACTION.message.delete()
+        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
 
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.ctx.author:
@@ -170,7 +170,9 @@ class CommandSyntax(disnake.ui.View):
         self.ERROR  =   error
 
     @disnake.ui.button(label = "Syntax", style = ButtonStyle.blurple, emoji = "<a:CoffeeSip:907110027951742996>")
-    async def Syntax(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+    async def Syntax(self, BUTTON : disnake.ui.Button, INTERACTION : disnake.Interaction, disabled = False):
+        BUTTON.disabled =   True
+        BUTTON.style    =   ButtonStyle.green
         COMMAND_NAME = f"{self.CTX.clean_prefix}{self.CTX.command} {self.CTX.command.signature}"
         SYNTAX_EMB  =   disnake.Embed(
             title   =   f"<:GeraltRightArrow:904740634982760459> COMMAND SYNTAX : {self.CTX.clean_prefix}{self.CTX.command}",
@@ -179,34 +181,65 @@ class CommandSyntax(disnake.ui.View):
                             f"\n{self.ERROR.param.name} is a required argument which you have not passed\n```",
             colour  =   0x2F3136)
         SYNTAX_EMB.timestamp    =   disnake.utils.utcnow()
+        SYNTAX_EMB.set_footer(text = f"Run {self.CTX.clean_prefix}{self.CTX.command} help for more help")
+        await INTERACTION.message.edit(view = self)
         await INTERACTION.response.send_message(embed = SYNTAX_EMB, ephemeral = True)
-
 
     @disnake.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
     async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        BUTTON.disabled = True
+        BUTTON.style    =   ButtonStyle.green
         ERROR   =   getattr(self.ERROR, "original", self.ERROR)
         ERROR_EMB   =   disnake.Embed(
             title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.CTX.command}",
             description = f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(ERROR), ERROR, ERROR.__traceback__))}\n```\n",   
             colour = 0x2F3136)
+        await INTERACTION.message.edit(view = self)
         await INTERACTION.response.send_message(embed = ERROR_EMB, ephemeral = True)    
 
     @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
     async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
         await INTERACTION.message.delete()
+        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
 
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.CTX.author:
                 return True
             await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-    
+
 # Nitro Command View
 class Nitro(disnake.ui.View):
     def __init__(self, USER : disnake.Member = None):
         super().__init__()
 
-    @disnake.ui.button(label = "Avail Nitro", style = ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>")
+    @disnake.ui.button(label = "Avail Nitro", style = ButtonStyle.green, emoji = "<a:WumpusHypesquad:905661121501990923>")
     async def Nitro(self, BUTTON : disnake.ui.Button, INTERACTION : disnake.Interaction):
-        await INTERACTION.user.send(content = f"discord.gift/8kSkH4Qzny4kGHzutnmZ7Asv")
-        await INTERACTION.response.send_message(content = '**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**\n\nhttps://imgur.com/NQinKJB', ephemeral = True)
+        BUTTON.disabled =   True
+        BUTTON.label    =   "Claimed"
+        await INTERACTION.message.edit(view = self)
+        await INTERACTION.user.send(content = f"discord.gift/R1cKr0OlL3d")
+        await INTERACTION.response.send_message(content = '**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**\n\nhttps://imgur.com/NQinKJB', ephemeral = True)     
+
+# Contains View Class for Stupid Survey
+class Modal(disnake.ui.Modal):
+    def __init__(self, bot):
+        self.bot    =   bot
+        
+        STUFF   =   [disnake.ui.TextInput(label = "Username", placeholder = "Enter Your Name", custom_id = "Username", style = disnake.TextInputStyle.short, max_length = 50),
+                    disnake.ui.TextInput(label = "Justify Yourself", placeholder = "Paragraph stating Why You're Stupid", custom_id = "1st - Answer", style = disnake.TextInputStyle.paragraph),
+                    disnake.ui.TextInput(label = "*Grimaces Silently -*", placeholder = "Paragraph stating Why You're Alive Still", custom_id = "2nd - Answer", style = disnake.TextInputStyle.paragraph)]
+        
+        super().__init__(title = "Stupidity Survey", custom_id = "Survey", components = STUFF) 
+
+    async def callback(self, INTERACTION : disnake.ModalInteraction):
+        STUPID_EMB = disnake.Embed(
+            title   =   f"{INTERACTION.user} Stupid Survey Results",
+            colour  =   self.bot.colour)
+        for Name, Style in INTERACTION.text_values.items():
+            STUPID_EMB.add_field(
+                name    =   f"<:GeraltRightArrow:904740634982760459> {Name.capitalize()}", 
+                value   =   f">>> {Style}", 
+                inline  =   False)
+        STUPID_EMB.set_thumbnail(url = INTERACTION.user.display_avatar.url)
+        STUPID_EMB.timestamp    =   disnake.utils.utcnow()
+        await INTERACTION.response.send_message(embed = STUPID_EMB)
