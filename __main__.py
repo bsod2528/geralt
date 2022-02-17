@@ -5,6 +5,7 @@ import disnake
 import asyncpg
 import aiohttp
 import datetime
+import dotenv
 import colorama as COLOUR
 
 from disnake.ext import commands    
@@ -25,11 +26,12 @@ COGS_EXTENSIONS    =   [
    "Source.Cogs.ErrorHandler"
 ]
 
+dotenv.load_dotenv("Source\Kernel\Credentials\.env")
 os.environ["JISHAKU_HIDE"] = "True"
 
 KERNEL  =   json.load(open(r"Source\Kernel\Credentials\Config.json"))
-TOKEN   =   KERNEL["Tokens"]["Discord"]
-DB_URL  =   KERNEL["DB"]["URL"]
+TOKEN   =   os.getenv("TOKEN")
+DB_URL  =   os.getenv("DB_URL")
 
 Timestamp   =   datetime.datetime.now(datetime.timezone.utc)
 
@@ -57,14 +59,12 @@ class Geralt(commands.Bot):
             activity    =   disnake.Activity(type = disnake.ActivityType.playing, name = "Waking up to Die"),
             strip_after_prefix  =   True)
         
-        self.Kernel         =   KERNEL
-        self.owner          =   750979369001811982
-        self.PFP            =   KERNEL["Init"]["PFP"]
+        self.PVA            =   False
+        self.description    =   "I'm Back Bitches"
         self.DT             =   disnake.utils.format_dt        
-        self.description    =   KERNEL["Init"]["Description"]
         self.Mention        =   disnake.AllowedMentions.none()
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
-        self.PVA            =   False
+        
 
         print(COLOUR.Fore.BLUE + f"-> {time.strftime('%c', time.gmtime())} - Loading all Cogs." + COLOUR.Style.RESET_ALL)
         for COGS in COGS_EXTENSIONS:
@@ -85,11 +85,11 @@ class Geralt(commands.Bot):
         if not hasattr(self, "uptime"):
             self.uptime     =   disnake.utils.utcnow()
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(KERNEL["Tokens"]["Discord_WebHook"], session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(os.getenv("NOTIF"), session = self.session)
         await self.change_presence(
             status  =   disnake.Status.idle,
             activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp")) 
-        await self.WEBHOOK.send(f"```prolog\nNo. of Users - {len(list(self.get_all_members()))}\nNo. of Guilds - {len(self.guilds)}\nWoke up at - {time.strftime('%c', time.gmtime())}```")
+        await self.WEBHOOK.send(f"<:Balank:912244138567663627>\n──\n<:GeraltRightArrow:904740634982760459> **Sent at -** {self.DT(disnake.utils.utcnow(), style = 'F')}\n```prolog\nNo. of Users - {len(list(self.get_all_members()))}\nNo. of Guilds - {len(self.guilds)}\nWoke up at - {time.strftime('%c', time.gmtime())}```──\n<:Balank:912244138567663627>")
         print(COLOUR.Fore.GREEN + f"-> {time.strftime('%c', time.gmtime())} - Awakened" + COLOUR.Style.RESET_ALL)
         await self.session.close()
 

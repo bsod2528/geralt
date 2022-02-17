@@ -1,18 +1,17 @@
+import os
 import io
 import time
 import json
 import typing
 import aiohttp
-from click import style
 import disnake
 import asyncio
 import humanize
 
 from disnake.ext import commands
-from disnake.ext.commands import bot
+from disnake.enums import ButtonStyle
 from disnake.webhook.async_ import Webhook
 
-from __main__ import KERNEL
 import Source.Kernel.Views.Interface as Interface
 
 class Misc(commands.Cog):
@@ -20,8 +19,8 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session    =   aiohttp.ClientSession()
-        self.BUG        =   Webhook.from_url(KERNEL["Tokens"]["Bug"], session = self.session)
-        self.REPORT     =   Webhook.from_url(KERNEL["Tokens"]["Report"], session = self.session)
+        self.BUG        =   Webhook.from_url(os.getenv("BUG"), session = self.session)
+        self.REPORT     =   Webhook.from_url(os.getenv("REPORT"), session = self.session)
 
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.command(
@@ -114,22 +113,24 @@ class Misc(commands.Cog):
         
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                return
+                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.blurple
             try:
                 await self.BUG.send(embed = BUG_EMB)
             except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't send your report due to : **{EXCEPT}**")
-                await UI.response.add_reaction("<:WinCritical:898571769114406942>")
+                await INTERACTION.response.edit_message(content = f"Couldn't send your report due to : **{EXCEPT}**", view = UI)
             else:
-                await UI.response.edit(content = "Successfully sent your `Bug Report` to the Developer <:RavenPray:914410353155244073>", view = None, allowed_mentions = self.bot.Mention)
-                await UI.response.add_reaction("<:WinSuccess:898571689623978054>")
+                await INTERACTION.response.edit_message(content = "Successfully sent your `Bug Report` to the Developer <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
         
         async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                return
+                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.blurple
             await UI.response.edit(content = "Seems like you don't want to send your `Bug Report` to the dev.\nNot my problem <:AkkoHmm:907105376523153458>", view = None, allowed_mentions = self.bot.Mention)
         Interface.Confirmation.response    = await ctx.reply("Are you sure you want to send your `Bug Report` <:Sus:916955986953113630>", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
 
@@ -148,27 +149,29 @@ class Misc(commands.Cog):
             colour  =   0x2F3136)
         FB_EMB.add_field(
             name    =   "Below Holds the Feedback",
-            value   =   f"```json\n{FEEDBACK}\n```")
+            value   =   f"```css\n{FEEDBACK}\n```")
         FB_EMB.timestamp   =   disnake.utils.utcnow()
         
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                return
+                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.blurple
             try:
                 await self.REPORT.send(embed = FB_EMB)
             except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't send your feedback due to : **{EXCEPT}**")
-                await UI.response.add_reaction("<:WinCritical:898571769114406942>")
+                await INTERACTION.response.edit_message(content = f"Couldn't send your feedback due to : **{EXCEPT}**", view = UI)
             else:
-                await UI.response.edit(content = f"Successfully sent your `Feedback` to the Developer <:RavenPray:914410353155244073>", view = None, allowed_mentions = self.bot.Mention)
-                await UI.response.add_reaction("<:WinSuccess:898571689623978054>")
+                await INTERACTION.response.edit_message(content = f"Successfully sent your `Feedback` to the Developer <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
         
         async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
             if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-                return
+                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            for View in UI.children:
+                    View.disabled   =   True
+                    View.style  =   ButtonStyle.blurple
             await UI.response.edit("Seems like you don't want to send your `Feeback` to the dev.\nNot my problem <:AkkoHmm:907105376523153458>", view = None, allowed_mentions = self.bot.Mention)
         Interface.Confirmation.response    = await ctx.reply("Are you sure you want to send your `Feedback` <:Sus:916955986953113630>", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
 

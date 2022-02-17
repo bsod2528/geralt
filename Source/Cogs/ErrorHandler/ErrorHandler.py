@@ -1,14 +1,14 @@
 import io
+import os
 import aiohttp
 import disnake
-import datetime
 import traceback
 
 from disnake.ext import commands
 from disnake.enums import ButtonStyle
 from disnake.webhook.async_ import Webhook
 
-from __main__ import KERNEL
+from __main__ import KERNEL, SESSION_CREATE
 import Source.Kernel.Views.Interface as Interface
 
 class ErrorHandler(commands.Cog):
@@ -16,7 +16,7 @@ class ErrorHandler(commands.Cog):
     def __init__(self, bot):
         self.bot        =   bot        
         self.session    =   aiohttp.ClientSession()
-        self.webhook    =   Webhook.from_url(KERNEL["Tokens"]["Error"], session = self.session)
+        self.webhook    =   Webhook.from_url(os.getenv("ERROR"), session = self.session)
         self.Footer     =   "Click on the buttons for info."        
         
     @commands.Cog.listener()
@@ -124,7 +124,5 @@ class ErrorHandler(commands.Cog):
                 await send_error.send(embed = error_emb, file = disnake.File(io.StringIO(error_str), filename = "Traceback.py"))
                 await send_error.send("||Break Point||")
         
-        self.session.close()
-
 def setup(bot):
     bot.add_cog(ErrorHandler(bot))

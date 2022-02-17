@@ -1,3 +1,4 @@
+import os
 import time
 import aiohttp
 import asyncpg
@@ -19,7 +20,7 @@ class Events(commands.Cog):
     async def on_guild_join(self, GUILD):
         """Sends a Webhook upon joining a guild"""
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(KERNEL["Tokens"]["JoinLog"], session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(os.getenv("JOINLOG"), session = self.session)
         
         try:
             await self.bot.DB.execute(f"INSERT INTO guild_info (id, name, owner_id) VALUES ($1, $2, $3)", GUILD.id, GUILD.name, GUILD.owner_id)
@@ -49,7 +50,7 @@ class Events(commands.Cog):
     async def on_guild_remove(self, GUILD):
         """Sends a Webhook upon being removed from a guild"""
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(KERNEL["Tokens"]["LeaveLog"], session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(os.getenv("LEAVELOG"), session = self.session)
         
         LEAVE_EMB    =   disnake.Embed(
             title   =   f":scroll: I Left {GUILD.name}",

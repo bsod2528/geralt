@@ -9,7 +9,7 @@ import cpuinfo as CPU
 from disnake.enums import ButtonStyle
 
 import Source.Kernel.Utilities.Flags as FLAGS
-from Source.Kernel.Utilities.Crucial import TOTAL_LINES as TL, MISC, EMOTE
+from Source.Kernel.Utilities.Crucial import TOTAL_LINES as TL, MISC
 
 PAIN    =   "This can't be handled by you at the moment, invoke your very own command <:SarahPray:920484222421045258>"
 COLOUR  =   disnake.Colour.from_rgb(117, 128, 219)

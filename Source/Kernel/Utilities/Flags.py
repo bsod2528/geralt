@@ -1,8 +1,9 @@
+import json
 import discord
 
 from discord import VoiceRegion as VR
 
-from Source.Kernel.Utilities.Crucial import EMOTE
+EMOTE   =   json.load(open(r"Source\Kernel\Utilities\Emote.json"))
 
 # Has required flags for Server and User Info Commands
 def USER_PERMS(PERMISSIONS):
