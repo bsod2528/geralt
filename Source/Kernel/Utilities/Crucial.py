@@ -4,8 +4,6 @@ import asyncpg
 import disnake
 import aiofiles
 
-EMOTE   =   json.load(open(r"Source\Kernel\Utilities\Emote.json"))
-
 # Counts the total lines
 async def TOTAL_LINES(Path : str, FileType : str = ".py"):
     Lines = 0
