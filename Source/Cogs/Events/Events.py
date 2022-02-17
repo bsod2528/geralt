@@ -8,6 +8,8 @@ import colorama as COLOUR
 from disnake.ext import commands
 from disnake.webhook.async_ import Webhook
 
+from __main__ import CONFIG
+
 class Events(commands.Cog):
     def __init__(self, bot):
         self.bot    =   bot
@@ -18,7 +20,7 @@ class Events(commands.Cog):
     async def on_guild_join(self, GUILD):
         """Sends a Webhook upon joining a guild"""
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(os.getenv("JOINLOG"), session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(CONFIG.get("JOINLOG"), session = self.session)
         
         try:
             await self.bot.DB.execute(f"INSERT INTO guild_info (id, name, owner_id) VALUES ($1, $2, $3)", GUILD.id, GUILD.name, GUILD.owner_id)
@@ -48,7 +50,7 @@ class Events(commands.Cog):
     async def on_guild_remove(self, GUILD):
         """Sends a Webhook upon being removed from a guild"""
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(os.getenv("LEAVELOG"), session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(CONFIG.get("LEAVELOG"), session = self.session)
         
         LEAVE_EMB    =   disnake.Embed(
             title   =   f":scroll: I Left {GUILD.name}",
@@ -71,7 +73,7 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_slash_command_error(self, interaction : disnake.ApplicationCommandInteraction, error : commands.CommandError):
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(os.getenv("ERROR"), session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(CONFIG.get("ERROR"), session = self.session)
         ERROR_EMB   =   disnake.Embed(
             title       =   f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED",
             description = f"```py\n{error}\n```<:Reply:930634822865547294> **Occurance :** {self.bot.DT(disnake.utils.utcnow())}",

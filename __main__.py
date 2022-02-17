@@ -7,6 +7,7 @@ import aiohttp
 import datetime
 import colorama as COLOUR
 
+from dotenv import dotenv_values
 from disnake.ext import commands    
 from disnake.webhook.async_ import Webhook
 
@@ -28,9 +29,9 @@ COGS_EXTENSIONS    =   [
 dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
 
-
-TOKEN   =   os.getenv("TOKEN")
-DB_URL  =   os.getenv("DB_URL")
+CONFIG  =   dotenv_values(".env")
+TOKEN   =   CONFIG.get("TOKEN")
+DB_URL  =   CONFIG.get("DB_URL")
 
 Timestamp   =   datetime.datetime.now(datetime.timezone.utc)
 
@@ -84,7 +85,7 @@ class Geralt(commands.Bot):
         if not hasattr(self, "uptime"):
             self.uptime     =   disnake.utils.utcnow()
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(os.getenv("NOTIF"), session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(CONFIG.get("NOTIF"), session = self.session)
         await self.change_presence(
             status  =   disnake.Status.idle,
             activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp")) 

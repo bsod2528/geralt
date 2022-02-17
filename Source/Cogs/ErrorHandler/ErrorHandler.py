@@ -8,6 +8,7 @@ from disnake.ext import commands
 from disnake.enums import ButtonStyle
 from disnake.webhook.async_ import Webhook
 
+from __main__ import CONFIG
 import Source.Kernel.Views.Interface as Interface
 
 class ErrorHandler(commands.Cog):
@@ -15,7 +16,7 @@ class ErrorHandler(commands.Cog):
     def __init__(self, bot):
         self.bot        =   bot        
         self.session    =   aiohttp.ClientSession()
-        self.webhook    =   Webhook.from_url(os.getenv("ERROR"), session = self.session)
+        self.webhook    =   Webhook.from_url(CONFIG.get("ERROR"), session = self.session)
         self.Footer     =   "Click on the buttons for info."        
         
     @commands.Cog.listener()

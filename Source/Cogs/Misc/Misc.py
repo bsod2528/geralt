@@ -12,6 +12,7 @@ from disnake.ext import commands
 from disnake.enums import ButtonStyle
 from disnake.webhook.async_ import Webhook
 
+from __main__ import CONFIG
 import Source.Kernel.Views.Interface as Interface
 
 class Misc(commands.Cog):
@@ -19,8 +20,8 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session    =   aiohttp.ClientSession()
-        self.BUG        =   Webhook.from_url(os.getenv("BUG"), session = self.session)
-        self.REPORT     =   Webhook.from_url(os.getenv("REPORT"), session = self.session)
+        self.BUG        =   Webhook.from_url(CONFIG.get("BUG"), session = self.session)
+        self.REPORT     =   Webhook.from_url(CONFIG.get("REPORT"), session = self.session)
 
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.command(
