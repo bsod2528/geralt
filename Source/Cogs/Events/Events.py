@@ -8,8 +8,6 @@ import colorama as COLOUR
 from disnake.ext import commands
 from disnake.webhook.async_ import Webhook
 
-from __main__ import KERNEL
-
 class Events(commands.Cog):
     def __init__(self, bot):
         self.bot    =   bot
@@ -73,7 +71,7 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_slash_command_error(self, interaction : disnake.ApplicationCommandInteraction, error : commands.CommandError):
         self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(KERNEL["Tokens"]["Error"], session = self.session)
+        self.WEBHOOK    =   Webhook.from_url(os.getenv("ERROR"), session = self.session)
         ERROR_EMB   =   disnake.Embed(
             title       =   f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED",
             description = f"```py\n{error}\n```<:Reply:930634822865547294> **Occurance :** {self.bot.DT(disnake.utils.utcnow())}",

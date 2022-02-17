@@ -11,7 +11,6 @@ import contextlib
 from disnake.ext import commands
 from disnake.enums import ButtonStyle
 
-from __main__ import KERNEL
 import Source.Kernel.Views.Paginator as Paginator
 import Source.Kernel.Utilities.Crucial as CRUCIAL
 from Source.Kernel.Views.Interface import Confirmation, PAIN

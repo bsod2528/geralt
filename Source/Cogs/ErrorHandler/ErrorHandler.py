@@ -8,7 +8,6 @@ from disnake.ext import commands
 from disnake.enums import ButtonStyle
 from disnake.webhook.async_ import Webhook
 
-from __main__ import KERNEL, SESSION_CREATE
 import Source.Kernel.Views.Interface as Interface
 
 class ErrorHandler(commands.Cog):

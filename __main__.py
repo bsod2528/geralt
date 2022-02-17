@@ -1,11 +1,10 @@
 import os
-import json
 import time
+import dotenv
 import disnake
 import asyncpg
 import aiohttp
 import datetime
-import dotenv
 import colorama as COLOUR
 
 from disnake.ext import commands    
@@ -26,10 +25,10 @@ COGS_EXTENSIONS    =   [
    "Source.Cogs.ErrorHandler"
 ]
 
-dotenv.load_dotenv("Source\Kernel\Credentials\.env")
+dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
 
-KERNEL  =   json.load(open(r"Source\Kernel\Credentials\Config.json"))
+
 TOKEN   =   os.getenv("TOKEN")
 DB_URL  =   os.getenv("DB_URL")
 
