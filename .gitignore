@@ -1,6 +1,6 @@
 venv
 Source/Cogs/__pycache__
-Source/Kernel/Credentials/
+Source/Kernel/Credentials/.env
 Source/Cogs/Fun/__pycache__
 Source/Cogs/Misc/__pycache__
 Source/Cogs/Guild/__pycache__
