@@ -3,8 +3,9 @@ Source/Cogs/__pycache__
 Source/Kernel/Credentials/
 Source/Cogs/Fun/__pycache__
 Source/Cogs/Misc/__pycache__
+Source/Cogs/Guild/__pycache__
+Source/Cogs/Events/__pycache__
 Source/Kernel/Views/__pycache__
-Source/Cogs/Guild/__pycache__/
 Source/Cogs/Utility/__pycache__
 Source/Cogs/Developer/__pycache__
 Source/Cogs/Moderation/__pycache__

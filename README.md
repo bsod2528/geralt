@@ -17,9 +17,13 @@ However, if you are interested in checking out the old version, [**click here**]
 
 ## Documentation : 
 
-A proper documentiation will be provided on my website as soon as the rewrite is complete. If it takes longer, I will update it with the commands and other features present at that time. [**Click here**](https://bsod2528.github.io/) for the website once it's done.
+A proper documentiation will be provided on my website as soon as the rewrite is complete. If it takes longer, I will update it with the commands and other features present at that time. [**Click here**](https://bsod2528.github.io/Posts/Geralt/) for the website once it's done.
 
 Thank you for visiting and yeah :D
+
+## Setup :
+
+The website provided above provides all necessary details for setting up and running your verry own instance of Geralt.
 
 ---
 
