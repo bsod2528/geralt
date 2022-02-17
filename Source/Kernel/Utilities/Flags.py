@@ -1,9 +1,6 @@
-import json
 import discord
 
 from discord import VoiceRegion as VR
-
-EMOTE   =   json.load(open(r"Source\Kernel\Utilities\Emote.json"))
 
 # Has required flags for Server and User Info Commands
 def USER_PERMS(PERMISSIONS):
@@ -61,37 +58,37 @@ def USER_BADGES(USER, FETCH_USER):
     FLAG_EMOTE  =   ""
 
     if FLAGS["staff"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Staff']} `Staff`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:DiscordStaff:905668211163406387> `Staff`"
         
     if FLAGS["partner"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Partner']} `Partner`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <a:DiscordPartner:905674460118540308> `Partner`"
         
     if FLAGS["hypesquad"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Hypesquad']} `Hypesquad`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <a:WumpusHypesquad:905661121501990923> `Hypesquad`"
         
     if FLAGS["bug_hunter"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Bug']} `Bug Hunter`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:BugHunter:905668417372180540> `Bug Hunter`"
         
     if FLAGS["hypesquad_bravery"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Bravery']} `Hypesquad Bravery`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:Bravery:905661473940979732> `Hypesquad Bravery`"
         
     if FLAGS["hypesquad_brilliance"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Brilliance']} `Hypesquad Brilliance`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:Brilliance:905661426373373962> `Hypesquad Brilliance`"
         
     if FLAGS["hypesquad_balance"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Balance']} `Hypesquad Balance`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:Balance:932965710337019924> `Hypesquad Balance`"
         
     if FLAGS["early_supporter"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Early']} `Early Supporter`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:EarlySupporter:905674700955467806> `Early Supporter`"
         
     if USER.premium_since or USER.avatar.is_animated():
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Nitro']} `Nitro Subscriber`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:WumpusNitro:905674712590454834> `Nitro Subscriber`"
         
     if USER.premium_since:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Booster']} `Server Booster`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <a:Nitro:905661661191479326> `Server Booster`"
         
     if FLAGS["verified_bot_developer"] is True:
-        FLAG_EMOTE  =   f"{FLAG_EMOTE} {EMOTE['Discord']['Dev']} `Early Verified Bot Dev.`"
+        FLAG_EMOTE  =   f"{FLAG_EMOTE} <:VerifiedDev:905668791831265290> `Early Verified Bot Dev.`"
         
     if FLAG_EMOTE   ==  "" : FLAG_EMOTE = None
     
