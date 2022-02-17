@@ -1,9 +1,7 @@
-from tkinter.tix import Tree
 import pygit2
 import psutil
 import disnake
 import datetime
-import platform
 import itertools
 import traceback
 import cpuinfo as CPU
