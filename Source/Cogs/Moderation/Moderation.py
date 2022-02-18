@@ -12,10 +12,10 @@ class Moderation(commands.Cog):
     @staticmethod
     def Check_Hierarchy(ctx, USER : disnake.Member):
         if isinstance(USER, disnake.Member):
-            if USER == ctx.bot:
-                raise commands.BadArgument(f"They're a bot .__.")
-            elif USER == ctx.guild.owner:
+            if USER == ctx.guild.owner:
                 raise commands.BadArgument(f"Oh come on, they're the owner ffs.")
+            elif not ctx.guild:
+                raise commands.BadArgument(f"{ctx.command} can be performed in a guild only")
             elif USER == ctx.author:
                 raise commands.BadArgument("Self Sabotage, nice... I'm not doing it -")
             elif USER == ctx.guild.me:
@@ -100,19 +100,19 @@ class Moderation(commands.Cog):
     async def mute(self, ctx, USER : disnake.Member, *, REASON : str = "Not Provided"):
         """Mute toxic users"""
         self.Check_Hierarchy(ctx, USER)
-        ROLE    =   disnake.utils.get(ctx.guild.roles, name = "Mute")
+        ROLE    =   disnake.utils.get(ctx.guild.roles, name = "Muted")
         if ROLE in USER.roles:
                 await ctx.send(f"**{USER}** already has the role and is currently muted <a:LifeSucks:932255208044650596>")                
         else:        
             async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
                 if not ROLE:
-                    CREATE_ROLE =   await ctx.guild.create_role(name = "Mute", permissions = disnake.Permissions(66560), reason = "There was no Mute Role present.")
-                    for GUILD in ctx.guild.channels:
-                        await GUILD.set_permissions(ROLE, send_messages = False, read_messages = True, view_channel = True)
+                    CREATE_ROLE = await ctx.guild.create_role(name = "Muted", permissions = disnake.Permissions(66560), reason = "Mute command needs Muted role", colour = disnake.Colour.from_rgb(255, 100, 100))
+                    for channel in ctx.guild.channels:
+                        await channel.set_permissions(ROLE, send_messages = False, read_messages = True, view_channel = False)
             
                 for View in UI.children:
                     View.disabled = True            
-            
+    
                 try:
                     await USER.add_roles(ROLE, reason = REASON)
                 except Exception as e:
