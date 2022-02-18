@@ -59,12 +59,12 @@ class Geralt(commands.Bot):
             activity    =   disnake.Activity(type = disnake.ActivityType.playing, name = "Waking up to Die"),
             strip_after_prefix  =   True)
         
+        self.PFP            =   CONFIG.get("PFP")
         self.PVA            =   False
         self.description    =   "I'm Back Bitches"
         self.DT             =   disnake.utils.format_dt        
         self.Mention        =   disnake.AllowedMentions.none()
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
-        
 
         print(COLOUR.Fore.BLUE + f"-> {time.strftime('%c', time.gmtime())} - Loading all Cogs." + COLOUR.Style.RESET_ALL)
         for COGS in COGS_EXTENSIONS:

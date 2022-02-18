@@ -37,7 +37,7 @@ class Info(disnake.ui.View):
         super().__init__(timeout = None)
         self.bot = bot
         self.ctx = ctx
-        self.Timestamp  =   disnake.utils.utcnow()
+        self.Timestamp  = disnake.utils.utcnow()
         self.add_item(disnake.ui.Button(label = "Dashboard", emoji = "<:AkkoComfy:907104936368685106>", url = "https://bsod2528.github.io/Posts/Geralt"))
 
     # Misc. Stats like No. of lines, functions and classes.
@@ -46,7 +46,7 @@ class Info(disnake.ui.View):
         Time    =   disnake.utils.utcnow()
         STATS_EMB   =   disnake.Embed(
             title = "<:VerifiedDev:905668791831265290> Miscellaneous Statistics :",
-            description =   f"\n**Been Up Since :** {disnake.utils.format_dt(self.Timestamp, style = 'F')}"
+            description =   f"\n> **Shows Code Related Things :**\n" \
                             f"```prolog\n- Total Classes   : {await MISC('Source/', '.py', 'class'):,}" \
                             f"\n- Total Functions : {await MISC('Source/', '.py', 'def'):,}"
                             f"\n- Total Lines     : {await TL('Source', '.py'):,}```",
@@ -68,11 +68,9 @@ class Info(disnake.ui.View):
         SYS_USAGE   =   disnake.Embed(
             title = "<:WinCogs:898591890209910854> System Usage :",
             description =   f"```prolog\n> CPU Used          : {CPU_Usage:.2f} %\n" \
-                            f"> CPU Name          : {CPU_Name}\n" \
                             f"> CPU Core Count    : {Core_Count} Cores\n" \
                             f"> Memory Used       : {RAM_Usage:.2f} Megabytes\n" \
-                            f"> Memory Available  : {Mem_GB:.3f} GB [ {Mem_Per} % ]\n" \
-                            f"> Operating System  : Windows 10 Pro 10.0.19042\n```",
+                            f"> Memory Available  : {Mem_GB:.3f} GB [ {Mem_Per} % ]\n```",
             colour = COLOUR)
         SYS_USAGE.timestamp =   self.Timestamp
         # send here
@@ -105,7 +103,7 @@ class Confirmation(disnake.ui.View):
 
 #Sub - Classes for User Info
 class PFP(disnake.ui.View):
-    def __init__(self, ctx, bot, *, USER : disnake.User = None):
+    def __init__(self, bot, ctx, USER : disnake.User):
         super().__init__()
         self.ctx    =   ctx
         self.bot    =   bot
@@ -113,17 +111,23 @@ class PFP(disnake.ui.View):
 
     @disnake.ui.button(label = "JPG", style = ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>")
     async def JPG(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        USER    =   self.USER or self.ctx.author
+        USER    =   self.USER 
+        BUTTON.disabled =   True
+        await INTERACTION.message.edit(view = self)
         await INTERACTION.response.send_message(f"Download it as a [**JPG**](<{USER.display_avatar.with_static_format('jpg')}>)", ephemeral = True)
     
     @disnake.ui.button(label = "PNG", style = ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>")
     async def PNG(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        USER    =   self.USER or self.ctx.author
+        USER    =   self.USER
+        BUTTON.disabled =   True
+        await INTERACTION.message.edit(view = self)
         await INTERACTION.response.send_message(f"Download it as a [**PNG**](<{USER.display_avatar.with_static_format('png')}>)", ephemeral = True)
     
     @disnake.ui.button(label = "WEBP", style = ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>")
     async def WEBP(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        USER    =   self.USER or self.ctx.author
+        USER    =   self.USER
+        BUTTON.disabled =   True
+        await INTERACTION.message.edit(view = self)
         await INTERACTION.response.send_message(f"Download it as a [**WEBP**](<{USER.display_avatar.with_static_format('webp')}>)", ephemeral = True)
     
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
@@ -216,7 +220,7 @@ class Nitro(disnake.ui.View):
         BUTTON.label    =   "Claimed"
         await INTERACTION.message.edit(view = self)
         await INTERACTION.user.send(content = f"discord.gift/R1cKr0OlL3d")
-        await INTERACTION.response.send_message(content = '**RICKROLLED AT 60FPS 1080P RESOLUTION ! SUCK ON THAT HAA !**\n\nhttps://imgur.com/NQinKJB', ephemeral = True)     
+        await INTERACTION.response.send_message(content = "https://imgur.com/NQinKJB", ephemeral = True)     
 
 # Contains View Class for Stupid Survey
 class Modal(disnake.ui.Modal):

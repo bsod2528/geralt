@@ -29,7 +29,7 @@ class Utility(commands.Cog):
         AVATAR  = USER.display_avatar.with_static_format("png")
         PFP_EMB.set_image(url = AVATAR)
         PFP_EMB.timestamp = disnake.utils.utcnow()
-        await ctx.reply(embed = PFP_EMB, mention_author = False, view = Interface.PFP(ctx, self.bot))
+        await ctx.reply(embed = PFP_EMB, mention_author = False, view = Interface.PFP(self.bot, ctx, USER))
     
     # Get user's information
     @commands.command(
