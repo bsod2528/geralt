@@ -1,7 +1,5 @@
 import io
 import time
-from unicodedata import name
-import asyncpg
 import disnake
 import asyncio
 import textwrap
@@ -44,12 +42,15 @@ class Developer(commands.Cog):
         # remove `foo`
         return content.strip('` \n')
 
+    def Owner(ctx):
+        return ctx.author.id    ==  746807014658801704, 750979369001811982, 760823877034573864
+    
     # Shuts the bot down in a friendly manner.
     @commands.command(
         name    =   "die", 
         aliases =   ["snap"], 
         brief   =   "Eternal Sleep")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def die(self, ctx):
         """Sends the bot to eternal sleep"""
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
@@ -138,7 +139,7 @@ class Developer(commands.Cog):
         name    =   "load",
         aliases =   ["l"],
         brief   =   "Loads Cog")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def load(self, ctx, *, COG : str):
         """Loads the Extension mentioned."""
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
@@ -169,7 +170,7 @@ class Developer(commands.Cog):
         name    =   "unload",
         aliases =   ["ul"],
         brief   =   "Unloads Cog")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def unload(self, ctx, *, COG : str):
         """Unloads the Extension mentioned."""
         async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
@@ -202,7 +203,7 @@ class Developer(commands.Cog):
         name    =   "reload",
         aliases =   ["rl"],
         brief   =   "Reloads Cog")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def reload(self, ctx, *, COG : str):
         """Reloads the Extension mentioned."""
         try:
@@ -216,7 +217,7 @@ class Developer(commands.Cog):
         name    =   "dev",
         aliases =   ["devmode"],
         brief   =   "Simple Dev Stuff")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def dev(self, ctx):
         """Simple commands for dev to do"""
         if ctx.invoked_subcommand is None:
@@ -254,7 +255,7 @@ class Developer(commands.Cog):
         name    =   "guildfetch",
         aliases =   ["fg"],
         brief   =   "Get guild information")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def fetch_guild(self, ctx, *, GUILD : disnake.Guild):
         """Get entire details about the guild."""
         USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', GUILD.members))),
@@ -333,7 +334,7 @@ class Developer(commands.Cog):
     @commands.command(
         name    =   "sql",
         brief   =   "Query DB")
-    @commands.is_owner()
+    @commands.check(Owner)
     async def sql(self, ctx, *, QUERY : str):
         """Run SQL Queries"""
         QUERY = self.cleanup_code(QUERY)

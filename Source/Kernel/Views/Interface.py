@@ -4,7 +4,6 @@ import disnake
 import datetime
 import itertools
 import traceback
-import cpuinfo as CPU
 
 from disnake.enums import ButtonStyle
 
@@ -23,7 +22,7 @@ def Format_Commit(COMMIT):
     Timezone        = datetime.timezone(datetime.timedelta(minutes = COMMIT.commit_time_offset))
     Commit_Time     = datetime.datetime.fromtimestamp(COMMIT.commit_time).astimezone(Timezone)
     Timestamp       = disnake.utils.format_dt(Commit_Time, style = "R")
-    return f"<:GeraltRightArrow:904740634982760459> [**`{Short_Hash}`**](<https://github.com/BSOD2528/Geralt/commit/{COMMIT.hex}>) : {Commit_Desc} - [ {Timestamp} ]"
+    return f"<:GeraltRightArrow:904740634982760459> [`{Short_Hash}`] : [**{Commit_Desc}**](<https://github.com/BSOD2528/Geralt/commit/{COMMIT.hex}>) - [ {Timestamp} ]"
 
 def Latest_Commit(MAX : int = 5):
     Repository    = pygit2.Repository(".git")
@@ -63,7 +62,6 @@ class Info(disnake.ui.View):
         Mem_Per     =   psutil.virtual_memory().percent
         Mem_GB      =   psutil.virtual_memory().available / 1024 ** 3
         RAM_Usage   =   psutil.Process().memory_full_info().uss / 1024 ** 2
-        CPU_Name    =   CPU.get_cpu_info()["brand_raw"]
 
         SYS_USAGE   =   disnake.Embed(
             title = "<:WinCogs:898591890209910854> System Usage :",

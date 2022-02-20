@@ -243,7 +243,7 @@ class Utility(commands.Cog):
     @todo.command(
         name    =   "edit",
         brief   =   "Edit task")    
-    async def todo_edit(self, ctx, ID : int, *, EDITED : commands.clean_content):
+    async def todo_edit(self, ctx, ID : int, *, EDITED : str):
         """Edit a particular task."""
         
         if ID != await self.bot.DB.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", ID, ctx.author.name):
