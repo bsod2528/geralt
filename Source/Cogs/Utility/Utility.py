@@ -22,15 +22,8 @@ class Utility(commands.Cog):
     async def avatar(self, ctx, *, USER : disnake.Member = None):
         """See the user's PFP in an enlarged manner"""
         USER    =   USER or ctx.author
-        PFP_EMB =   disnake.Embed(
-            title   =   f"{str(USER)}'s Avatar",
-            url =   USER.display_avatar.url,
-            colour = self.bot.colour)
-        AVATAR  = USER.display_avatar.with_static_format("png")
-        PFP_EMB.set_image(url = AVATAR)
-        PFP_EMB.timestamp = disnake.utils.utcnow()
-        await ctx.reply(embed = PFP_EMB, mention_author = False, view = Interface.PFP(self.bot, ctx, USER))
-    
+        await Interface.PFP(self.bot, ctx, USER).SEND(ctx)
+
     # Get user's information
     @commands.command(
         name    =   "userinfo",
@@ -112,10 +105,23 @@ class Utility(commands.Cog):
         PFP_EMB.set_image(url = AVATAR)
         PFP_EMB.timestamp = disnake.utils.utcnow()
 
-        EMBED_LIST = [GENERAL_EMB, GUILD_EMB, MISC_EMB, PFP_EMB]
-        View = Paginator(ctx, EMBEDS = EMBED_LIST)
-        await ctx.trigger_typing()
-        await ctx.reply(embed = EMBED_LIST[0], view = View, allowed_mentions = self.bot.Mention)
+        BANNER_EMB = None
+
+        if FETCHED_USER.banner is None:
+            EMBED_LIST = [GENERAL_EMB, GUILD_EMB, MISC_EMB, PFP_EMB]
+            await ctx.trigger_typing()
+            await Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
+        else:
+            BANNER_EMB  =   disnake.Embed(
+                title   =   f":scroll: {USER}'s Banner",
+                description =   f"[**Download Banner Here**]({FETCHED_USER.banner.url})",
+                colour  =   USER.colour)
+            BANNER_EMB.set_image(url = FETCHED_USER.banner.url)
+            BANNER_EMB.timestamp = disnake.utils.utcnow()
+            
+            EMBED_LIST = [GENERAL_EMB, GUILD_EMB, MISC_EMB, PFP_EMB, BANNER_EMB]
+            await ctx.trigger_typing()
+            await Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
 
     @commands.command(
         name    =   "serverinfo",
@@ -128,6 +134,7 @@ class Utility(commands.Cog):
                         len(list(filter(lambda U    :   str(U.status) == 'idle', ctx.guild.members))),
                         len(list(filter(lambda U    :   str(U.status) == 'dnd', ctx.guild.members))),
                         len(list(filter(lambda U    :   str(U.status) == 'offline', ctx.guild.members)))]
+        FETCHED_GUILD   =    await ctx.bot.fetch_guild(ctx.guild.id)
 
         GENERAL_EMB =   disnake.Embed(
             title   =   f":scroll: {ctx.guild.name}'s Information",
@@ -191,10 +198,23 @@ class Utility(commands.Cog):
         ICON_EMB.set_image(url = ctx.guild.icon.url)
         ICON_EMB.timestamp = disnake.utils.utcnow()
 
-        EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB]
-        View = Paginator(ctx, EMBEDS = EMBED_LIST)
-        await ctx.trigger_typing()
-        await ctx.reply(embed = EMBED_LIST[0], view = View, allowed_mentions = self.bot.Mention)
+        BANNER_EMB = None
+
+        if FETCHED_GUILD.banner is None:
+            EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB]
+            await ctx.trigger_typing()
+            await Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
+        else:
+            BANNER_EMB  =   disnake.Embed(
+                title   =   f":scroll: {ctx.guild.name}'s Banner",
+                description =   f"[**Download Banner Here**]({FETCHED_GUILD.banner.url})",
+                colour  =   self.bot.colour)
+            BANNER_EMB.set_image(url = FETCHED_GUILD.banner.url)
+            BANNER_EMB.timestamp = disnake.utils.utcnow()
+            
+            EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB, BANNER_EMB]
+            await ctx.trigger_typing()
+            await Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
 
     @commands.group(
         name    =   "todo",
@@ -312,6 +332,6 @@ class Utility(commands.Cog):
                 await INTERACTION.response.edit_message(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = UI)
         
             Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(TOTAL)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(YES, NO))
-        
+
 def setup(bot):
     bot.add_cog(Utility(bot))
