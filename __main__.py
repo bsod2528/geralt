@@ -16,6 +16,7 @@ import Source.Kernel.Views.Interface as Interface
 COGS_EXTENSIONS    =   [
    "jishaku",           
    "Source.Cogs.Fun",
+   "Source.Cogs.Help",
    "Source.Cogs.Misc",
    "Source.Cogs.Guild",
    "Source.Cogs.Events",
@@ -100,3 +101,4 @@ if __name__ == "__main__":
     Geralt = Geralt()
     Geralt.loop.run_until_complete(DB_CONNECT())
     Geralt.RUN()
+

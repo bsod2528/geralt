@@ -6,8 +6,9 @@ import Source.Kernel.Views.Interface as Interface
 
 # Class for paginator using buttons. Button style and label has been inspired from RoboDanny [Discord.py Bot] by "Danny aka Rapptz" -> Github Profile
 class Paginator(disnake.ui.View):
-    def __init__(self, ctx, EMBEDS : list[disnake.Embed]):
-        super().__init__()
+    def __init__(self, bot, ctx, EMBEDS : list[disnake.Embed]):
+        super().__init__(timeout = 60)
+        self.bot        =   bot
         self.CTX        =   ctx
         self.TOTAL      =   len(EMBEDS)
         self.EMBED      :   list[disnake.Embed] =   EMBEDS
@@ -89,7 +90,16 @@ class Paginator(disnake.ui.View):
 
     @disnake.ui.button(label = "Exit", style = ButtonStyle.danger, custom_id = "Delete")
     async def DELETE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        await INTERACTION.message.delete()
+        await INTERACTION.message.delete()     
+    
+    async def SEND(self, ctx):
+        self.message    =   await ctx.reply(embed = self.EMBED[0], view = self, mention_author = False)
+        return self.message
+    
+    async def on_timeout(self) -> None:
+        for View in self.children:
+            View.disabled = True
+            await self.message.edit(view = self)
 
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.CTX.author:

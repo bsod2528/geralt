@@ -1,6 +1,7 @@
 import time
 import disnake  
 import datetime
+import humanize
 
 from disnake.ext import commands
 
@@ -29,7 +30,8 @@ class Application(commands.Cog):
         name        =   "uptime",
         description =   "Get the uptime of me :)")
     async def uptime(self, interaction : disnake.ApplicationCommandInteraction):
-        await interaction.response.send_message(content = f"I have been up since <:GeraltRightArrow:904740634982760459> {self.bot.DT(self.bot.uptime, style = 'F')}\nThats about : {self.bot.DT(self.bot.uptime, style = 'R')}", ephemeral = True)
+        TIME    =   disnake.utils.utcnow() - self.bot.uptime
+        await interaction.response.send_message(content =   f"<:GeraltRightArrow:904740634982760459> I have been `online` for -\n>>> <:ReplyContinued:930634770004725821> - Exactly : {humanize.precisedelta(TIME)}\n<:Reply:930634822865547294> - Roughly Since : {self.bot.DT(self.bot.uptime, style = 'R')} <a:CoffeeSip:907110027951742996>", ephemeral = True)
 
     @commands.slash_command(
         name        =   "as",
@@ -44,7 +46,7 @@ class Application(commands.Cog):
             avatar_url  =   user.display_avatar.url, 
             username    =   user.display_name, 
             thread      =   thread)
-        await interaction.response.send_message(f"Done **{interaction.author}** <:NanoTick:925271358735257651>", ephemeral = True)
+        await interaction.response.send_message(content = f"Done **{interaction.author}** <:NanoTick:925271358735257651>", ephemeral = True)
     
     @commands.slash_command(
         name        =   "die",

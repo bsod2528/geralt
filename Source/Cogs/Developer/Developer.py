@@ -1,4 +1,6 @@
 import io
+import os
+import sys
 import time
 import disnake
 import asyncio
@@ -50,6 +52,7 @@ class Developer(commands.Cog):
         name    =   "die", 
         aliases =   ["snap"], 
         brief   =   "Eternal Sleep")
+    @commands.is_owner()
     @commands.check(Owner)
     async def die(self, ctx):
         """Sends the bot to eternal sleep"""
@@ -58,7 +61,6 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
                 View.disabled = True
-                View.style  =   ButtonStyle.grey
             await INTERACTION.response.edit_message(content = "Okay then, I shall go to eternal sleep", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
             await self.bot.close()
@@ -68,9 +70,9 @@ class Developer(commands.Cog):
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
                 View.disabled = True
-                View.style  =   ButtonStyle.grey
             await INTERACTION.response.edit_message(content = "Seems like I'm gonna be alive for a bit longer",view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
+        await ctx.trigger_typing()
         Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     
     # Evaluate command for running both asynchronous and sychronous programs.
@@ -139,6 +141,7 @@ class Developer(commands.Cog):
         name    =   "load",
         aliases =   ["l"],
         brief   =   "Loads Cog")
+    @commands.is_owner()
     @commands.check(Owner)
     async def load(self, ctx, *, COG : str):
         """Loads the Extension mentioned."""
@@ -163,6 +166,7 @@ class Developer(commands.Cog):
                     View.disabled   =   True
                     View.style  =   ButtonStyle.grey
             await UI.response.edit(content = f"Seems like you don't want to load **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = UI, allowed_mentions = self.bot.Mention)
+        await ctx.trigger_typing()
         Confirmation.response    = await ctx.reply(f"Do you want to load : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
 
     # Unloads extension of choice
@@ -170,6 +174,7 @@ class Developer(commands.Cog):
         name    =   "unload",
         aliases =   ["ul"],
         brief   =   "Unloads Cog")
+    @commands.is_owner()
     @commands.check(Owner)
     async def unload(self, ctx, *, COG : str):
         """Unloads the Extension mentioned."""
@@ -196,6 +201,7 @@ class Developer(commands.Cog):
             await UI.response.edit(content = f"Seems like you don't want to unload **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = UI, allowed_mentions = self.bot.Mention)
         async with ctx.typing():
             await asyncio.sleep(0.2)
+        await ctx.trigger_typing()
         Confirmation.response    = await ctx.reply(f"Do you want to unload : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     
     # Reloads extension of choice
@@ -203,13 +209,16 @@ class Developer(commands.Cog):
         name    =   "reload",
         aliases =   ["rl"],
         brief   =   "Reloads Cog")
+    @commands.is_owner()
     @commands.check(Owner)
     async def reload(self, ctx, *, COG : str):
         """Reloads the Extension mentioned."""
         try:
             self.bot.reload_extension(f"Source.Cogs.{COG}")
+            await ctx.trigger_typing()
             await ctx.reply(f"**{COG}** : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.Mention)
         except Exception as EXCEPT:
+            await ctx.trigger_typing()
             await ctx.reply(f"Couldn't reload **{COG}** : `{EXCEPT}`", allowed_mentions = self.bot.Mention)
     
     # Group of Commands used for changing presence.
@@ -217,6 +226,7 @@ class Developer(commands.Cog):
         name    =   "dev",
         aliases =   ["devmode"],
         brief   =   "Simple Dev Stuff")
+    @commands.is_owner()
     @commands.check(Owner)
     async def dev(self, ctx):
         """Simple commands for dev to do"""
@@ -255,58 +265,60 @@ class Developer(commands.Cog):
         name    =   "guildfetch",
         aliases =   ["fg"],
         brief   =   "Get guild information")
+    @commands.is_owner()
     @commands.check(Owner)
-    async def fetch_guild(self, ctx, *, GUILD : disnake.Guild):
+    async def guild_fetch(self, ctx):
         """Get entire details about the guild."""
-        USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', GUILD.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'idle', GUILD.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'dnd', GUILD.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'offline', GUILD.members)))]
+        USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', ctx.guild.members))),
+                        len(list(filter(lambda U    :   str(U.status) == 'idle', ctx.guild.members))),
+                        len(list(filter(lambda U    :   str(U.status) == 'dnd', ctx.guild.members))),
+                        len(list(filter(lambda U    :   str(U.status) == 'offline', ctx.guild.members)))]
+        FETCHED_GUILD   =    await ctx.bot.fetch_guild(ctx.guild.id)
 
         GENERAL_EMB =   disnake.Embed(
-            title   =   f":scroll: {GUILD.name}'s Information",
+            title   =   f":scroll: {ctx.guild.name}'s Information",
             colour  =   self.bot.colour)
         GENERAL_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> General Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {GUILD.owner.mention} (`{GUILD.owner.id}`) \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(GUILD.roles)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{GUILD.id}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(GUILD.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
-                        f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(GUILD.filesize_limit)}`")
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {ctx.guild.owner.mention} (`{ctx.guild.owner.id}`) \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(ctx.guild.roles)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{ctx.guild.id}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(ctx.guild.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
+                        f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(ctx.guild.filesize_limit)}`")
         GENERAL_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Initialisation :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(GUILD.created_at)} \n" \
-                        f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(GUILD.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(ctx.guild.created_at)} \n" \
+                        f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
             inline  =   False)
-        GENERAL_EMB.set_thumbnail(url = GUILD.icon.url)
+        GENERAL_EMB.set_thumbnail(url = ctx.guild.icon.url)
         GENERAL_EMB.timestamp = disnake.utils.utcnow()
 
         OTHER_EMB   =   disnake.Embed(
-            title   =   f":scroll: {GUILD.name}'s Other Information",
+            title   =   f":scroll: {ctx.guild.name}'s Other Information",
             colour  =   self.bot.colour)
         OTHER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Channel Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(GUILD.text_channels)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(GUILD.voice_channels)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(GUILD.threads)}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(GUILD.stage_channels)}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(ctx.guild.text_channels)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(ctx.guild.voice_channels)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(ctx.guild.threads)}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(ctx.guild.stage_channels)}` \n",
             inline  =   False)
         OTHER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Emotes Present :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([ANI for ANI in GUILD.emojis if ANI.animated])}` / `{GUILD.emoji_limit}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([NON_ANI for NON_ANI in GUILD.emojis if not NON_ANI.animated])}` / `{GUILD.emoji_limit}`",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([ANI for ANI in ctx.guild.emojis if ANI.animated])}` / `{ctx.guild.emoji_limit}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([NON_ANI for NON_ANI in ctx.guild.emojis if not NON_ANI.animated])}` / `{ctx.guild.emoji_limit}`",
             inline  =   False)
-        OTHER_EMB.set_thumbnail(url = GUILD.icon.url)
+        OTHER_EMB.set_thumbnail(url = ctx.guild.icon.url)
         OTHER_EMB.timestamp =   disnake.utils.utcnow()
 
         USER_EMB    =   disnake.Embed(
-            title   =   f":scroll: {GUILD.name}'s Users Information",
+            title   =   f":scroll: {ctx.guild.name}'s Users Information",
             colour  =   self.bot.colour)
         USER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> No. of User :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, GUILD.members)))}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, GUILD.members)))}` \n" \
-                        f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{GUILD.member_count}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, ctx.guild.members)))}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, ctx.guild.members)))}` \n" \
+                        f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{ctx.guild.member_count}` \n",
             inline  =   False)
         USER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Activity Information :",
@@ -315,25 +327,39 @@ class Developer(commands.Cog):
                         f"> **<:ReplyContinued:930634770004725821> - <:DnD:905759353141874709> Do Not Disturb :** `{USER_STATUS[2]}` \n" \
                         f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{USER_STATUS[3]}`",
             inline  =   False)
-        USER_EMB.set_thumbnail(url = GUILD.icon.url)
+        USER_EMB.set_thumbnail(url = ctx.guild.icon.url)
         USER_EMB.timestamp = disnake.utils.utcnow()
     
         ICON_EMB    =   disnake.Embed(
-            title   =   f":scroll: {GUILD.name}'s Icon",
-            description =   f"[**JPG Format**]({GUILD.icon.with_static_format('jpg')}) **|** [**PNG Format**]({GUILD.icon.with_static_format('png')}) **|** [**WEBP Format**]({GUILD.icon.with_static_format ('webp')})",
+            title   =   f":scroll: {ctx.guild.name}'s Icon",
+            description =   f"[**JPG Format**]({ctx.guild.icon.with_static_format('jpg')}) **|** [**PNG Format**]({ctx.guild.icon.with_static_format('png')}) **|** [**WEBP Format**]({ctx.guild.icon.with_static_format ('webp')})",
             colour  =   self.bot.colour)
-        ICON_EMB.set_image(url = GUILD.icon.url)
+        ICON_EMB.set_image(url = ctx.guild.icon.url)
         ICON_EMB.timestamp = disnake.utils.utcnow()
 
-        EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB]
-        View = Paginator.Paginator(ctx, EMBEDS = EMBED_LIST)
-        await ctx.trigger_typing()
-        await ctx.reply(embed = EMBED_LIST[0], view = View, allowed_mentions = self.bot.Mention)
+        BANNER_EMB = None
+
+        if FETCHED_GUILD.banner is None:
+            EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB]
+            await ctx.trigger_typing()
+            await Paginator.Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
+        else:
+            BANNER_EMB  =   disnake.Embed(
+                title   =   f":scroll: {ctx.guild.name}'s Banner",
+                description =   f"[**Download Banner Here**]({FETCHED_GUILD.banner.url})",
+                colour  =   self.bot.colour)
+            BANNER_EMB.set_image(url = FETCHED_GUILD.banner.url)
+            BANNER_EMB.timestamp = disnake.utils.utcnow()
+            
+            EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB, BANNER_EMB]
+            await ctx.trigger_typing()
+            await Paginator.Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
 
     # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
     @commands.command(
         name    =   "sql",
         brief   =   "Query DB")
+    @commands.is_owner()
     @commands.check(Owner)
     async def sql(self, ctx, *, QUERY : str):
         """Run SQL Queries"""
@@ -366,6 +392,17 @@ class Developer(commands.Cog):
             await ctx.reply(f"<:ReplyContinued:930634770004725821> - Too much data to send at once...\n<:Reply:930634822865547294> - Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms", file = disnake.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
         else:
             await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms\n```prolog\n{FINAL}\n```", allowed_mentions = self.bot.Mention)
+
+    @commands.command(
+        name    =   "restart",
+        brief   =   "Restarts Bot")
+    @commands.is_owner()
+    async def restart(self, ctx):
+        """Restarts the whole bot"""
+        await ctx.reply("Restarting Bot")
+        py  =   sys.executable
+        os.execl(py, py, *sys.argv)
+        
 
 def setup(bot):
     bot.add_cog(Developer(bot))
