@@ -1,8 +1,8 @@
-import os
 import io
 import time
 import json
 import typing
+import urllib
 import aiohttp
 import disnake
 import asyncio
@@ -14,6 +14,7 @@ from disnake.webhook.async_ import Webhook
 
 from __main__ import CONFIG
 import Source.Kernel.Views.Interface as Interface
+from Source.Kernel.Views.Paginator import Paginator
 
 class Misc(commands.Cog):
     """Miscellaneous Commands"""
@@ -201,7 +202,50 @@ class Misc(commands.Cog):
     async def uptime(self, ctx):
         """Sends my uptime -- how long I've been online for"""
         TIME    =   disnake.utils.utcnow() - self.bot.uptime
+        await ctx.trigger_typing()
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been `online` for -\n>>> <:ReplyContinued:930634770004725821> - Exactly : {humanize.precisedelta(TIME)}\n<:Reply:930634822865547294> - Roughly Since : {self.bot.DT(self.bot.uptime, style = 'R')} <a:CoffeeSip:907110027951742996>")
+
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    @commands.command(
+        name    =   "google",
+        aliases =   ["g", "web"],
+        brief   =   "Search Google")
+    async def web(self, ctx, *, QUERY : str):
+        """Search Google for anything"""
+        API     =   CONFIG.get("SEARCH")
+        CX      =   CONFIG.get("ENGINE")
+        PING    =   []
+        session = aiohttp.ClientSession()
+        
+        QUERY_GIVEN =   urllib.parse.quote(QUERY)
+        START_DB    =   time.perf_counter()
+        RESULT_URL  =   f"https://www.googleapis.com/customsearch/v1?key={API}&cx={CX}&q={QUERY_GIVEN}&safe=active"
+        API_RESULT  =   await session.get(RESULT_URL)
+        END_DB  =   time.perf_counter()
+        DB_PING =   (END_DB - START_DB) * 1000
+        PING.append(DB_PING)
+
+        if API_RESULT.status    ==  200:
+            JSON_VALUE  =   await API_RESULT.json()
+        else:
+            return await ctx.reply(f"{ctx.author.mention} No results found.```\n{QUERY}```")
+
+        WEB_RESULT_LIST =   []
+        SERIAL_NO       =   1
+        for Values in JSON_VALUE["items"]:
+            Url         = Values["link"]
+            Title       = Values["title"]
+            WEB_RESULT_LIST.append(f"**{SERIAL_NO}). [{Title}]({Url})**\n")
+            SERIAL_NO   +=  1
+        
+        WEB_EMB =   disnake.Embed(
+            description =  f"".join(RESULT for RESULT in WEB_RESULT_LIST),
+            colour  =   self.bot.colour)
+        WEB_EMB.timestamp   =   disnake.utils.utcnow()
+        WEB_EMB.set_author(name = f"{ctx.author}'s Query Results :", icon_url = ctx.author.display_avatar.url)
+        WEB_EMB.set_footer(text = f"Queried in : {round(DB_PING)} ms")
+        await ctx.reply(embed = WEB_EMB)
+        await session.close()
 
 def setup(bot):
     bot.add_cog(Misc(bot))
