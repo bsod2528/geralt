@@ -1,15 +1,23 @@
+import io
 import pygit2
 import psutil
+import dotenv
+import aiohttp
+import asyncio
 import disnake
 import datetime
 import itertools
 import traceback
 
+from dotenv import dotenv_values
 from disnake.enums import ButtonStyle
 
 import Source.Kernel.Utilities.Flags as FLAGS
 from Source.Kernel.Utilities.Crucial import TOTAL_LINES as TL, MISC
 
+dotenv.load_dotenv()
+
+CONFIG  =   dotenv_values(".env")
 PAIN    =   "This can't be handled by you at the moment, invoke your very own command <:SarahPray:920484222421045258>"
 COLOUR  =   disnake.Colour.from_rgb(117, 128, 219)
 MENTION =   disnake.AllowedMentions.none()
@@ -99,10 +107,10 @@ class Confirmation(disnake.ui.View):
     async def NO(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await self.No(self, BUTTON,  INTERACTION)   
 
-#Sub - Classes for User Info
+#Sub - Classes for User PFP
 class PFP(disnake.ui.View):
     def __init__(self, bot, ctx, USER : disnake.User):
-        super().__init__()
+        super().__init__(timeout = 20)
         self.ctx    =   ctx
         self.bot    =   bot
         self.USER   =   USER
@@ -132,13 +140,30 @@ class PFP(disnake.ui.View):
         if INTERACTION.user == self.ctx.author:
             return True
         await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
+    
+    async def on_timeout(self) -> None:
+        for View in self.children:
+            View.disabled   =   True
+            await self.message.edit(view = self)
+
+    async def SEND(self, ctx):
+        PFP_EMB =   disnake.Embed(
+            title   =   f"{str(self.USER)}'s Avatar",
+            url =   self.USER.display_avatar.url,
+            colour = self.bot.colour)
+        AVATAR  = self.USER.display_avatar.with_static_format("png")
+        PFP_EMB.set_image(url = AVATAR)
+        PFP_EMB.timestamp = disnake.utils.utcnow()
+        self.message    =   await ctx.reply(embed = PFP_EMB , view = self, mention_author = False)
 
 # Error - Handler View
 class Traceback(disnake.ui.View):
-    def __init__(self, ctx, error):
-        super().__init__()
+    def __init__(self, bot, ctx, error):
+        super().__init__(timeout = 30)
+        self.bot    =   bot
         self.ctx    =   ctx
         self.ERROR  =   error
+        self.Footer     =   "Click on the buttons for info."  
 
     @disnake.ui.button(label = "Traceback", style = ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
     async def Error(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
@@ -155,7 +180,20 @@ class Traceback(disnake.ui.View):
     @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
     async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await INTERACTION.message.delete()
-        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
+        await INTERACTION.response.send_message("Deleted the message as you wish", ephemeral = True)
+    
+    async def SEND(self, ctx):
+        COMMON_ERROR    =   disnake.Embed(
+                title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
+                description = f"```prolog\n {self.ERROR} \n```\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+                colour = 0x2F3136)    
+        COMMON_ERROR.set_footer(text = self.Footer)
+        self.message    =   await ctx.reply(embed = COMMON_ERROR, view = self, mention_author = False)
+
+    async def on_timeout(self) -> None:
+        for View in self.children:
+            View.disabled   =   True
+            await self.message.edit(view = self)
 
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.ctx.author:
@@ -164,10 +202,12 @@ class Traceback(disnake.ui.View):
 
 # Error - Handler View for commands.BadArgumemt
 class CommandSyntax(disnake.ui.View):
-    def __init__(self, ctx, error):
-        super().__init__()
+    def __init__(self, bot, ctx, error):
+        super().__init__(timeout = 30)
+        self.bot    =   bot
         self.CTX    =   ctx
         self.ERROR  =   error
+        self.Footer     =   "Click on the buttons for info."  
 
     @disnake.ui.button(label = "Syntax", style = ButtonStyle.blurple, emoji = "<a:CoffeeSip:907110027951742996>")
     async def Syntax(self, BUTTON : disnake.ui.Button, INTERACTION : disnake.Interaction, disabled = False):
@@ -200,7 +240,20 @@ class CommandSyntax(disnake.ui.View):
     @disnake.ui.button(label = "Delete", style = ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
     async def Delete(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
         await INTERACTION.message.delete()
-        await INTERACTION.response.send_message("Deleting the message as you wish", ephemeral = True)
+        await INTERACTION.response.send_message("Deleted the message as you wish", ephemeral = True)
+    
+    async def SEND(self, ctx):
+        COMMON_ERROR    =   disnake.Embed(
+                title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {ctx.command}",
+                description = f"```prolog\n {self.ERROR} \n```\nClick on the `Syntax` Button for the proper syntax of `{self.CTX.command}`\n\n<:Reply:930634822865547294> **Occurance :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+                colour = 0x2F3136)    
+        COMMON_ERROR.set_footer(text = self.Footer)
+        self.message    =   await ctx.reply(embed = COMMON_ERROR, view = self, mention_author = False)
+
+    async def on_timeout(self) -> None:
+        for View in self.children:
+            View.disabled   =   True
+            await self.message.edit(view = self)
 
     async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
             if INTERACTION.user == self.CTX.author:
@@ -243,3 +296,31 @@ class Modal(disnake.ui.Modal):
         STUPID_EMB.set_thumbnail(url = INTERACTION.user.display_avatar.url)
         STUPID_EMB.timestamp    =   disnake.utils.utcnow()
         await INTERACTION.response.send_message(embed = STUPID_EMB)
+
+# Sub - Class for Screenshot Button
+class Screenshot(disnake.ui.View):
+    def __init__(self, bot, ctx):
+        self.bot    =   bot
+        self.ctx    =   ctx
+        self.session    =   aiohttp.ClientSession()
+
+    @disnake.ui.button(label = "Screenshot", style = ButtonStyle.green)
+    async def SCREENSHOT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        await INTERACTION.response.send_message(content = f"Enter the `url` of the website you want to take the screenshot:\nEnsure you add `<` at the begining and `>` at the end.", ephemeral = True)
+        API =   CONFIG.get("SS_KEY")
+        def WAIT_FOR_CHECK(URL_GIVEN):
+                return URL_GIVEN.author.id == self.ctx.author.id
+
+        try:
+            Message =   await self.bot.wait_for("message", check = WAIT_FOR_CHECK, timeout = 30.0)
+            Session =   await self.session.get(f"https://api.screenshotmachine.com?key={API}&url={Message}&dimension=1024x768")
+            Result  =   io.BytesIO(await Session.read())
+            SS_EMB  =   disnake.Embed(
+                title   =   "Your Screenshot Results",
+                colour  =   self.bot.colour)
+            SS_EMB.set_image(url = f"attachment://screenshot.png")
+            await INTERACTION.followup.send(file = disnake.File(fp = Result, filename = f"{self.ctx.author}'s-Screenshot.png"), embed = SS_EMB)
+
+        except asyncio.TimeoutError:
+            await INTERACTION.followup.send(content = "Took too long to respond...", ephemeral=True)
+            await asyncio.sleep(5)
