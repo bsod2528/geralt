@@ -32,4 +32,4 @@ The website provided above provides all necessary details for setting up and run
 You can contact me by :- 
 
 - Email : **bsod2528@protonmail.com**
-- Discord : **BSOD#3375**
+- Discord : **BSOD#2528**
