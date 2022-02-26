@@ -148,6 +148,7 @@ class Moderation(commands.Cog):
     @commands.command(
         name    =   "unmute",
         brief   =   "Unmutes User")
+    @commands.has_guild_permissions(manage_roles = True)
     async def unmute(self, ctx, USER : disnake.Member, *, REASON : str = "Not Provided"):
         """Unmute users"""
         self.Check_Hierarchy(ctx, USER)

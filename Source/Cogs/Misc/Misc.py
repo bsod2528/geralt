@@ -70,7 +70,7 @@ class Misc(commands.Cog):
         INFO_EMB    =   disnake.Embed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url = self.bot.PFP,
-            description =   f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#3375**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D ",
+            description =   f"Hi <a:Waves:9207263898696417048> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#2528**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D ",
             colour = self.bot.colour)
         INFO_EMB.add_field(
             name = "General Statistics :",
@@ -185,7 +185,7 @@ class Misc(commands.Cog):
         """Get the JSON Data for a message."""
         MESSAGE :   disnake.Message = getattr(ctx.message.reference, "resolved", MESSAGE)
         if not MESSAGE:
-            await ctx.reply(f"**{ctx.author}**, please reply to the message you want to see the raw message on.")
+            return await ctx.reply(f"**{ctx.author}**, please reply to the message you want to see the raw message on.")
         try:
             MESSAGE_DATA    =   await self.bot.http.get_message(MESSAGE.channel.id, MESSAGE.id)
         except disnake.HTTPException as HTTP:
@@ -235,7 +235,7 @@ class Misc(commands.Cog):
         for Values in JSON_VALUE["items"]:
             Url         = Values["link"]
             Title       = Values["title"]
-            WEB_RESULT_LIST.append(f"**{SERIAL_NO}). [{Title}]({Url})**\n")
+            WEB_RESULT_LIST.append(f"> **{SERIAL_NO}). [{Title}]({Url})**\n")
             SERIAL_NO   +=  1
         
         WEB_EMB =   disnake.Embed(

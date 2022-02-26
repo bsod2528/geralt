@@ -260,7 +260,16 @@ class Developer(commands.Cog):
             status  =   disnake.Status.idle,
             activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp"))
         await ctx.message.add_reaction("<:Idle:905757063064453130>")
-    
+
+    @dev.command(
+        name    =   "leave",
+        brief   =   "Leaves Guild")
+    async def off(self, ctx, *, GUILD : int):
+        """Sets the bot status as Idle"""
+        GUILD   =   await self.bot.fetch_guild(GUILD)
+        await GUILD.leave()
+        await ctx.reply(f"Left **{GUILD}** on {self.bot.DT(disnake.utils.utcnow(), style = 'F')}")
+
     @commands.command(
         name    =   "guildfetch",
         aliases =   ["fg"],
@@ -400,9 +409,8 @@ class Developer(commands.Cog):
     async def restart(self, ctx):
         """Restarts the whole bot"""
         await ctx.reply("Restarting Bot")
-        py  =   sys.executable
-        os.execl(py, py, *sys.argv)
-        
-
+        python  =   sys.executable
+        os.execl(python, python, *sys.argv)
+    
 def setup(bot):
     bot.add_cog(Developer(bot))

@@ -13,7 +13,7 @@ from __main__ import CONFIG
 class Events(commands.Cog):
     def __init__(self, bot):
         self.bot    =   bot
-    
+        
     COLOUR.init()
 
     @commands.Cog.listener()

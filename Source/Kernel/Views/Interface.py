@@ -90,6 +90,7 @@ class Info(disnake.ui.View):
             description = f"**[Github](<https://github.com/BSOD2528/Geralt>)** repository if you want to check things out <:verykewl:916903265541689445> \n\n>>> {Latest_Commit(MAX = 5)}",
             colour = COLOUR)
         COMMIT_EMB.timestamp = self.Timestamp
+        COMMIT_EMB.set_footer(text = "If the link is throwing an error, it means commit has to be pushed.")
         await INTERACTION.response.send_message(embed = COMMIT_EMB, ephemeral = True)
     
 # Sub - Class for Confirmation based commands which utilises buttons.

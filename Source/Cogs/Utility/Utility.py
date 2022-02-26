@@ -244,7 +244,7 @@ class Utility(commands.Cog):
         TASK_LIST   =   []
         SERIAL_NO   =   1
         for TASKS in TODO_LIST:
-            TASK_LIST.append(f"> [**{SERIAL_NO}. -**]({TASKS['url']}) {TASKS['task']}" f"\n> <:Reply:930634822865547294> **ID :** `{TASKS['task_id']}` - {self.bot.DT(TASKS['task_created_at'], style = 'R')}\n")
+            TASK_LIST.append(f"> **{SERIAL_NO}). -** [**{TASKS['task']}**]({TASKS['url']})" f"\n> <:Reply:930634822865547294> **ID :** `{TASKS['task_id']}` - {self.bot.DT(TASKS['task_created_at'], style = 'R')}\n")
             SERIAL_NO   +=  1
         
         if not TODO_LIST:
@@ -252,9 +252,9 @@ class Utility(commands.Cog):
         
         else:
             TODO_LIST_EMB   =   disnake.Embed(
-            title   =   f"{ctx.author}'s Todo List :",
-            description =   f"".join(TASK for TASK in TASK_LIST),
-            colour  =   self.bot.colour)
+                title   =   f":scroll: {ctx.author}'s Todo List :",
+                description =   f"".join(TASK for TASK in TASK_LIST),
+                colour  =   self.bot.colour)
             TODO_LIST_EMB.set_thumbnail(url = ctx.author.display_avatar.url)
             TODO_LIST_EMB.set_footer(text = f"Run {ctx.clean_prefix}todo for more sub - commands.")
             TODO_LIST_EMB.timestamp =   disnake.utils.utcnow()
