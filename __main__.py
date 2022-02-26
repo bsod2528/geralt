@@ -1,6 +1,7 @@
 import os
 import time
 import dotenv
+import typing
 import disnake
 import asyncpg
 import aiohttp
@@ -27,6 +28,9 @@ COGS_EXTENSIONS    =   [
    "Source.Cogs.ErrorHandler"
 ]
 
+                    # FrostiiWeeb#8373   # BSOD#2528 [ ME ]  # SID#0007
+DEVELOPER_IDS   =   [746807014658801704, 750979369001811982, 760823877034573864]
+
 dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
 
@@ -51,21 +55,30 @@ async def SESSION_CREATE():
 
 class Geralt(commands.Bot):
     """Geralt's custom sub - class"""
+    
+    def DEV_CHECK(self, bot, DEV : typing.Union[disnake.Member, disnake.User]):
+        return ( DEV == DEV.id in Geralt.owner_ids)
+
     def __init__(self, *ARGS, **KWARGS) -> None:
         super().__init__(
-            intents =   disnake.Intents.all(),
-            status  =   disnake.Status.online,
-            sync_commmands  = True,
-            command_prefix  =  commands.when_mentioned_or(".g"),
-            activity    =   disnake.Activity(type = disnake.ActivityType.playing, name = "Waking up to Die"),
-            strip_after_prefix  =   True)
+            sync_commmands      =   True,
+            case_insensitive    =   True,
+            strip_after_prefix  =   True,
+            command_prefix      =   self.get_prefix,
+            intents             =   disnake.Intents.all(),
+            status              =   disnake.Status.online,
+            activity            =   disnake.Activity(type = disnake.ActivityType.playing, name = "Waking up to Die"))
         
-        self.PFP            =   CONFIG.get("PFP")
+        self.DP             =   ".g"
         self.PVA            =   False
+        self.owner_ids      =   DEVELOPER_IDS
+        self.PFP            =   CONFIG.get("PFP")
         self.description    =   "I'm Back Bitches"
         self.DT             =   disnake.utils.format_dt        
         self.Mention        =   disnake.AllowedMentions.none()
         self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
+        
+        self.prefixes         =   {} # Caching the prefixing so it doesn't query the DB each time a command is called.
 
         print(COLOUR.Fore.BLUE + f"-> {time.strftime('%c', time.gmtime())} - Loading all Cogs." + COLOUR.Style.RESET_ALL)
         for COGS in COGS_EXTENSIONS:
@@ -77,6 +90,14 @@ class Geralt(commands.Bot):
         print(COLOUR.Fore.GREEN + f"-> {time.strftime('%c', time.gmtime())} - Cogs Successfully Loaded." + COLOUR.Style.RESET_ALL)
 
     print(COLOUR.Fore.LIGHTYELLOW_EX + f"-> {time.strftime('%c', time.gmtime())} - Waking up" + COLOUR.Style.RESET_ALL)
+    
+    async def get_prefix(self, MESSAGE):
+        ID  =   getattr(MESSAGE.guild, "id", MESSAGE.author.id)
+
+        if (PREFIX := self.prefixes.get(ID)) is None:
+            DATA    =   await self.DB.fetchrow("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", ID)
+            PREFIX  =   self.DP if DATA is None else DATA["guild_prefix"]
+        return PREFIX
 
     async def on_ready(self):
         if not self.PVA:
@@ -85,11 +106,12 @@ class Geralt(commands.Bot):
             
         if not hasattr(self, "uptime"):
             self.uptime     =   disnake.utils.utcnow()
+        
         self.session    =   aiohttp.ClientSession()
         self.WEBHOOK    =   Webhook.from_url(CONFIG.get("NOTIF"), session = self.session)
         await self.change_presence(
             status  =   disnake.Status.idle,
-            activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp")) 
+            activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = f".ghelp")) 
         await self.WEBHOOK.send(f"<:Balank:912244138567663627>\n──\n<:GeraltRightArrow:904740634982760459> **Sent at -** {self.DT(disnake.utils.utcnow(), style = 'F')}\n```prolog\nNo. of Users - {len(list(self.get_all_members()))}\nNo. of Guilds - {len(self.guilds)}\nWoke up at - {time.strftime('%c', time.gmtime())}```──\n<:Balank:912244138567663627>")
         print(COLOUR.Fore.GREEN + f"-> {time.strftime('%c', time.gmtime())} - Awakened" + COLOUR.Style.RESET_ALL)
         await self.session.close()
@@ -101,4 +123,3 @@ if __name__ == "__main__":
     Geralt = Geralt()
     Geralt.loop.run_until_complete(DB_CONNECT())
     Geralt.RUN()
-

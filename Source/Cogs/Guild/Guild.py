@@ -11,6 +11,9 @@ class Guild(commands.Cog):
     def __init__(self, bot):
         self.bot    =   bot
 
+    async def FETCH_PREFIX(self, MESSAGE : disnake.Message):
+        return tuple([PRE["guild_prefix"] for PRE in await self.bot.DB.fetch("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", MESSAGE.guild.id)]) or self.bot.DP
+
     @commands.group(
         name    =   "data",
         aliases =   ["db"],
@@ -80,5 +83,38 @@ class Guild(commands.Cog):
             BUTTON.disabled = True
         Confirmation.response = await ctx.reply("Are you sure you want to **add** all the information stored in the database <:BallManHmm:933398958263386222>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
     
+    @commands.group(
+        name    =   "prefix",
+        aliases =   ["p"],
+        brief   =   "Prefix Related Sub-Commands")
+    @commands.has_guild_permissions(administrator = True)
+    async def prefix(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+        
+    @prefix.command(
+        name    =   "set",
+        aliases =   ["s"],
+        brief   =   "Set Guild Prefix")
+    async def prefix_set(self, ctx, *, PREFIX : str):
+        """Add custom prefixes. However, the default one will not work."""
+        try:
+            await self.bot.DB.execute("INSERT INTO custom_prefix (guild_prefix, guild_id, guild_name) VALUES ($1, $2, $3)", PREFIX, ctx.guild.id, ctx.guild.name)
+            self.bot.prefixes[ctx.guild.id] =   await self.FETCH_PREFIX(ctx.message)
+            await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** will here after be `{PREFIX}` <:SarahLaugh:907109900952420373>")
+        except PSQL.UniqueViolationError:
+            await self.bot.DB.execute("UPDATE custom_prefix SET guild_prefix = $1 WHERE guild_id = $2 AND guild_name = $3", PREFIX, ctx.guild.id, ctx.guild.name)
+            await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** has been updated `{PREFIX}` <a:DuckPopcorn:917013065650806854>")
+            self.bot.prefixes[ctx.guild.id] =   await self.FETCH_PREFIX(ctx.message)
+    
+    @prefix.command(
+        name    =   "reset",
+        aliases =   ["r"],
+        brief   =   "Resets to default")
+    async def prefix_reset(self, ctx):
+            await self.bot.DB.execute("DELETE FROM custom_prefix WHERE guild_id = $1 AND guild_name = $2", ctx.guild.id, ctx.guild.name)
+            await ctx.reply(f"Reset prefix back to `{self.bot.DP}` ")
+            self.bot.prefixes[ctx.guild.id] =   self.bot.DP
+
 def setup(bot):
     bot.add_cog(Guild(bot))
