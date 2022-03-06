@@ -1,8 +1,8 @@
-import disnake
+import discord
 import asyncio
 import asyncpg as PSQL
 
-from disnake.ext import commands
+from discord.ext import commands
 
 from Source.Kernel.Views.Interface import Confirmation
 
@@ -11,7 +11,7 @@ class Guild(commands.Cog):
     def __init__(self, bot):
         self.bot    =   bot
 
-    async def FETCH_PREFIX(self, MESSAGE : disnake.Message):
+    async def FETCH_PREFIX(self, MESSAGE : discord.Message):
         return tuple([PRE["guild_prefix"] for PRE in await self.bot.DB.fetch("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", MESSAGE.guild.id)]) or self.bot.DP
 
     @commands.group(
@@ -33,7 +33,7 @@ class Guild(commands.Cog):
         for INFO in GUILD_INFO:
             GUILD.append(f"{INFO['name']}")
 
-        SHOW_EMB    =   disnake.Embed(
+        SHOW_EMB    =   discord.Embed(
             title   =   f"{ctx.guild.name}",
             colour  =   self.bot.colour)
         SHOW_EMB.add_field(
@@ -47,7 +47,7 @@ class Guild(commands.Cog):
         brief   =   "Delete Information.")
     async def clear_info(self, ctx):
         """Deletes the information stored in database"""
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
+        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await UI.response.edit(content = f"As you wish, I will be deleting all the information of **{ctx.guild.name}** from my database <:DuckThumbsUp:917007413259956254>",  view = None, allowed_mentions = self.bot.Mention)
@@ -56,7 +56,7 @@ class Guild(commands.Cog):
             await asyncio.sleep(1) 
             await UI.response.edit(content = "Successfully deleted all the information <:Dayum:907110455095480340>", allowed_mentions = self.bot.Mention)
         
-        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
+        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await UI.response.edit(content = "Okay <:HaroldSaysOkay:907110916104007681> Seems like you are okay with me storing the information.",  view = None, allowed_mentions = self.bot.Mention)
@@ -68,7 +68,7 @@ class Guild(commands.Cog):
         brief   =   "Adds Information")
     async def add_info(self, ctx):
         """Adds data back into the database"""
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await UI.response.edit(content = f"As you wish, I will be adding all the information of **{ctx.guild.name}** from my database <:DuckThumbsUp:917007413259956254>", view = None, allowed_mentions = self.bot.Mention)
@@ -76,7 +76,7 @@ class Guild(commands.Cog):
             await asyncio.sleep(1) 
             await UI.response.edit(content = "Successfully added all the information <:Dayum:907110455095480340>",  view = None, allowed_mentions = self.bot.Mention)
         
-        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
+        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await UI.response.edit(content = f"Okay <:HaroldSaysOkay:907110916104007681> Seems like I'm not adding {ctx.guild.name}'s information today <:SarahThonk:907109849437982750>", allowed_mentions = self.bot.Mention)
@@ -99,9 +99,12 @@ class Guild(commands.Cog):
     async def prefix_set(self, ctx, *, PREFIX : str):
         """Add custom prefixes. However, the default one will not work."""
         try:
-            await self.bot.DB.execute("INSERT INTO custom_prefix (guild_prefix, guild_id, guild_name) VALUES ($1, $2, $3)", PREFIX, ctx.guild.id, ctx.guild.name)
-            self.bot.prefixes[ctx.guild.id] =   await self.FETCH_PREFIX(ctx.message)
-            await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** will here after be `{PREFIX}` <:SarahLaugh:907109900952420373>")
+            if PREFIX   ==  "--":
+                await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
+            else:
+                await self.bot.DB.execute("INSERT INTO custom_prefix (guild_prefix, guild_id, guild_name) VALUES ($1, $2, $3)", PREFIX, ctx.guild.id, ctx.guild.name)
+                self.bot.prefixes[ctx.guild.id] =   await self.FETCH_PREFIX(ctx.message)
+                await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** will here after be `{PREFIX}` <:SarahLaugh:907109900952420373>")
         except PSQL.UniqueViolationError:
             await self.bot.DB.execute("UPDATE custom_prefix SET guild_prefix = $1 WHERE guild_id = $2 AND guild_name = $3", PREFIX, ctx.guild.id, ctx.guild.name)
             await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** has been updated `{PREFIX}` <a:DuckPopcorn:917013065650806854>")

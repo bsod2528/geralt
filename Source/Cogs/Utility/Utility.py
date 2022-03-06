@@ -1,9 +1,10 @@
-import disnake
+import typing
+import discord
 import humanize
 import asyncpg as PSQL
 
-from disnake.ext import commands
-from disnake.enums import ButtonStyle
+from discord.ext import commands
+from discord.enums import ButtonStyle
 
 import Source.Kernel.Views.Interface as Interface
 import Source.Kernel.Utilities.Flags as FLAGS
@@ -19,7 +20,7 @@ class Utility(commands.Cog):
         name    =   "avatar",
         aliases =   ["pfp", "pp", "dp", "av"],
         brief   =   "View a persons PFP")
-    async def avatar(self, ctx, *, USER : disnake.Member = None):
+    async def avatar(self, ctx, *, USER : discord.Member = None):
         """See the user's PFP in an enlarged manner"""
         USER    =   USER or ctx.author
         await Interface.PFP(self.bot, ctx, USER).SEND(ctx)
@@ -29,7 +30,7 @@ class Utility(commands.Cog):
         name    =   "userinfo",
         aliases =   ["user", "ui"],
         brief   =   "Get user information")
-    async def userinfo(self, ctx, *, USER : disnake.Member = None):
+    async def userinfo(self, ctx, *, USER : discord.Member = None):
         """Get entire details about a user."""
         USER    =   USER or ctx.author
         ROLES   =   ""
@@ -43,10 +44,10 @@ class Utility(commands.Cog):
         if PERMISSIONS:
             PERMS   =   f"{' **|** '}".join(PERMISSIONS)
         AVATAR  =   USER.display_avatar.with_static_format("png")
-        ACTIVITY = disnake.utils.find(lambda act: isinstance(act, disnake.CustomActivity), USER.activities)
-        ACTIVITY_HOLDER = f"`{disnake.utils.remove_markdown(ACTIVITY.name)}`" if ACTIVITY and ACTIVITY.name else f'`{USER}` has no activity at the moment.'
+        ACTIVITY = discord.utils.find(lambda act: isinstance(act, discord.CustomActivity), USER.activities)
+        ACTIVITY_HOLDER = f"`{discord.utils.remove_markdown(ACTIVITY.name)}`" if ACTIVITY and ACTIVITY.name else f'`{USER}` has no activity at the moment.'
 
-        GENERAL_EMB =   disnake.Embed(
+        GENERAL_EMB =   discord.Embed(
             title   =   f":scroll: {USER}'s Information",
             colour  =   USER.colour)
         GENERAL_EMB.add_field(
@@ -61,9 +62,9 @@ class Utility(commands.Cog):
                         f"> **<:Reply:930634822865547294> - Joined Guild on :**{self.bot.DT(USER.joined_at, style = 'D')} ({self.bot.DT(USER.joined_at, style = 'R')})\n",
             inline  = False)
         GENERAL_EMB.set_thumbnail(url = AVATAR)
-        GENERAL_EMB.timestamp = disnake.utils.utcnow()
+        GENERAL_EMB.timestamp = discord.utils.utcnow()
 
-        GUILD_EMB   =   disnake.Embed(
+        GUILD_EMB   =   discord.Embed(
             title   =   f":scroll: {USER} in {ctx.guild}",
             colour  =   USER.colour)
         GUILD_EMB.add_field(
@@ -78,9 +79,9 @@ class Utility(commands.Cog):
             value   =   f"> **<:Reply:930634822865547294> -** {ROLES}",
             inline  =   False)
         GUILD_EMB.set_thumbnail(url = AVATAR)
-        GUILD_EMB.timestamp = disnake.utils.utcnow()
+        GUILD_EMB.timestamp = discord.utils.utcnow()
 
-        MISC_EMB    =   disnake.Embed(
+        MISC_EMB    =   discord.Embed(
             title   =   f":scroll: {USER} - Misc. Information",
             colour  =   USER.colour)
         MISC_EMB.add_field(
@@ -89,21 +90,21 @@ class Utility(commands.Cog):
         MISC_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Accent Colours :",
             value   =   f"> **<:ReplyContinued:930634770004725821> - Banner Colour :** `{str(FETCHED_USER.accent_colour).upper()}` \n" \
-                        f"> **<:Reply:930634822865547294> - Guild Role Colour :** `{USER.color if USER.color is not disnake.Color.default() else 'Default'}`",
+                        f"> **<:Reply:930634822865547294> - Guild Role Colour :** `{USER.color if USER.color is not discord.Color.default() else 'Default'}`",
             inline  =   False)  
         MISC_EMB.add_field(
             name    =   "Activity :",
             value   =   f"> **<:Reply:930634822865547294> -** {ACTIVITY_HOLDER}",
             inline  =   False)
         MISC_EMB.set_thumbnail(url = AVATAR)
-        MISC_EMB.timestamp = disnake.utils.utcnow()
+        MISC_EMB.timestamp = discord.utils.utcnow()
         
-        PFP_EMB =   disnake.Embed(
+        PFP_EMB =   discord.Embed(
             title = f":scroll: {USER}'s PFP",
             description =   f"[**JPG Format**]({USER.display_avatar.with_static_format('jpg')}) **|** [**PNG Format**]({USER.display_avatar.with_static_format('png')}) **|** [**WEBP Format**]({USER.display_avatar.with_static_format('webp')})",
             colour = USER.colour)
         PFP_EMB.set_image(url = AVATAR)
-        PFP_EMB.timestamp = disnake.utils.utcnow()
+        PFP_EMB.timestamp = discord.utils.utcnow()
 
         BANNER_EMB = None
 
@@ -112,12 +113,12 @@ class Utility(commands.Cog):
             await ctx.trigger_typing()
             await Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
         else:
-            BANNER_EMB  =   disnake.Embed(
+            BANNER_EMB  =   discord.Embed(
                 title   =   f":scroll: {USER}'s Banner",
                 description =   f"[**Download Banner Here**]({FETCHED_USER.banner.url})",
                 colour  =   USER.colour)
             BANNER_EMB.set_image(url = FETCHED_USER.banner.url)
-            BANNER_EMB.timestamp = disnake.utils.utcnow()
+            BANNER_EMB.timestamp = discord.utils.utcnow()
             
             EMBED_LIST = [GENERAL_EMB, GUILD_EMB, MISC_EMB, PFP_EMB, BANNER_EMB]
             await ctx.trigger_typing()
@@ -136,7 +137,7 @@ class Utility(commands.Cog):
                         len(list(filter(lambda U    :   str(U.status) == 'offline', ctx.guild.members)))]
         FETCHED_GUILD   =    await ctx.bot.fetch_guild(ctx.guild.id)
 
-        GENERAL_EMB =   disnake.Embed(
+        GENERAL_EMB =   discord.Embed(
             title   =   f":scroll: {ctx.guild.name}'s Information",
             colour  =   self.bot.colour)
         GENERAL_EMB.add_field(
@@ -152,9 +153,9 @@ class Utility(commands.Cog):
                         f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
             inline  =   False)
         GENERAL_EMB.set_thumbnail(url = ctx.guild.icon.url)
-        GENERAL_EMB.timestamp = disnake.utils.utcnow()
+        GENERAL_EMB.timestamp = discord.utils.utcnow()
 
-        OTHER_EMB   =   disnake.Embed(
+        OTHER_EMB   =   discord.Embed(
             title   =   f":scroll: {ctx.guild.name}'s Other Information",
             colour  =   self.bot.colour)
         OTHER_EMB.add_field(
@@ -170,9 +171,9 @@ class Utility(commands.Cog):
                         f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([NON_ANI for NON_ANI in ctx.guild.emojis if not NON_ANI.animated])}` / `{ctx.guild.emoji_limit}`",
             inline  =   False)
         OTHER_EMB.set_thumbnail(url = ctx.guild.icon.url)
-        OTHER_EMB.timestamp =   disnake.utils.utcnow()
+        OTHER_EMB.timestamp =   discord.utils.utcnow()
 
-        USER_EMB    =   disnake.Embed(
+        USER_EMB    =   discord.Embed(
             title   =   f":scroll: {ctx.guild.name}'s Users Information",
             colour  =   self.bot.colour)
         USER_EMB.add_field(
@@ -189,14 +190,14 @@ class Utility(commands.Cog):
                         f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{USER_STATUS[3]}`",
             inline  =   False)
         USER_EMB.set_thumbnail(url = ctx.guild.icon.url)
-        USER_EMB.timestamp = disnake.utils.utcnow()
+        USER_EMB.timestamp = discord.utils.utcnow()
     
-        ICON_EMB    =   disnake.Embed(
+        ICON_EMB    =   discord.Embed(
             title   =   f":scroll: {ctx.guild.name}'s Icon",
             description =   f"[**JPG Format**]({ctx.guild.icon.with_static_format('jpg')}) **|** [**PNG Format**]({ctx.guild.icon.with_static_format('png')}) **|** [**WEBP Format**]({ctx.guild.icon.with_static_format ('webp')})",
             colour  =   self.bot.colour)
         ICON_EMB.set_image(url = ctx.guild.icon.url)
-        ICON_EMB.timestamp = disnake.utils.utcnow()
+        ICON_EMB.timestamp = discord.utils.utcnow()
 
         BANNER_EMB = None
 
@@ -205,12 +206,12 @@ class Utility(commands.Cog):
             await ctx.trigger_typing()
             await Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
         else:
-            BANNER_EMB  =   disnake.Embed(
+            BANNER_EMB  =   discord.Embed(
                 title   =   f":scroll: {ctx.guild.name}'s Banner",
                 description =   f"[**Download Banner Here**]({FETCHED_GUILD.banner.url})",
                 colour  =   self.bot.colour)
             BANNER_EMB.set_image(url = FETCHED_GUILD.banner.url)
-            BANNER_EMB.timestamp = disnake.utils.utcnow()
+            BANNER_EMB.timestamp = discord.utils.utcnow()
             
             EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB, BANNER_EMB]
             await ctx.trigger_typing()
@@ -251,13 +252,13 @@ class Utility(commands.Cog):
             await ctx.reply(f"You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:LifeSucks:932255208044650596>")
         
         else:
-            TODO_LIST_EMB   =   disnake.Embed(
+            TODO_LIST_EMB   =   discord.Embed(
                 title   =   f":scroll: {ctx.author}'s Todo List :",
                 description =   f"".join(TASK for TASK in TASK_LIST),
                 colour  =   self.bot.colour)
             TODO_LIST_EMB.set_thumbnail(url = ctx.author.display_avatar.url)
             TODO_LIST_EMB.set_footer(text = f"Run {ctx.clean_prefix}todo for more sub - commands.")
-            TODO_LIST_EMB.timestamp =   disnake.utils.utcnow()
+            TODO_LIST_EMB.timestamp =   discord.utils.utcnow()
             await ctx.reply(embed = TODO_LIST_EMB, mention_author = False)
 
     @todo.command(
@@ -278,7 +279,7 @@ class Utility(commands.Cog):
         brief   =   "Removes Task")
     async def todo_remove(self, ctx, *, ID : int):
         """Remove a particular task."""
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
             for View in UI.children:
@@ -290,7 +291,7 @@ class Utility(commands.Cog):
                 await self.bot.DB.execute(f"DELETE FROM todo WHERE task_id = $1", ID)
                 await INTERACTION.response.edit_message(content = f"Successfully removed **Task ID -** `{ID}` <:HaroldSaysOkay:907110916104007681>", view = UI)
 
-        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             for View in UI.children:
                 View.disabled = True  
                 View.style  =   ButtonStyle.grey
@@ -311,7 +312,7 @@ class Utility(commands.Cog):
         if TOTAL == 0:
             await ctx.reply("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>`")
         else:
-            async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+            async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
                 DELETE_LIST =   await self.bot.DB.execute(f"DELETE FROM todo WHERE user_id = $1", ctx.author.id)
                 if INTERACTION.user != ctx.author:
                     return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
@@ -323,7 +324,7 @@ class Utility(commands.Cog):
                 else:
                     await INTERACTION.response.edit_message(content = f"Successfully deleted `{len(TOTAL)}` tasks from your list <:ICool:940786050681425931>.", view = UI)
             
-            async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+            async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
                 if INTERACTION.user != ctx.author:
                     return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
                 for View in UI.children:
@@ -332,6 +333,43 @@ class Utility(commands.Cog):
                 await INTERACTION.response.edit_message(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = UI)
         
             Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(TOTAL)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(YES, NO))
+
+    @commands.command(
+        name    =   "spotify",
+        aliases =   ["sp", "spot"],
+        brief   =   "Get Spotify Info.")
+    async def spotify(self, ctx, *, USER : typing.Union[discord.Member, discord.User] = None):
+        """Get Information on what the user is listening to."""
+        USER    =   USER or ctx.author
+        SPOTIFY =   discord.utils.find(lambda SP    :   isinstance(SP, discord.Spotify), USER.activities)
+        if SPOTIFY is None:
+            if USER ==  ctx.author:
+                return await ctx.reply("You are not listening to Spotify right now.")
+            else:
+                return await ctx.reply(f"**{USER}** is not listening to any song on **Spotify** right now.")
+        else:
+            SPOTIFY_EMB =   discord.Embed(
+                title   =   f":scroll: {USER}'s Spotify Status",
+                description =   f"They are listening to [**{SPOTIFY.title}**]({SPOTIFY.track_url}) by - **{SPOTIFY.artist}**",
+                colour  =   self.bot.colour)
+            SPOTIFY_EMB.add_field(
+                name    =   "Song Information :",
+                value   =   f"> **<:ReplyContinued:930634770004725821> - Name :** [**{SPOTIFY.title}**]({SPOTIFY.track_url}) (`{SPOTIFY.track_id}`)\n" \
+                            f"> **<:ReplyContinued:930634770004725821> - Album :** {SPOTIFY.album}\n" \
+                            f"> **<:Reply:930634822865547294> - Duration :** {humanize.precisedelta(SPOTIFY.duration)}")
+            SPOTIFY_EMB.set_thumbnail(url = SPOTIFY.album_cover_url)
+        await ctx.send(embed = SPOTIFY_EMB)
+
+    @commands.command()
+    async def source(self, ctx, *, COMMAND : str = None):
+        """Get the source code on a command."""
+        URL     =   "https://github.com/BSOD2528/Geralt"
+        LICENSE =   "https://github.com/BSOD2528/Geralt/blob/stellar-v0.1.1/LICENSE"
+        BRANCH  =   "stellar-v0.1.1"
+
+        if COMMAND is None:
+            await ctx.reply(f"Here is my entire [**Github Repository**]({URL}). I am licensed un [**AGPL - 3.0 License**]({LICENSE}).")
+            
 
 def setup(bot):
     bot.add_cog(Utility(bot))

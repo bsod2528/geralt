@@ -1,12 +1,11 @@
-import os
 import time
 import aiohttp
 import asyncpg
-import disnake
+import discord
 import colorama as COLOUR
 
-from disnake.ext import commands
-from disnake.webhook.async_ import Webhook
+from discord.ext import commands
+from discord.webhook.async_ import Webhook
 
 from __main__ import CONFIG
 
@@ -28,7 +27,7 @@ class Events(commands.Cog):
         except asyncpg.UniqueViolationError:
             print(COLOUR.Fore.LIGHTCYAN_EX + f"-> {time.strftime('%c', time.gmtime())} - {GUILD}'s information has already been logged in." + COLOUR.Style.RESET_ALL)
 
-        JOIN_EMB    =   disnake.Embed(
+        JOIN_EMB    =   discord.Embed(
             title   =   f":scroll: I Joined {GUILD.name}",
             colour  =   self.bot.colour)
         JOIN_EMB.add_field(
@@ -39,9 +38,9 @@ class Events(commands.Cog):
         JOIN_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Initialisation :",
             value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(GUILD.created_at)} \n" \
-                        f"> **<:Reply:930634822865547294> - <a:WumpusVibe:905457020575031358> I Joined :** {self.bot.DT(disnake.utils.utcnow())}",
+                        f"> **<:Reply:930634822865547294> - <a:WumpusVibe:905457020575031358> I Joined :** {self.bot.DT(discord.utils.utcnow())}",
             inline  =   False)                
-        JOIN_EMB.timestamp  =   disnake.utils.utcnow()
+        JOIN_EMB.timestamp  =   discord.utils.utcnow()
         JOIN_EMB.set_thumbnail(url = GUILD.icon.url)
         await self.WEBHOOK.send(embed = JOIN_EMB)
         await self.session.close()
@@ -52,9 +51,9 @@ class Events(commands.Cog):
         self.session    =   aiohttp.ClientSession()
         self.WEBHOOK    =   Webhook.from_url(CONFIG.get("LEAVELOG"), session = self.session)
         
-        LEAVE_EMB    =   disnake.Embed(
+        LEAVE_EMB    =   discord.Embed(
             title   =   f":scroll: I Left {GUILD.name}",
-            colour  =   disnake.Colour.from_rgb(255, 97, 142))
+            colour  =   discord.Colour.from_rgb(255, 97, 142))
         LEAVE_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> General Information :",
             value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {GUILD.owner.mention} (`{GUILD.owner.id}`) \n" \
@@ -63,23 +62,12 @@ class Events(commands.Cog):
         LEAVE_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Initialisation :",
             value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(GUILD.created_at)} \n" \
-                        f"> **<:Reply:930634822865547294> - <a:PAIN:939876989655994488> I Left :** {self.bot.DT(disnake.utils.utcnow())}",
+                        f"> **<:Reply:930634822865547294> - <a:PAIN:939876989655994488> I Left :** {self.bot.DT(discord.utils.utcnow())}",
             inline  =   False)                
-        LEAVE_EMB.timestamp  =   disnake.utils.utcnow()
+        LEAVE_EMB.timestamp  =   discord.utils.utcnow()
         LEAVE_EMB.set_thumbnail(url = GUILD.icon.url)
         await self.WEBHOOK.send(embed = LEAVE_EMB)
         await self.session.close()
-
-    @commands.Cog.listener()
-    async def on_slash_command_error(self, interaction : disnake.ApplicationCommandInteraction, error : commands.CommandError):
-        self.session    =   aiohttp.ClientSession()
-        self.WEBHOOK    =   Webhook.from_url(CONFIG.get("ERROR"), session = self.session)
-        ERROR_EMB   =   disnake.Embed(
-            title       =   f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED",
-            description = f"```py\n{error}\n```<:Reply:930634822865547294> **Occurance :** {self.bot.DT(disnake.utils.utcnow())}",
-            colour      = 0x2F3136)
-        await interaction.response.send_message(embed = ERROR_EMB, ephemeral = True)
-        return await self.WEBHOOK.send(embed = ERROR_EMB)
 
 def setup(bot):
     bot.add_cog(Events(bot))

@@ -1,12 +1,12 @@
-import disnake
+import discord
 
-from disnake.ext import commands
+from discord.ext import commands
 
 class MyNewHelp(commands.MinimalHelpCommand):
     async def send_pages(self):
         destination = self.get_destination()
         for page in self.paginator.pages:
-            emby = disnake.Embed(description=page, colour = 0x2F3136)
+            emby = discord.Embed(description=page, colour = 0x2F3136)
             await destination.send(embed=emby)
 
 class CustomHelp(commands.Cog):

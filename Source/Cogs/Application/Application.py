@@ -49,17 +49,6 @@ class Application(commands.Cog):
         await interaction.response.send_message(content = f"Done **{interaction.author}** <:NanoTick:925271358735257651>", ephemeral = True)
     
     @commands.slash_command(
-        name        =   "die",
-        description =   "Sends the bot to eternal sleep")
-    @commands.is_owner()
-    async def sleep(self, interaction : disnake.ApplicationCommandInteraction):
-        if interaction.author != self.bot.owner:
-            await interaction.response.send_message(content = f"**{interaction.author}**, this is an owner only command .__.", ephemeral = True)
-            return
-        await interaction.response.send_message(content = f"Okay **{interaction.author}** - I shall go to eternal sleep <:rooContemplateExistence:919902906839339018>", ephemeral = True)
-        await self.bot.close()
-    
-    @commands.slash_command(
         name        =   "latency",
         description =   "Get the exact latencies.")
     async def latency(self, interaction : disnake.ApplicationCommandInteraction):

@@ -2,20 +2,19 @@ import os
 import time
 import dotenv
 import typing
-import disnake
+import discord
 import asyncpg
 import aiohttp
 import datetime
 import colorama as COLOUR
 
 from dotenv import dotenv_values
-from disnake.ext import commands    
-from disnake.webhook.async_ import Webhook
+from discord.ext import commands    
+from discord.webhook.async_ import Webhook
 
 import Source.Kernel.Views.Interface as Interface 
 
-COGS_EXTENSIONS    =   [
-   "jishaku",           
+COGS_EXTENSIONS    =   [         
    "Source.Cogs.Fun",
    "Source.Cogs.Help",
    "Source.Cogs.Misc",
@@ -24,10 +23,8 @@ COGS_EXTENSIONS    =   [
    "Source.Cogs.Utility",
    "Source.Cogs.Developer",
    "Source.Cogs.Moderation",
-   "Source.Cogs.Application",
    "Source.Cogs.ErrorHandler"
 ]
-
                     # FrostiiWeeb#8373   # BSOD#2528 [ ME ]  # SID#0007
 DEVELOPER_IDS   =   [746807014658801704, 750979369001811982, 760823877034573864]
 
@@ -56,7 +53,7 @@ async def SESSION_CREATE():
 class Geralt(commands.Bot):
     """Geralt's custom sub - class"""
     
-    def DEV_CHECK(self, bot, DEV : typing.Union[disnake.Member, disnake.User]):
+    def DEV_CHECK(self, bot, DEV : typing.Union[discord.Member, discord.User]):
         return ( DEV == DEV.id in Geralt.owner_ids)
 
     def __init__(self, *ARGS, **KWARGS) -> None:
@@ -65,18 +62,18 @@ class Geralt(commands.Bot):
             case_insensitive    =   True,
             strip_after_prefix  =   True,
             command_prefix      =   self.get_prefix,
-            intents             =   disnake.Intents.all(),
-            status              =   disnake.Status.online,
-            activity            =   disnake.Activity(type = disnake.ActivityType.playing, name = "Waking up to Die"))
+            intents             =   discord.Intents.all(),
+            status              =   discord.Status.online,
+            activity            =   discord.Activity(type = discord.ActivityType.playing, name = "Waking up to Die"))
         
         self.DP             =   ".g"
         self.PVA            =   False
         self.owner_ids      =   DEVELOPER_IDS
         self.PFP            =   CONFIG.get("PFP")
         self.description    =   "I'm Back Bitches"
-        self.DT             =   disnake.utils.format_dt        
-        self.Mention        =   disnake.AllowedMentions.none()
-        self.colour         =   disnake.Colour.from_rgb(117, 128, 219)
+        self.DT             =   discord.utils.format_dt        
+        self.Mention        =   discord.AllowedMentions.none()
+        self.colour         =   discord.Colour.from_rgb(117, 128, 219)
         
         self.prefixes         =   {} # Caching the prefixing so it doesn't query the DB each time a command is called.
 
@@ -105,14 +102,14 @@ class Geralt(commands.Bot):
             self.PVA = True
             
         if not hasattr(self, "uptime"):
-            self.uptime     =   disnake.utils.utcnow()
+            self.uptime     =   discord.utils.utcnow()
         
         self.session    =   aiohttp.ClientSession()
         self.WEBHOOK    =   Webhook.from_url(CONFIG.get("NOTIF"), session = self.session)
         await self.change_presence(
-            status  =   disnake.Status.idle,
-            activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = f".ghelp")) 
-        await self.WEBHOOK.send(f"<:Balank:912244138567663627>\n──\n<:GeraltRightArrow:904740634982760459> **Sent at -** {self.DT(disnake.utils.utcnow(), style = 'F')}\n```prolog\nNo. of Users - {len(list(self.get_all_members()))}\nNo. of Guilds - {len(self.guilds)}\nWoke up at - {time.strftime('%c', time.gmtime())}```──\n<:Balank:912244138567663627>")
+            status  =   discord.Status.idle,
+            activity    =   discord.Activity(type = discord.ActivityType.listening, name = f".ghelp")) 
+        await self.WEBHOOK.send(f"<:Balank:912244138567663627>\n──\n<:GeraltRightArrow:904740634982760459> **Sent at -** {self.DT(discord.utils.utcnow(), style = 'F')}\n```prolog\nNo. of Users - {len(list(self.get_all_members()))}\nNo. of Guilds - {len(self.guilds)}\nWoke up at - {time.strftime('%c', time.gmtime())}```──\n<:Balank:912244138567663627>")
         print(COLOUR.Fore.GREEN + f"-> {time.strftime('%c', time.gmtime())} - Awakened" + COLOUR.Style.RESET_ALL)
         await self.session.close()
 

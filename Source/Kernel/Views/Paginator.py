@@ -1,25 +1,25 @@
-import disnake
+import discord
 
-from disnake import ButtonStyle
+from discord import ButtonStyle
 
 import Source.Kernel.Views.Interface as Interface
 
 # Class for paginator using buttons. Button style and label has been inspired from RoboDanny [Discord.py Bot] by "Danny aka Rapptz" -> Github Profile
-class Paginator(disnake.ui.View):
-    def __init__(self, bot, ctx, EMBEDS : list[disnake.Embed]):
+class Paginator(discord.ui.View):
+    def __init__(self, bot, ctx, EMBEDS : list[discord.Embed]):
         super().__init__(timeout = 60)
         self.bot        =   bot
         self.CTX        =   ctx
         self.TOTAL      =   len(EMBEDS)
-        self.EMBED      :   list[disnake.Embed] =   EMBEDS
+        self.EMBED      :   list[discord.Embed] =   EMBEDS
         self.CURRENT    =   0
 
         if self.TOTAL >= 1:
             self.LEFT.disabled = True
             self.MAX_LEFT.disabled = True
 
-    @disnake.ui.button(label = "<<", style = ButtonStyle.gray, custom_id = "<<")
-    async def MAX_LEFT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
+    @discord.ui.button(label = "<<", style = ButtonStyle.gray, custom_id = "<<")
+    async def MAX_LEFT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
         self.CURRENT    =   0
         self.LEFT.disabled = True
         BUTTON.disabled = True
@@ -33,8 +33,8 @@ class Paginator(disnake.ui.View):
 
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = self)
     
-    @disnake.ui.button(label = "<", style = ButtonStyle.blurple, custom_id = "<")
-    async def LEFT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
+    @discord.ui.button(label = "<", style = ButtonStyle.blurple, custom_id = "<")
+    async def LEFT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
         self.CURRENT    -=  1
         
         if self.TOTAL >= 1:
@@ -54,8 +54,8 @@ class Paginator(disnake.ui.View):
 
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
     
-    @disnake.ui.button(label = ">", style = ButtonStyle.blurple, custom_id = ">")
-    async def RIGHT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = True):
+    @discord.ui.button(label = ">", style = ButtonStyle.blurple, custom_id = ">")
+    async def RIGHT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
         self.CURRENT    +=  1
 
         if self.CURRENT >= self.TOTAL - 1:
@@ -72,8 +72,8 @@ class Paginator(disnake.ui.View):
 
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
     
-    @disnake.ui.button(label = ">>", style = ButtonStyle.gray, custom_id = ">>")
-    async def MAX_RIGHT(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction, disabled : bool = False):
+    @discord.ui.button(label = ">>", style = ButtonStyle.gray, custom_id = ">>")
+    async def MAX_RIGHT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = False):
         self.CURRENT    =   self.TOTAL - 1
         
         BUTTON.disabled = True
@@ -88,8 +88,8 @@ class Paginator(disnake.ui.View):
         
         await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
 
-    @disnake.ui.button(label = "Exit", style = ButtonStyle.danger, custom_id = "Delete")
-    async def DELETE(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+    @discord.ui.button(label = "Exit", style = ButtonStyle.danger, custom_id = "Delete")
+    async def DELETE(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
         await INTERACTION.message.delete()     
     
     async def SEND(self, ctx):
@@ -101,7 +101,7 @@ class Paginator(disnake.ui.View):
             View.disabled = True
             await self.message.edit(view = self)
 
-    async def interaction_check(self, INTERACTION : disnake.Interaction) -> bool:
+    async def interaction_check(self, INTERACTION : discord.Interaction) -> bool:
             if INTERACTION.user == self.CTX.author:
                 return True
             await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)    

@@ -1,5 +1,5 @@
 import os
-import disnake
+import discord
 import aiofiles
 
 # Counts the total lines
@@ -26,8 +26,8 @@ async def MISC(Path : str, FileType: str = '.py', File_Has: str = 'def'):
     return Count_Lines
 
 # Make a webhook if it's own is not present.
-async def FETCH_WEBHOOK(channel) -> disnake.Webhook:
-    if isinstance(channel, disnake.Thread):
+async def FETCH_WEBHOOK(channel) -> discord.Webhook:
+    if isinstance(channel, discord.Thread):
         channel = channel.parent
     webhook_list = await channel.webhooks()
     if webhook_list:

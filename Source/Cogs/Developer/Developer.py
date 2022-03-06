@@ -2,29 +2,29 @@ import io
 import os
 import sys
 import time
-import disnake
+import discord
 import asyncio
 import textwrap
 import humanize
 import traceback
 import contextlib
 
-from disnake.ext import commands
-from disnake.enums import ButtonStyle
+from discord.ext import commands
+from discord.enums import ButtonStyle
 
 import Source.Kernel.Views.Paginator as Paginator
 import Source.Kernel.Utilities.Crucial as CRUCIAL
 from Source.Kernel.Views.Interface import Confirmation, PAIN
 
 # Class for buttons in eval command.
-class EvalButtons(disnake.ui.View):
+class EvalButtons(discord.ui.View):
     def __init__(self, ctx):
         super().__init__()
         self.ctx    =   ctx
     
-    @disnake.ui.button(label = "Traceback", style = ButtonStyle.gray)
-    async def TRACEBACK(self, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
-        TB_EMB  =   disnake.Embed(
+    @discord.ui.button(label = "Traceback", style = ButtonStyle.gray)
+    async def TRACEBACK(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
+        TB_EMB  =   discord.Embed(
             title   =   "Errors Going Boing",
             description =   f"{Exception.__class__.__name__} -> {Exception}",
             colour  =   self.bot.colour)
@@ -56,7 +56,7 @@ class Developer(commands.Cog):
     @commands.check(Owner)
     async def die(self, ctx):
         """Sends the bot to eternal sleep"""
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
@@ -65,7 +65,7 @@ class Developer(commands.Cog):
             UI.stop()
             await self.bot.close()
 
-        async def NO(UI : disnake.ui.View, BUTTON: disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def NO(UI : discord.ui.View, BUTTON: discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
@@ -85,7 +85,7 @@ class Developer(commands.Cog):
         """Running both asynchronous and sychronous programs"""
         ENVIRONTMENT = {
             "self"      :   self,
-            "disnake"   :   disnake,
+            "discord"   :   discord,
             "bot"       :   self.bot,
             "ctx"       :   ctx,
             "message"   :   ctx.message,
@@ -103,7 +103,7 @@ class Developer(commands.Cog):
         try:    
             exec(COMPILE, ENVIRONTMENT)
         except Exception as EXCEPT:
-            EMB = disnake.Embed(
+            EMB = discord.Embed(
                 description = f"```py\n{EXCEPT.__class__.__name__} --> {EXCEPT}\n```",
                 colour = self.bot.colour)
             return await ctx.send(embed = EMB)
@@ -113,7 +113,7 @@ class Developer(commands.Cog):
                 RETUNRED_VALUE  =   await FUNC()
         except Exception as EXCEPT:
             VALUE   =   STDOUT.getvalue()
-            EMB = disnake.Embed(
+            EMB = discord.Embed(
                 description = f"```py\n{VALUE}{traceback.format_exc()}\n```",
                 color = 0x2F3136)
             message = await ctx.send(embed = EMB)
@@ -126,12 +126,12 @@ class Developer(commands.Cog):
                 pass
             if RETUNRED_VALUE is None:
                 if VALUE:
-                    EMB =   disnake.Embed(
+                    EMB =   discord.Embed(
                         description =   f"```py\n{VALUE}\n```",
                         colour      =   self.bot.colour)
                     await ctx.send(embed = EMB, mention_author = False)
             else:
-                EMB =   disnake.Embed(
+                EMB =   discord.Embed(
                     description = f"```py\n{VALUE}{RETUNRED_VALUE}\n```",
                     colour = self.bot.colour)
                 await ctx.send(embed = EMB, mention_author = False)
@@ -145,7 +145,7 @@ class Developer(commands.Cog):
     @commands.check(Owner)
     async def load(self, ctx, *, COG : str):
         """Loads the Extension mentioned."""
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
@@ -159,7 +159,7 @@ class Developer(commands.Cog):
                 await UI.response.edit(content = f"Loaded : **{COG}** <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
 
-        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
@@ -178,7 +178,7 @@ class Developer(commands.Cog):
     @commands.check(Owner)
     async def unload(self, ctx, *, COG : str):
         """Unloads the Extension mentioned."""
-        async def YES(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
@@ -192,7 +192,7 @@ class Developer(commands.Cog):
                 await UI.response.edit(content = f"Unloaded : **{COG}** <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
             UI.stop()
 
-        async def NO(UI : disnake.ui.View, BUTTON : disnake.ui.button, INTERACTION : disnake.Interaction):
+        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
             if INTERACTION.user != ctx.author:
                 return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
             for View in UI.children:
@@ -248,7 +248,7 @@ class Developer(commands.Cog):
     async def on(self, ctx):
         """Sets the bot status as Invisible"""
         await self.bot.change_presence(
-            status  =   disnake.Status.invisible)
+            status  =   discord.Status.invisible)
         await ctx.message.add_reaction("<:Offline:905757032521551892>")
     
     @dev.command(
@@ -257,8 +257,8 @@ class Developer(commands.Cog):
     async def off(self, ctx):
         """Sets the bot status as Idle"""
         await self.bot.change_presence(
-            status  =   disnake.Status.idle,
-            activity    =   disnake.Activity(type = disnake.ActivityType.listening, name = ".ghelp"))
+            status  =   discord.Status.idle,
+            activity    =   discord.Activity(type = discord.ActivityType.listening, name = ".ghelp"))
         await ctx.message.add_reaction("<:Idle:905757063064453130>")
 
     @dev.command(
@@ -268,7 +268,7 @@ class Developer(commands.Cog):
         """Sets the bot status as Idle"""
         GUILD   =   await self.bot.fetch_guild(GUILD)
         await GUILD.leave()
-        await ctx.reply(f"Left **{GUILD}** on {self.bot.DT(disnake.utils.utcnow(), style = 'F')}")
+        await ctx.reply(f"Left **{GUILD}** on {self.bot.DT(discord.utils.utcnow(), style = 'F')}")
 
     @commands.command(
         name    =   "guildfetch",
@@ -276,58 +276,58 @@ class Developer(commands.Cog):
         brief   =   "Get guild information")
     @commands.is_owner()
     @commands.check(Owner)
-    async def guild_fetch(self, ctx):
+    async def guild_fetch(self, ctx, *, GUILD : discord.Guild):
         """Get entire details about the guild."""
-        USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', ctx.guild.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'idle', ctx.guild.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'dnd', ctx.guild.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'offline', ctx.guild.members)))]
-        FETCHED_GUILD   =    await ctx.bot.fetch_guild(ctx.guild.id)
-
-        GENERAL_EMB =   disnake.Embed(
-            title   =   f":scroll: {ctx.guild.name}'s Information",
+        FETCHED_GUILD   =    await ctx.bot.fetch_guild(GUILD.id)
+        USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', GUILD.members))),
+                        len(list(filter(lambda U    :   str(U.status) == 'idle', GUILD.members))),
+                        len(list(filter(lambda U    :   str(U.status) == 'dnd', GUILD.members))),
+                        len(list(filter(lambda U    :   str(U.status) == 'offline', GUILD.members)))]
+        
+        GENERAL_EMB =   discord.Embed(
+            title   =   f":scroll: {GUILD.name}'s Information",
             colour  =   self.bot.colour)
         GENERAL_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> General Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {ctx.guild.owner.mention} (`{ctx.guild.owner.id}`) \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(ctx.guild.roles)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{ctx.guild.id}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(ctx.guild.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
-                        f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(ctx.guild.filesize_limit)}`")
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {GUILD.owner.mention} (`{GUILD.owner.id}`) \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(GUILD.roles)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{GUILD.id}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(GUILD.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
+                        f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(GUILD.filesize_limit)}`")
         GENERAL_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Initialisation :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(ctx.guild.created_at)} \n" \
-                        f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(GUILD.created_at)} \n" \
+                        f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(GUILD.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
             inline  =   False)
-        GENERAL_EMB.set_thumbnail(url = ctx.guild.icon.url)
-        GENERAL_EMB.timestamp = disnake.utils.utcnow()
+        GENERAL_EMB.set_thumbnail(url = GUILD.icon.url)
+        GENERAL_EMB.timestamp = discord.utils.utcnow()
 
-        OTHER_EMB   =   disnake.Embed(
-            title   =   f":scroll: {ctx.guild.name}'s Other Information",
+        OTHER_EMB   =   discord.Embed(
+            title   =   f":scroll: {GUILD.name}'s Other Information",
             colour  =   self.bot.colour)
         OTHER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Channel Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(ctx.guild.text_channels)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(ctx.guild.voice_channels)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(ctx.guild.threads)}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(ctx.guild.stage_channels)}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(GUILD.text_channels)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(GUILD.voice_channels)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(GUILD.threads)}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(GUILD.stage_channels)}` \n",
             inline  =   False)
         OTHER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Emotes Present :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([ANI for ANI in ctx.guild.emojis if ANI.animated])}` / `{ctx.guild.emoji_limit}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([NON_ANI for NON_ANI in ctx.guild.emojis if not NON_ANI.animated])}` / `{ctx.guild.emoji_limit}`",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([ANI for ANI in GUILD.emojis if ANI.animated])}` / `{GUILD.emoji_limit}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([NON_ANI for NON_ANI in GUILD.emojis if not NON_ANI.animated])}` / `{GUILD.emoji_limit}`",
             inline  =   False)
-        OTHER_EMB.set_thumbnail(url = ctx.guild.icon.url)
-        OTHER_EMB.timestamp =   disnake.utils.utcnow()
+        OTHER_EMB.set_thumbnail(url = GUILD.icon.url)
+        OTHER_EMB.timestamp =   discord.utils.utcnow()
 
-        USER_EMB    =   disnake.Embed(
-            title   =   f":scroll: {ctx.guild.name}'s Users Information",
+        USER_EMB    =   discord.Embed(
+            title   =   f":scroll: {GUILD.name}'s Users Information",
             colour  =   self.bot.colour)
         USER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> No. of User :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, ctx.guild.members)))}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, ctx.guild.members)))}` \n" \
-                        f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{ctx.guild.member_count}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, GUILD.members)))}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, GUILD.members)))}` \n" \
+                        f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{GUILD.member_count}` \n",
             inline  =   False)
         USER_EMB.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Activity Information :",
@@ -336,15 +336,15 @@ class Developer(commands.Cog):
                         f"> **<:ReplyContinued:930634770004725821> - <:DnD:905759353141874709> Do Not Disturb :** `{USER_STATUS[2]}` \n" \
                         f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{USER_STATUS[3]}`",
             inline  =   False)
-        USER_EMB.set_thumbnail(url = ctx.guild.icon.url)
-        USER_EMB.timestamp = disnake.utils.utcnow()
+        USER_EMB.set_thumbnail(url = GUILD.icon.url)
+        USER_EMB.timestamp = discord.utils.utcnow()
     
-        ICON_EMB    =   disnake.Embed(
-            title   =   f":scroll: {ctx.guild.name}'s Icon",
-            description =   f"[**JPG Format**]({ctx.guild.icon.with_static_format('jpg')}) **|** [**PNG Format**]({ctx.guild.icon.with_static_format('png')}) **|** [**WEBP Format**]({ctx.guild.icon.with_static_format ('webp')})",
+        ICON_EMB    =   discord.Embed(
+            title   =   f":scroll: {GUILD.name}'s Icon",
+            description =   f"[**JPG Format**]({GUILD.icon.with_static_format('jpg')}) **|** [**PNG Format**]({GUILD.icon.with_static_format('png')}) **|** [**WEBP Format**]({GUILD.icon.with_static_format ('webp')})",
             colour  =   self.bot.colour)
-        ICON_EMB.set_image(url = ctx.guild.icon.url)
-        ICON_EMB.timestamp = disnake.utils.utcnow()
+        ICON_EMB.set_image(url = GUILD.icon.url)
+        ICON_EMB.timestamp = discord.utils.utcnow()
 
         BANNER_EMB = None
 
@@ -353,12 +353,12 @@ class Developer(commands.Cog):
             await ctx.trigger_typing()
             await Paginator.Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
         else:
-            BANNER_EMB  =   disnake.Embed(
-                title   =   f":scroll: {ctx.guild.name}'s Banner",
+            BANNER_EMB  =   discord.Embed(
+                title   =   f":scroll: {GUILD.name}'s Banner",
                 description =   f"[**Download Banner Here**]({FETCHED_GUILD.banner.url})",
                 colour  =   self.bot.colour)
             BANNER_EMB.set_image(url = FETCHED_GUILD.banner.url)
-            BANNER_EMB.timestamp = disnake.utils.utcnow()
+            BANNER_EMB.timestamp = discord.utils.utcnow()
             
             EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB, BANNER_EMB]
             await ctx.trigger_typing()
@@ -398,7 +398,7 @@ class Developer(commands.Cog):
 
         FINAL = f"{RENDERED}\n"
         if len(FINAL) > 2000:
-            await ctx.reply(f"<:ReplyContinued:930634770004725821> - Too much data to send at once...\n<:Reply:930634822865547294> - Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms", file = disnake.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
+            await ctx.reply(f"<:ReplyContinued:930634770004725821> - Too much data to send at once...\n<:Reply:930634822865547294> - Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms", file = discord.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
         else:
             await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms\n```prolog\n{FINAL}\n```", allowed_mentions = self.bot.Mention)
 

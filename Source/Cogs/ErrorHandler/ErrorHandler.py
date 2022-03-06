@@ -1,12 +1,11 @@
 import io
-import os
 import aiohttp
-import disnake
+import discord
 import traceback
 
-from disnake.ext import commands
-from disnake.enums import ButtonStyle
-from disnake.webhook.async_ import Webhook
+from discord.ext import commands
+from discord.enums import ButtonStyle
+from discord.webhook.async_ import Webhook
 
 from __main__ import CONFIG
 import Source.Kernel.Views.Interface as Interface
@@ -71,21 +70,21 @@ class ErrorHandler(commands.Cog):
                                     f"- Command Name  :   {ctx.message.content}\n" \
                                     f"** Occured in DM's **"
             error_str   =   "".join(traceback.format_exception(type(error), error, error.__traceback__))
-            error_emb   =   disnake.Embed(
+            error_emb   =   discord.Embed(
                 title = "Error Boi <:Pain:911261018582306867>",
                 description = f"```prolog\n{command_data} \n```\n```py\n {error_str}\n```",
                 colour = 0x2F3136)       
-            error_emb.timestamp = disnake.utils.utcnow()           
+            error_emb.timestamp = discord.utils.utcnow()           
             send_error  =   self.webhook
             if len(error_str) < 2000:
                 try:
                     await send_error.send(embed = error_emb)
                     await send_error.send("||Break Point||")
-                except(disnake.HTTPException, disnake.Forbidden):
-                    await send_error.send(embed = error_emb, file = disnake.File(io.StringIO(error_str), filename = "Traceback.py"))
+                except(discord.HTTPException, discord.Forbidden):
+                    await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "Traceback.py"))
                     await send_error.send("||Break Point||")
             else:
-                await send_error.send(embed = error_emb, file = disnake.File(io.StringIO(error_str), filename = "Traceback.py"))
+                await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "Traceback.py"))
                 await send_error.send("||Break Point||")
         
 def setup(bot):
