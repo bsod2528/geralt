@@ -1,6 +1,4 @@
 import io
-import os
-import sys
 import time
 import discord
 import asyncio
@@ -12,9 +10,12 @@ import contextlib
 from discord.ext import commands
 from discord.enums import ButtonStyle
 
+from __main__ import COGS_EXTENSIONS
 import Source.Kernel.Views.Paginator as Paginator
-import Source.Kernel.Utilities.Crucial as CRUCIAL
-from Source.Kernel.Views.Interface import Confirmation, PAIN
+import Source.Kernel.Utilities.Crucial as crucial
+import Source.Kernel.Views.Interface as Interface
+
+
 
 # Class for buttons in eval command.
 class EvalButtons(discord.ui.View):
@@ -23,12 +24,12 @@ class EvalButtons(discord.ui.View):
         self.ctx    =   ctx
     
     @discord.ui.button(label = "Traceback", style = ButtonStyle.gray)
-    async def TRACEBACK(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-        TB_EMB  =   discord.Embed(
+    async def traceback(self, button : discord.ui.button, interaction : discord.Interaction):
+        tb_emb  =   discord.Embed(
             title   =   "Errors Going Boing",
             description =   f"{Exception.__class__.__name__} -> {Exception}",
             colour  =   self.bot.colour)
-        await INTERACTION.response.send_message(embed = TB_EMB, ephemeral = True)
+        await interaction.response.send_message(embed = tb_emb, ephemeral = True)
 
 class Developer(commands.Cog):
     """Developer Commands"""
@@ -43,9 +44,6 @@ class Developer(commands.Cog):
 
         # remove `foo`
         return content.strip('` \n')
-
-    def Owner(ctx):
-        return ctx.author.id    ==  746807014658801704, 750979369001811982, 760823877034573864
     
     # Shuts the bot down in a friendly manner.
     @commands.command(
@@ -53,27 +51,24 @@ class Developer(commands.Cog):
         aliases =   ["snap"], 
         brief   =   "Eternal Sleep")
     @commands.is_owner()
-    @commands.check(Owner)
-    async def die(self, ctx):
+    async def die(self, ctx : commands.context):
         """Sends the bot to eternal sleep"""
-        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            for View in UI.children:
-                View.disabled = True
-            await INTERACTION.response.edit_message(content = "Okay then, I shall go to eternal sleep", view = UI, allowed_mentions = self.bot.Mention)
-            UI.stop()
+        async def yes(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+            if interaction.user != ctx.author:
+                await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            for view in ui.children:
+                view.disabled = True
+            await ui.response.edit(content = "Okay then, I shall go to eternal sleep", view = ui, allowed_mentions = self.bot.mentions)
             await self.bot.close()
 
-        async def NO(UI : discord.ui.View, BUTTON: discord.ui.button, INTERACTION : discord.Interaction):
-            if INTERACTION.user != ctx.author:
-                await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            for View in UI.children:
-                View.disabled = True
-            await INTERACTION.response.edit_message(content = "Seems like I'm gonna be alive for a bit longer",view = UI, allowed_mentions = self.bot.Mention)
-            UI.stop()
+        async def no(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+            if interaction.user != ctx.author:
+                await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            for view in ui.children:
+                view.disabled = True
+            await ui.response.edit(content = "Seems like I'm gonna be alive for a bit longer", view = ui, allowed_mentions = self.bot.mentions)
         await ctx.trigger_typing()
-        Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+        Interface.Confirmation.response    = await ctx.reply("Do you want to kill me?", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
     
     # Evaluate command for running both asynchronous and sychronous programs.
     @commands.command(
@@ -81,9 +76,9 @@ class Developer(commands.Cog):
         aliases =   ["e"],
         brief   =   "Run Code")
     @commands.is_owner()
-    async def eval(self, ctx, *, BODY : str):
+    async def eval(self, ctx : commands.context, *, body : str):
         """Running both asynchronous and sychronous programs"""
-        ENVIRONTMENT = {
+        environment = {
             "self"      :   self,
             "discord"   :   discord,
             "bot"       :   self.bot,
@@ -94,47 +89,47 @@ class Developer(commands.Cog):
             "channel"   :   ctx.channel,
         }
 
-        ENVIRONTMENT.update(globals())
-        if BODY.startswith( "```" ) and BODY.endswith( "```" ):
-            BODY    =   "\n".join(BODY.split("\n")[1:-1])
-        BODY    =   BODY.strip("` \n")
-        STDOUT  =   io.StringIO()
-        COMPILE =   f"async def func():\n{textwrap.indent(BODY, '  ')}"
+        environment.update(globals())
+        if body.startswith( "```" ) and body.endswith( "```" ):
+            body    =   "\n".join(body.split("\n")[1:-1])
+        body    =   body.strip("` \n")
+        stdout  =   io.StringIO()
+        compile =   f"async def func():\n{textwrap.indent(body, '  ')}"
         try:    
-            exec(COMPILE, ENVIRONTMENT)
-        except Exception as EXCEPT:
-            EMB = discord.Embed(
-                description = f"```py\n{EXCEPT.__class__.__name__} --> {EXCEPT}\n```",
+            exec(compile, environment)
+        except Exception as exception:
+            tb_emb = discord.Embed(
+                description = f"```py\n{exception.__class__.__name__} -> {exception}\n```",
                 colour = self.bot.colour)
-            return await ctx.send(embed = EMB)
-        FUNC    =   ENVIRONTMENT["func"]
+            return await ctx.send(embed = tb_emb)
+        func    =   environment["func"]
         try:
-            with contextlib.redirect_stdout(STDOUT):
-                RETUNRED_VALUE  =   await FUNC()
-        except Exception as EXCEPT:
-            VALUE   =   STDOUT.getvalue()
-            EMB = discord.Embed(
-                description = f"```py\n{VALUE}{traceback.format_exc()}\n```",
+            with contextlib.redirect_stdout(stdout):
+                returned_value  =   await func()
+        except Exception as exception:
+            value   =   stdout.getvalue()
+            emb = discord.Embed(
+                description = f"```py\n{value}{traceback.format_exc()}\n```",
                 color = 0x2F3136)
-            message = await ctx.send(embed = EMB)
-            await ctx.message.add_reaction('<:WinUnheck:898572376147623956>')
+            message = await ctx.send(embed = emb)
+            await ctx.message.add_reaction("<:WinUnheck:898572376147623956>")
         else:
-            VALUE   =   STDOUT.getvalue()
+            value   =   stdout.getvalue()
             try:
-                await ctx.message.add_reaction('<:WinCheck:898572324490604605>')
+                await ctx.message.add_reaction("<:WinCheck:898572324490604605>")
             except:
                 pass
-            if RETUNRED_VALUE is None:
-                if VALUE:
-                    EMB =   discord.Embed(
-                        description =   f"```py\n{VALUE}\n```",
+            if returned_value is None:
+                if value:
+                    value_emb =   discord.Embed(
+                        description =   f"```py\n{value}\n```",
                         colour      =   self.bot.colour)
-                    await ctx.send(embed = EMB, mention_author = False)
+                    await ctx.send(embed = value_emb, mention_author = False)
             else:
-                EMB =   discord.Embed(
-                    description = f"```py\n{VALUE}{RETUNRED_VALUE}\n```",
+                emb =   discord.Embed(
+                    description = f"```py\n{value}{returned_value}\n```",
                     colour = self.bot.colour)
-                await ctx.send(embed = EMB, mention_author = False)
+                await ctx.send(embed = emb, mention_author = False)
 
     # Loads extension of choice
     @commands.command(
@@ -142,32 +137,15 @@ class Developer(commands.Cog):
         aliases =   ["l"],
         brief   =   "Loads Cog")
     @commands.is_owner()
-    @commands.check(Owner)
-    async def load(self, ctx, *, COG : str):
+    async def load(self, ctx : commands.context, *, cog : str):
         """Loads the Extension mentioned."""
-        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            for View in UI.children:
-                View.disabled   =   True
-                View.style  =   ButtonStyle.grey
-            try:
-                self.bot.load_extension(f"Source.Cogs.{COG}")
-            except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't load **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = UI, allowed_mentions = self.bot.Mention)
-            else:
-                await UI.response.edit(content = f"Loaded : **{COG}** <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
-            UI.stop()
-
-        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            for View in UI.children:
-                    View.disabled   =   True
-                    View.style  =   ButtonStyle.grey
-            await UI.response.edit(content = f"Seems like you don't want to load **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = UI, allowed_mentions = self.bot.Mention)
-        await ctx.trigger_typing()
-        Confirmation.response    = await ctx.reply(f"Do you want to load : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+        try:
+            self.bot.load_extension(f"Source.Cogs.{cog}")
+            await ctx.trigger_typing()
+            await ctx.reply(f"**{cog}** : Successfully Loaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
+        except Exception as exception:
+            await ctx.trigger_typing()
+            await ctx.reply(f"Couldn't load **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
 
     # Unloads extension of choice
     @commands.command(
@@ -175,34 +153,15 @@ class Developer(commands.Cog):
         aliases =   ["ul"],
         brief   =   "Unloads Cog")
     @commands.is_owner()
-    @commands.check(Owner)
-    async def unload(self, ctx, *, COG : str):
+    async def unload(self, ctx : commands.context, *, cog : str):
         """Unloads the Extension mentioned."""
-        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            for View in UI.children:
-                    View.disabled   =   True
-                    View.style  =   ButtonStyle.grey
-            try:
-                self.bot.unload_extension(f"Source.Cogs.{COG}")
-            except Exception as EXCEPT:
-                await UI.response.edit(content = f"Couldn't unload **{COG}** due to : __ {EXCEPT} __ : <:Pain:911261018582306867>", view = UI, allowed_mentions = self.bot.Mention)
-            else:
-                await UI.response.edit(content = f"Unloaded : **{COG}** <:RavenPray:914410353155244073>", view = UI, allowed_mentions = self.bot.Mention)
-            UI.stop()
-
-        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{PAIN}", ephemeral = True)
-            for View in UI.children:
-                    View.disabled   =   True
-                    View.style  =   ButtonStyle.grey
-            await UI.response.edit(content = f"Seems like you don't want to unload **{COG}**.\nNot my problem <:AkkoHmm:907105376523153458>", view = UI, allowed_mentions = self.bot.Mention)
-        async with ctx.typing():
-            await asyncio.sleep(0.2)
-        await ctx.trigger_typing()
-        Confirmation.response    = await ctx.reply(f"Do you want to unload : **{COG}** <:Sus:916955986953113630>", view = Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+        try:
+            self.bot.unload_extension(f"Source.Cogs.{cog}")
+            await ctx.trigger_typing()
+            await ctx.reply(f"**{cog}** : Successfully Unloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
+        except Exception as exception:
+            await ctx.trigger_typing()
+            await ctx.reply(f"Couldn't unload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
     
     # Reloads extension of choice
     @commands.command(
@@ -210,16 +169,24 @@ class Developer(commands.Cog):
         aliases =   ["rl"],
         brief   =   "Reloads Cog")
     @commands.is_owner()
-    @commands.check(Owner)
-    async def reload(self, ctx, *, COG : str):
+    async def reload(self, ctx : commands.context, *, cog : str = None):
         """Reloads the Extension mentioned."""
-        try:
-            self.bot.reload_extension(f"Source.Cogs.{COG}")
-            await ctx.trigger_typing()
-            await ctx.reply(f"**{COG}** : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.Mention)
-        except Exception as EXCEPT:
-            await ctx.trigger_typing()
-            await ctx.reply(f"Couldn't reload **{COG}** : `{EXCEPT}`", allowed_mentions = self.bot.Mention)
+        if cog is None:
+            try:
+                for cogs in COGS_EXTENSIONS:
+                    self.bot.reload_extension(cogs)
+                await ctx.reply(f"Reloaded `{len(cogs)}` extensions <:RavenPray:914410353155244073>")
+            except Exception as exception:
+                await ctx.trigger_typing()
+                await ctx.reply(f"Couldn't reload all the extensions : `{exception}`", allowed_mentions = self.bot.mentions)
+        else:
+            try:
+                self.bot.reload_extension(f"Source.Cogs.{cog}")
+                await ctx.trigger_typing()
+                await ctx.reply(f"**{cog}** : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
+            except Exception as exception:
+                await ctx.trigger_typing()
+                await ctx.reply(f"Couldn't reload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
     
     # Group of Commands used for changing presence.
     @commands.group(
@@ -227,7 +194,6 @@ class Developer(commands.Cog):
         aliases =   ["devmode"],
         brief   =   "Simple Dev Stuff")
     @commands.is_owner()
-    @commands.check(Owner)
     async def dev(self, ctx):
         """Simple commands for dev to do"""
         if ctx.invoked_subcommand is None:
@@ -239,8 +205,8 @@ class Developer(commands.Cog):
         brief   =   "Sends Guild List")
     async def total_guilds(self, ctx):
         """Sends the entire guild list."""
-        await ctx.reply(f"Currently in `{len(self.bot.guilds)}` Guilds.", allowed_mentions = self.bot.Mention)
-        await ctx.send(f" ".join([f"> **- {g.name} :** {g.owner.mention} (`{g.id}`)\n" for g in self.bot.guilds]) + "", allowed_mentions = self.bot.Mention)
+        await ctx.reply(f"Currently in `{len(self.bot.guilds)}` Guilds.", allowed_mentions = self.bot.mentions)
+        await ctx.send(f" ".join([f"> **- {g.name} :** {g.owner.mention} (`{g.id}`)\n" for g in self.bot.guilds]) + "", allowed_mentions = self.bot.mentions)
 
     @dev.command(
         name    =   "on",
@@ -264,153 +230,141 @@ class Developer(commands.Cog):
     @dev.command(
         name    =   "leave",
         brief   =   "Leaves Guild")
-    async def off(self, ctx, *, GUILD : int):
+    async def off(self, ctx, *, guild : int):
         """Sets the bot status as Idle"""
-        GUILD   =   await self.bot.fetch_guild(GUILD)
-        await GUILD.leave()
-        await ctx.reply(f"Left **{GUILD}** on {self.bot.DT(discord.utils.utcnow(), style = 'F')}")
+        guild   =   await self.bot.fetch_guild(guild)
+        await guild.leave()
+        await ctx.reply(f"Left **{guild}** on {self.bot.datetime(discord.utils.utcnow(), style = 'F')}")
 
     @commands.command(
         name    =   "guildfetch",
         aliases =   ["fg"],
         brief   =   "Get guild information")
     @commands.is_owner()
-    @commands.check(Owner)
-    async def guild_fetch(self, ctx, *, GUILD : discord.Guild):
+    async def guild_fetch(self, ctx : commands.context, *, guild : discord.Guild):
         """Get entire details about the guild."""
-        FETCHED_GUILD   =    await ctx.bot.fetch_guild(GUILD.id)
-        USER_STATUS =   [len(list(filter(lambda U   :   str(U.status) == 'online', GUILD.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'idle', GUILD.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'dnd', GUILD.members))),
-                        len(list(filter(lambda U    :   str(U.status) == 'offline', GUILD.members)))]
+        fetched_guild   =    await ctx.bot.fetch_guild(guild.id)
+        user_status =   [len(list(filter(lambda u   :   str(u.status) == "online", guild.members))),
+                        len(list(filter(lambda u    :   str(u.status) == "idle", guild.members))),
+                        len(list(filter(lambda u    :   str(u.status) == "dnd", guild.members))),
+                        len(list(filter(lambda u    :   str(u.status) == "offline", guild.members)))]
         
-        GENERAL_EMB =   discord.Embed(
-            title   =   f":scroll: {GUILD.name}'s Information",
+        general_emb =   discord.Embed(
+            title   =   f":scroll: {guild.name}'s Information",
             colour  =   self.bot.colour)
-        GENERAL_EMB.add_field(
+        general_emb.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> General Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {GUILD.owner.mention} (`{GUILD.owner.id}`) \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(GUILD.roles)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{GUILD.id}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(GUILD.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
-                        f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(GUILD.filesize_limit)}`")
-        GENERAL_EMB.add_field(
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {guild.owner.mention} (`{guild.owner.id}`) \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(guild.roles)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{guild.id}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(guild.verification_level).replace('_', ' ').replace('`None`', '`Nill`').title()} \n" \
+                        f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(guild.filesize_limit)}`")
+        general_emb.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Initialisation :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.DT(GUILD.created_at)} \n" \
-                        f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(GUILD.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.datetime(guild.created_at)} \n" \
+                        f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(guild.explicit_content_filter).replace('_',' ').replace('`None`', '`Nill`').title()}` \n",
             inline  =   False)
-        GENERAL_EMB.set_thumbnail(url = GUILD.icon.url)
-        GENERAL_EMB.timestamp = discord.utils.utcnow()
+        general_emb.set_thumbnail(url = guild.icon.url)
+        general_emb.timestamp = discord.utils.utcnow()
 
-        OTHER_EMB   =   discord.Embed(
-            title   =   f":scroll: {GUILD.name}'s Other Information",
+        other_emb   =   discord.Embed(
+            title   =   f":scroll: {guild.name}'s Other Information",
             colour  =   self.bot.colour)
-        OTHER_EMB.add_field(
+        other_emb.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Channel Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(GUILD.text_channels)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(GUILD.voice_channels)}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(GUILD.threads)}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(GUILD.stage_channels)}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(guild.text_channels)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(guild.voice_channels)}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(guild.threads)}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(guild.stage_channels)}` \n",
             inline  =   False)
-        OTHER_EMB.add_field(
+        other_emb.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Emotes Present :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([ANI for ANI in GUILD.emojis if ANI.animated])}` / `{GUILD.emoji_limit}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([NON_ANI for NON_ANI in GUILD.emojis if not NON_ANI.animated])}` / `{GUILD.emoji_limit}`",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([animated for animated in guild.emojis if animated.animated])}` / `{guild.emoji_limit}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([non_animated for non_animated in guild.emojis if not non_animated.animated])}` / `{guild.emoji_limit}`",
             inline  =   False)
-        OTHER_EMB.set_thumbnail(url = GUILD.icon.url)
-        OTHER_EMB.timestamp =   discord.utils.utcnow()
+        other_emb.set_thumbnail(url = guild.icon.url)
+        other_emb.timestamp =   discord.utils.utcnow()
 
-        USER_EMB    =   discord.Embed(
-            title   =   f":scroll: {GUILD.name}'s Users Information",
+        user_emb    =   discord.Embed(
+            title   =   f":scroll: {guild.name}'s Users Information",
             colour  =   self.bot.colour)
-        USER_EMB.add_field(
+        user_emb.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> No. of User :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, GUILD.members)))}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, GUILD.members)))}` \n" \
-                        f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{GUILD.member_count}` \n",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, guild.members)))}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, guild.members)))}` \n" \
+                        f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{guild.member_count}` \n",
             inline  =   False)
-        USER_EMB.add_field(
+        user_emb.add_field(
             name    =   "<:GeraltRightArrow:904740634982760459> Activity Information :",
-            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Online:905757053119766528> Online :** `{USER_STATUS[0]}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <:Idle:905757063064453130> Idle :** `{USER_STATUS[1]}` \n" \
-                        f"> **<:ReplyContinued:930634770004725821> - <:DnD:905759353141874709> Do Not Disturb :** `{USER_STATUS[2]}` \n" \
-                        f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{USER_STATUS[3]}`",
+            value   =   f"> **<:ReplyContinued:930634770004725821> - <:Online:905757053119766528> Online :** `{user_status[0]}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <:Idle:905757063064453130> Idle :** `{user_status[1]}` \n" \
+                        f"> **<:ReplyContinued:930634770004725821> - <:DnD:905759353141874709> Do Not Disturb :** `{user_status[2]}` \n" \
+                        f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{user_status[3]}`",
             inline  =   False)
-        USER_EMB.set_thumbnail(url = GUILD.icon.url)
-        USER_EMB.timestamp = discord.utils.utcnow()
+        user_emb.set_thumbnail(url = guild.icon.url)
+        user_emb.timestamp = discord.utils.utcnow()
     
-        ICON_EMB    =   discord.Embed(
-            title   =   f":scroll: {GUILD.name}'s Icon",
-            description =   f"[**JPG Format**]({GUILD.icon.with_static_format('jpg')}) **|** [**PNG Format**]({GUILD.icon.with_static_format('png')}) **|** [**WEBP Format**]({GUILD.icon.with_static_format ('webp')})",
+        icon_emb    =   discord.Embed(
+            title   =   f":scroll: {guild.name}'s Icon",
+            description =   f"[**JPG Format**]({guild.icon.with_static_format('jpg')}) **|** [**PNG Format**]({guild.icon.with_static_format('png')}) **|** [**WEBP Format**]({guild.icon.with_static_format ('webp')})",
             colour  =   self.bot.colour)
-        ICON_EMB.set_image(url = GUILD.icon.url)
-        ICON_EMB.timestamp = discord.utils.utcnow()
+        icon_emb.set_image(url = guild.icon.url)
+        icon_emb.timestamp = discord.utils.utcnow()
 
-        BANNER_EMB = None
+        banner_emb = None
 
-        if FETCHED_GUILD.banner is None:
-            EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB]
+        if fetched_guild.banner is None:
+            embed_list  =   [general_emb, other_emb, user_emb, icon_emb]
             await ctx.trigger_typing()
-            await Paginator.Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
+            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
         else:
-            BANNER_EMB  =   discord.Embed(
-                title   =   f":scroll: {GUILD.name}'s Banner",
-                description =   f"[**Download Banner Here**]({FETCHED_GUILD.banner.url})",
+            banner_emb  =   discord.Embed(
+                title   =   f":scroll: {guild.name}'s Banner",
+                description =   f"[**Download Banner Here**]({fetched_guild.banner.url})",
                 colour  =   self.bot.colour)
-            BANNER_EMB.set_image(url = FETCHED_GUILD.banner.url)
-            BANNER_EMB.timestamp = discord.utils.utcnow()
+            banner_emb.set_image(url = fetched_guild.banner.url)
+            banner_emb.timestamp = discord.utils.utcnow()
             
-            EMBED_LIST  =   [GENERAL_EMB, OTHER_EMB, USER_EMB, ICON_EMB, BANNER_EMB]
+            embed_list  =   [general_emb, other_emb, user_emb, icon_emb, banner_emb]
             await ctx.trigger_typing()
-            await Paginator.Paginator(self.bot, ctx, EMBEDS = EMBED_LIST).SEND(ctx)
+            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
 
     # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
     @commands.command(
         name    =   "sql",
         brief   =   "Query DB")
     @commands.is_owner()
-    @commands.check(Owner)
-    async def sql(self, ctx, *, QUERY : str):
+    async def sql(self, ctx : commands.context, *, query : str):
         """Run SQL Queries"""
-        QUERY = self.cleanup_code(QUERY)
+        query = self.cleanup_code(query)
         
-        MULTI_STATE = QUERY.count(";") > 1
-        if MULTI_STATE:
-            METHOD = self.bot.DB.execute
+        multi_line = query.count(";") > 1
+        if multi_line:
+            method = self.bot.db.execute
         else:
-            METHOD = self.bot.DB.fetch
+            method = self.bot.db.fetch
         try:
-            DB_START    =   time.perf_counter()
-            RESULTS     =   await METHOD(QUERY)
-            LATENCY     =   (time.perf_counter() - DB_START) * 1000.0
+            db_start    =   time.perf_counter()
+            results     =   await method(query)
+            latency     =   (time.perf_counter() - db_start) * 1000.0
         except Exception:
-            return await ctx.message.author.send(f"**<:GeraltRightArrow:904740634982760459> You made a mistake for :**\n```py\n{QUERY}\n```\n```py\n{traceback.format_exc()}\n```")
+            return await ctx.message.author.send(f"**<:GeraltRightArrow:904740634982760459> You made a mistake for :**\n```py\n{query}\n```\n```py\n{traceback.format_exc()}\n```")
 
-        ROWS    =   len(RESULTS)
-        if MULTI_STATE or ROWS == 0:
-            return await ctx.send(f"`{LATENCY:.2f}ms: {RESULTS}`")
+        rows    =   len(results)
+        if multi_line or rows == 0:
+            return await ctx.send(f"`{latency:.2f}ms: {results}`")
 
-        HEADERS =   list(RESULTS[0].keys())
-        TABLE   =   CRUCIAL.TabulateData()
-        TABLE.columns(HEADERS)
-        TABLE.rows_added(list(R.values()) for R in RESULTS)
-        RENDERED    =   TABLE.render()
+        headers =   list(results[0].keys())
+        table   =   crucial.TabulateData()
+        table.columns(headers)
+        table.rows_added(list(r.values()) for r in results)
+        rendered    =   table.render()
 
-        FINAL = f"{RENDERED}\n"
-        if len(FINAL) > 2000:
-            await ctx.reply(f"<:ReplyContinued:930634770004725821> - Too much data to send at once...\n<:Reply:930634822865547294> - Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms", file = discord.File(io.StringIO(FINAL), filename = "Query-Result.sql"), allowed_mentions = self.bot.Mention)
+        final = f"{rendered}\n"
+        if len(final) > 2000:
+            await ctx.reply(f"<:ReplyContinued:930634770004725821> - Too much data to send at once...\n<:Reply:930634822865547294> - Returned {crucial.Plural(rows):row} in {latency:.2f}ms", file = discord.File(io.StringIO(final), filename = "Query-Result.sql"), allowed_mentions = self.bot.mentions)
         else:
-            await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {CRUCIAL.Plural(ROWS):row} in {LATENCY:.2f}ms\n```prolog\n{FINAL}\n```", allowed_mentions = self.bot.Mention)
+            await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {crucial.Plural(rows):row} in {latency:.2f}ms\n```prolog\n{final}\n```", allowed_mentions = self.bot.mentions)
 
-    @commands.command(
-        name    =   "restart",
-        brief   =   "Restarts Bot")
-    @commands.is_owner()
-    async def restart(self, ctx):
-        """Restarts the whole bot"""
-        await ctx.reply("Restarting Bot")
-        python  =   sys.executable
-        os.execl(python, python, *sys.argv)
-    
 def setup(bot):
     bot.add_cog(Developer(bot))

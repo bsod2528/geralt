@@ -3,41 +3,40 @@ import discord
 import aiofiles
 
 # Counts the total lines
-async def TOTAL_LINES(Path : str, FileType : str = ".py"):
-    Lines = 0
-    for i in os.scandir(Path):
+async def total_lines(path : str, filetype : str = ".py"):
+    lines = 0
+    for i in os.scandir(path):
         if i.is_file():
-            if i.path.endswith(FileType):
-                Lines += len((await (await aiofiles.open(i.path, 'r')).read()).split("\n"))
+            if i.path.endswith(filetype):
+                lines += len((await (await aiofiles.open(i.path, 'r')).read()).split("\n"))
         elif i.is_dir():
-            Lines += await TOTAL_LINES(i.path, FileType)
-    return Lines
+            lines += await total_lines(i.path, filetype)
+    return lines
 
 # Counts others [ classes and functions ]
-async def MISC(Path : str, FileType: str = '.py', File_Has: str = 'def'):
-    Count_Lines = 0
-    for i in os.scandir(Path):
+async def misc(path : str, filetype: str = ".py", file_has: str = "def"):
+    count_lines = 0
+    for i in os.scandir(path):
         if i.is_file():
-            if i.path.endswith(FileType):
-                Count_Lines += len([line for line in (await (await aiofiles.open(i.path, 'r')).read()).split("\n") if
-                                   File_Has in line])
+            if i.path.endswith(filetype):
+                count_lines += len([line for line in (await (await aiofiles.open(i.path, 'r')).read()).split("\n") if file_has in line])
         elif i.is_dir():
-            Count_Lines += await MISC(i.path, FileType, File_Has)
-    return Count_Lines
+            count_lines += await misc(i.path, filetype, file_has)
+    return count_lines
 
 # Make a webhook if it's own is not present.
-async def FETCH_WEBHOOK(channel) -> discord.Webhook:
+async def fetch_webhook(channel) -> discord.Webhook:
     if isinstance(channel, discord.Thread):
         channel = channel.parent
     webhook_list = await channel.webhooks()
     if webhook_list:
-        for HOOK in webhook_list:
-            if HOOK.token:
-                return HOOK
-    WEBHOOK = await channel.create_webhook(
+        for hook in webhook_list:
+            if hook.token:
+                return hook
+    webhook = await channel.create_webhook(
         name    =   "Geralt Webhook", 
         avatar  =   await channel.guild.me.display_avatar.read())
-    return WEBHOOK
+    return webhook
 
 # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
 class Plural:

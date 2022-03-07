@@ -4,7 +4,6 @@ import discord
 import traceback
 
 from discord.ext import commands
-from discord.enums import ButtonStyle
 from discord.webhook.async_ import Webhook
 
 from __main__ import CONFIG
@@ -14,52 +13,52 @@ class ErrorHandler(commands.Cog):
     """Global Error Handling"""
     def __init__(self, bot):
         self.bot        =   bot        
-        self.session    =   aiohttp.ClientSession()
-        self.webhook    =   Webhook.from_url(CONFIG.get("ERROR"), session = self.session)
         
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx : commands.context, error):
 
         if hasattr(ctx.command, "on_error"):
             return
 
-        ERROR   =   getattr(error, "original", error)
+        error   =   getattr(error, "original", error)
             
         if isinstance(error, commands.CommandNotFound):
             return
         
         if isinstance(error, commands.DisabledCommand):
             await ctx.trigger_typing()
-            return await Interface.Traceback(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
     
         if  isinstance(error, commands.BotMissingPermissions):
             await ctx.trigger_typing()
-            return await Interface.Traceback(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
         
         if isinstance(error, commands.MissingPermissions):
             await ctx.trigger_typing()
-            return await Interface.Traceback(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
 
         if isinstance(error, commands.NotOwner):
             return
         
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.trigger_typing()
-            return await Interface.CommandSyntax(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.CommandSyntax(self.bot, ctx, error).send(ctx)
         
         if isinstance(error, commands.MemberNotFound):
             await ctx.trigger_typing()
-            return await Interface.Traceback(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
 
         if isinstance(error, commands.BadArgument):
             await ctx.trigger_typing()
-            return await Interface.Traceback(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.CommandSyntax(self.bot, ctx, error).send(ctx)
            
         if isinstance(error, commands.errors.CommandOnCooldown):
             await ctx.trigger_typing()
-            return await Interface.Traceback(self.bot, ctx, ERROR).SEND(ctx)
+            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
         
         else:
+            session    =   aiohttp.ClientSession()
+            webhook    =   Webhook.from_url(CONFIG.get("ERROR"), session = session)
             if ctx.guild:
                 command_data    =   f"- Occured By    :   {ctx.author} / {ctx.author.id}\n" \
                                     f"- Command Name  :   {ctx.message.content}\n" \
@@ -75,7 +74,7 @@ class ErrorHandler(commands.Cog):
                 description = f"```prolog\n{command_data} \n```\n```py\n {error_str}\n```",
                 colour = 0x2F3136)       
             error_emb.timestamp = discord.utils.utcnow()           
-            send_error  =   self.webhook
+            send_error  =   webhook
             if len(error_str) < 2000:
                 try:
                     await send_error.send(embed = error_emb)
@@ -86,6 +85,7 @@ class ErrorHandler(commands.Cog):
             else:
                 await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "Traceback.py"))
                 await send_error.send("||Break Point||")
-        
+            await session.close()
+
 def setup(bot):
     bot.add_cog(ErrorHandler(bot))

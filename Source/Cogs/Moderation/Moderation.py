@@ -10,208 +10,199 @@ class Moderation(commands.Cog):
         self.bot    =   bot
 
     @staticmethod
-    def Check_Hierarchy(ctx, USER : discord.Member):
-        if isinstance(USER, discord.Member):
-            if USER == ctx.guild.owner:
+    def Check_Hierarchy(ctx : commands.context, user : discord.Member):
+        if isinstance(user, discord.Member):
+            if user == ctx.guild.owner:
                 raise commands.BadArgument(f"Oh come on, they're the owner ffs.")
             elif not ctx.guild:
                 raise commands.BadArgument(f"{ctx.command} can be performed in a guild only")
-            elif USER == ctx.author:
+            elif user == ctx.author:
                 raise commands.BadArgument("Self Sabotage, nice... I'm not doing it -")
-            elif USER == ctx.guild.me:
+            elif user == ctx.guild.me:
                raise commands.BadArgument(f"If you're gonna hurt me - use some other bot.")
-            elif USER.top_role > ctx.guild.me.top_role:
-                raise commands.BadArgument(f"{USER} has a higher role than me. Raise my powers.")
+            elif user.top_role > ctx.guild.me.top_role:
+                raise commands.BadArgument(f"{user} has a higher role than me. Raise my powers.")
             return 
         
     @commands.command(
         name    =   "kick",
         brief   =   "Kicks User")
     @commands.has_guild_permissions(kick_members = True)
-    async def kick(self, ctx, USER : discord.Member, *, REASON : str = "Not Provided"):
+    async def kick(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Teach them a lesson by kicking them out."""
-        self.Check_Hierarchy(ctx, USER)
-        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
+        self.Check_Hierarchy(ctx, user)
+        async def YES(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
             
-            await USER.kick(reason = f"{USER} - {REASON} by {ctx.author}")
-            KICK_EMB    =   discord.Embed(
+            await user.kick(reason = f"{user} - {reason} by {ctx.author}")
+            kick_emb    =   discord.Embed(
                 title   =   f"Kick - Has Occured.",
-                description =   f">>> {USER.mention} has been **kicked** <a:Kicked:941667229609631765> !\n<:ReplyContinued:930634770004725821>** - ID :** `{USER.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+                description =   f">>> {user.mention} has been **kicked** <a:Kicked:941667229609631765> !\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.datetime(ctx.message.created_at, style = 'F')}",
                 colour  =   self.bot.colour)
-            KICK_EMB.add_field(
+            kick_emb.add_field(
                 name    =   f"Reason :",
-                value   =   f"```prolog\n{REASON}\n```")
-            KICK_EMB.timestamp = discord.utils.utcnow()
-            KICK_EMB.set_thumbnail(url = USER.display_avatar.url)
-            for View in UI.children:
-                View.disabled = True            
-            await INTERACTION.response.edit_message(content = f"\u2001", embed = KICK_EMB, view = UI)
+                value   =   f"```prolog\n{reason}\n```")
+            kick_emb.timestamp = discord.utils.utcnow()
+            kick_emb.set_thumbnail(url = user.display_avatar.url)
+            for view in ui.children:
+                view.disabled = True            
+            await interaction.response.edit_message(content = f"\u2001", embed = kick_emb, view = ui)
 
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            if interaction.user != ctx.author:
+                return await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
         
-        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            for View in UI.children:
-                View.disabled = True
-            await INTERACTION.response.edit_message(content = f"**{USER.mention}** will not be kicked.", allowed_mentions = self.bot.Mention, view = UI)
+        async def NO(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+            for view in ui.children:
+                view.disabled = True
+            await interaction.response.edit_message(content = f"**{user.mention}** will not be kicked.", allowed_mentions = self.bot.mentions, view = ui)
 
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            if interaction.user != ctx.author:
+                return await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
     
-        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to kick {USER.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to kick {user.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.mentions)
     
     @commands.command(
         name    =   "ban",
         brief   =   "Bans User")
     @commands.has_guild_permissions(ban_members = True)
-    async def ban(self, ctx, USER : discord.Member, *, REASON : str = "Not Provided"):
-        """Ban toxic users"""
-        self.Check_Hierarchy(ctx, USER)
-        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
+    async def kick(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
+        """Teach them a lesson by kicking them out."""
+        self.Check_Hierarchy(ctx, user)
+        async def YES(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
             
-            await USER.ban(reason = f"{USER} - {REASON} by {ctx.author}")
-            BAN_EMB     =   discord.Embed(
-                title   =   f"<:CustomScroll1:933391442427138048> Ban Hammer Has Spoken",
-                description =   f">>> {USER.mention} has been **banned** <a:Banned:941667204334764042> !\n<:ReplyContinued:930634770004725821>** - ID :** `{USER.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+            await user.kick(reason = f"{user} - {reason} by {ctx.author}")
+            ban_emb    =   discord.Embed(
+                title   =   f"Kick - Has Occured.",
+                description =   f">>> {user.mention} has been **banned** <a:Banned:941667204334764042> !\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.datetime(ctx.message.created_at, style = 'F')}",
                 colour  =   self.bot.colour)
-            BAN_EMB.add_field(
+            ban_emb.add_field(
                 name    =   f"Reason :",
-                value   =   f"```prolog\n{REASON}\n```")
-            BAN_EMB.timestamp = discord.utils.utcnow()
-            BAN_EMB.set_thumbnail(url = USER.display_avatar.url)
-            for View in UI.children:
-                View.disabled = True            
-            await INTERACTION.response.edit_message(content = f"\u2001", embed = BAN_EMB, view = UI)
+                value   =   f"```prolog\n{reason}\n```")
+            ban_emb.timestamp = discord.utils.utcnow()
+            ban_emb.set_thumbnail(url = user.display_avatar.url)
+            for view in ui.children:
+                view.disabled = True            
+            await interaction.response.edit_message(content = f"\u2001", embed = ban_emb, view = ui)
 
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            if interaction.user != ctx.author:
+                return await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
         
-        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            for View in UI.children:
-                View.disabled = True
-            await INTERACTION.response.edit_message(content = f"**{USER.mention}** will not be banned.", allowed_mentions = self.bot.Mention, view = UI)
+        async def NO(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+            for view in ui.children:
+                view.disabled = True
+            await interaction.response.edit_message(content = f"**{user.mention}** will not be banned.", allowed_mentions = self.bot.mentions, view = ui)
 
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            if interaction.user != ctx.author:
+                return await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
     
-        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to ban {USER.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to ban {user.mention}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.mentions)
     
     @commands.command(
         name    =   "mute",
         brief   =   "Mutes User")
     @commands.has_guild_permissions(manage_roles = True)
-    async def mute(self, ctx, USER : discord.Member, *, REASON : str = "Not Provided"):
+    async def mute(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Mute toxic users"""
-        self.Check_Hierarchy(ctx, USER)
-        ROLE    =   discord.utils.get(ctx.guild.roles, name = "Muted")
-        if ROLE in USER.roles:
-                await ctx.send(f"**{USER}** already has the role and is currently muted <a:LifeSucks:932255208044650596>")                
+        self.Check_Hierarchy(ctx, user)
+        role    =   discord.utils.get(ctx.guild.roles, name = "Muted")
+        if role in user.roles:
+                await ctx.send(f"**{user}** already has the role and is currently muted <a:LifeSucks:932255208044650596>")                
         else:        
-            async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-                if not ROLE:
-                    CREATE_ROLE = await ctx.guild.create_role(name = "Muted", permissions = discord.Permissions(66560), reason = "Mute command needs Muted role", colour = discord.Colour.from_rgb(255, 100, 100))
+            async def yes(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+                if not role:
+                    create_role = await ctx.guild.create_role(name = "Muted", permissions = discord.Permissions(66560), reason = "Mute command needs Muted role", colour = discord.Colour.from_rgb(255, 100, 100))
                     for channel in ctx.guild.channels:
-                        await channel.set_permissions(ROLE, send_messages = False, read_messages = True, view_channel = False)
+                        await channel.set_permissions(role, send_messages = False, read_messages = True, view_channel = False)
             
-                for View in UI.children:
-                    View.disabled = True            
+                for view in ui.children:
+                    view.disabled = True            
     
                 try:
-                    await USER.add_roles(ROLE, reason = REASON)
+                    await user.add_roles(role, reason = reason)
                 except Exception as e:
                     await ctx.send(e)
 
-                MUTE_EMB     =   discord.Embed(
+                mute_emb     =   discord.Embed(
                     title   =   f"<:CustomScroll2:933390953471955004> Mute Has Occured",
-                    description =   f">>> {USER.mention} has been **muted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{USER.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+                    description =   f">>> {user.mention} has been **muted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.datetime(ctx.message.created_at, style = 'F')}",
                     colour  =   self.bot.colour)
-                MUTE_EMB.add_field(
+                mute_emb.add_field(
                     name    =   f"Reason :",
-                    value   =   f"```prolog\n{REASON}\n```")
-                MUTE_EMB.timestamp = discord.utils.utcnow()
-                MUTE_EMB.set_thumbnail(url = USER.display_avatar.url)
-                await INTERACTION.response.edit_message(content = f"\u2001", embed = MUTE_EMB, view = UI)
+                    value   =   f"```prolog\n{reason}\n```")
+                mute_emb.timestamp = discord.utils.utcnow()
+                mute_emb.set_thumbnail(url = user.display_avatar.url)
+                await user.send(embed = mute_emb)
+                await interaction.response.edit_message(content = f"\u2001", embed = mute_emb, view = ui)
 
-                if INTERACTION.user != ctx.author:
-                    return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+            async def no(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+                for view in ui.children:
+                    view.disabled = True
+                await interaction.response.edit_message(content = f"**{user.mention}** will not be muted.", allowed_mentions = self.bot.mentions, view = ui)
 
-            async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-                for View in UI.children:
-                    View.disabled = True
-                await INTERACTION.response.edit_message(content = f"**{USER.mention}** will not be muted.", allowed_mentions = self.bot.Mention, view = UI)
-
-                if INTERACTION.user != ctx.author:
-                    return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-
-            Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **mute** {USER.mention}\n<:Reply:930634822865547294> **- For :** {REASON}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+            Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **mute** {user.mention}\n<:Reply:930634822865547294> **- For :** {reason}", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.Mention)
 
     @commands.command(
         name    =   "unmute",
         brief   =   "Unmutes User")
     @commands.has_guild_permissions(manage_roles = True)
-    async def unmute(self, ctx, USER : discord.Member, *, REASON : str = "Not Provided"):
+    async def unmute(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Unmute users"""
-        self.Check_Hierarchy(ctx, USER)
-        ROLE    =   discord.utils.get(ctx.guild.roles, name = "Muted")
-        async def YES(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            if not ROLE:
-                CREATE_ROLE = await ctx.guild.create_role(name = "Muted", permissions = discord.Permissions(66560), reason = "Mute command needs Muted role", colour = discord.Colour.from_rgb(255, 100, 100))
+        self.Check_Hierarchy(ctx, user)
+        role    =   discord.utils.get(ctx.guild.roles, name = "Muted")
+        async def yes(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+            if not role:
+                create_role = await ctx.guild.create_role(name = "Muted", permissions = discord.Permissions(66560), reason = "Mute command needs Muted role", colour = discord.Colour.from_rgb(255, 100, 100))
                 for channel in ctx.guild.channels:
-                    await channel.set_permissions(ROLE, send_messages = False, read_messages = True, view_channel = False)
+                    await channel.set_permissions(role, send_messages = False, read_messages = True, view_channel = False)
             
-            for View in UI.children:
-                View.disabled = True            
+            for view in ui.children:
+                view.disabled = True            
     
             try:
-                await USER.remove_roles(ROLE, reason = REASON)
+                await user.remove_roles(role, reason = reason)
             except Exception as e:
                 await ctx.send(e)
 
-            UNMUTE_EMB     =   discord.Embed(
+            unmute_emb     =   discord.Embed(
                 title   =   f"<:CustomScroll2:933390953471955004> Unmute Has Occured",
-                description =   f">>> {USER.mention} has been **unmuted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{USER.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.DT(ctx.message.created_at, style = 'F')}",
+                description =   f">>> {user.mention} has been **unmuted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.datetime(ctx.message.created_at, style = 'F')}",
                 colour  =   self.bot.colour)
-            UNMUTE_EMB.add_field(
+            unmute_emb.add_field(
                 name    =   f"Reason :",
-                value   =   f"```prolog\n{REASON}\n```")
-            UNMUTE_EMB.timestamp = discord.utils.utcnow()
-            UNMUTE_EMB.set_thumbnail(url = USER.display_avatar.url)
-            await INTERACTION.response.edit_message(content = f"\u2001", embed = UNMUTE_EMB, view = UI)
+                value   =   f"```prolog\n{reason}\n```")
+            unmute_emb.timestamp = discord.utils.utcnow()
+            unmute_emb.set_thumbnail(url = user.display_avatar.url)
+            await user.send(embed = unmute_emb)
+            await interaction.response.edit_message(content = f"\u2001", embed = unmute_emb, view = ui)
 
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
+        async def no(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
+            for view in ui.children:
+                view.disabled = True
+            await interaction.response.edit_message(content = f"**{user.mention}** will not be unmuted.", allowed_mentions = self.bot.mentions, view = ui)
 
-        async def NO(UI : discord.ui.View, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-            for View in UI.children:
-                View.disabled = True
-            await INTERACTION.response.edit_message(content = f"**{USER.mention}** will not be unmuted.", allowed_mentions = self.bot.Mention, view = UI)
-
-            if INTERACTION.user != ctx.author:
-                return await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)
-
-        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **unmute** {USER.mention}\n<:Reply:930634822865547294> **- For :** {REASON}", view = Interface.Confirmation(YES, NO), allowed_mentions = self.bot.Mention)
+        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **unmute** {user.mention}\n<:Reply:930634822865547294> **- For :** {reason}", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
     
     @commands.command(
         name    =   "setnick",
         aliases =   ["nick"],
         brief   =   "Change Nick")
     @commands.has_guild_permissions(manage_nicknames = True)
-    async def nick(self, ctx, USER : discord.Member, *, NICK : str):
+    async def nick(self, ctx : commands.context, user : discord.Member, *, nick : str):
         """Change the Nickname of a member"""
-        self.Check_Hierarchy(ctx, USER)
-        Previous_Nickname   =   USER.display_name
-        await USER.edit(nick = NICK)
-        New_Nickname        =   NICK
+        self.Check_Hierarchy(ctx, user)
+        
+        previous_nickname       =   user.display_name
+        await user.edit(nick = nick)
+        new_nickname            =   nick
 
-        NICK_EMB    =   discord.Embed(
-            title   =   f"<:CustomScroll1:933391442427138048> {USER}'s Nick Changed!",
-            description =   f">>> <:GeraltRightArrow:904740634982760459> {ctx.message.author.mention} has changed {USER.mention} nickname :\n\n" \
-                            f" <:ReplyContinued:930634770004725821> **- From :** `{Previous_Nickname}`\n" \
-                            f" <:Reply:930634822865547294> **- To :** `{New_Nickname}`",
+        nick_emb    =   discord.Embed(
+            title   =   f"<:CustomScroll1:933391442427138048> {user}'s Nick Changed!",
+            description =   f">>> <:GeraltRightArrow:904740634982760459> {ctx.message.author.mention} has changed {user.mention} nickname :\n\n" \
+                            f" <:ReplyContinued:930634770004725821> **- From :** `{previous_nickname}`\n" \
+                            f" <:Reply:930634822865547294> **- To :** `{new_nickname}`",
             colour  =   self.bot.colour)
-        NICK_EMB.set_thumbnail(url = USER.display_avatar.url)
-        NICK_EMB.timestamp  =   discord.utils.utcnow()
-        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> {USER.mention}'s nickname has been `changed` -\n>>> <:ReplyContinued:930634770004725821> - From : {Previous_Nickname}\n<:Reply:930634822865547294> - To : {New_Nickname} \n**Event Occured On :** {self.bot.DT(discord.utils.utcnow(), style = 'F')} <a:IEat:940413722537644033>", allowed_mentions = self.bot.Mention)
+        nick_emb.set_thumbnail(url = user.display_avatar.url)
+        nick_emb.timestamp  =   discord.utils.utcnow()
+        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> {user.mention}'s nickname has been `changed` -\n>>> <:ReplyContinued:930634770004725821> - From : {previous_nickname}\n<:Reply:930634822865547294> - To : {new_nickname} \n**Event Occured On :** {self.bot.datetime(discord.utils.utcnow(), style = 'F')} <a:IEat:940413722537644033>", allowed_mentions = self.bot.mentions)
 
 def setup(bot):
     bot.add_cog(Moderation(bot))

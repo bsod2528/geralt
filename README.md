@@ -6,14 +6,7 @@
 
 ## Brief :
 
-A simple discord bot based on [**Disnake**](https://disnake.dev/) API Wrapper which is a fork from the parent library [**Discord.py**](https://github.com/Rapptz/discord.py/). Named after the legendary protagonist [**Geralt of Rivia**](https://witcher.fandom.com/wiki/Geralt_of_Rivia#:~:text=Geralt%20of%20Rivia%20was%20a%20legendary%20witcher%20of,tumultuous%20relationship%2C%20and%20became%20Ciri%20%27s%20adoptive%20father.). However, there are no commands related to the game or the series and the name for this bot came as I have a fond for the game and Geralt. 
-
-
-## Disclaimer :
-
-He is currently under a rewrite as the old version is to messy and poor for maximum utilisation of resources. The old version is deprecated and yeah .__.
-
-However, if you are interested in checking out the old version, [**click here**](https://github.com/BSOD2528/Geralt/tree/stellar-v0.1) of the code.
+A simple discord bot based on [**Discord.py**](https://github.com/Rapptz/discord.py/) API Wrapper. Named after the legendary protagonist [**Geralt of Rivia**](https://witcher.fandom.com/wiki/Geralt_of_Rivia#:~:text=Geralt%20of%20Rivia%20was%20a%20legendary%20witcher%20of,tumultuous%20relationship%2C%20and%20became%20Ciri%20%27s%20adoptive%20father.). However, there are no commands related to the game or the series and the name for this bot came as I have a fond for the game and Geralt. 
 
 ## Documentation : 
 
@@ -23,7 +16,10 @@ Thank you for visiting and yeah :D
 
 ## Setup :
 
-The website provided above provides all necessary details for setting up and running your verry own instance of Geralt.
+An `.env` file has to be there for storing the keys. You can use any other method too like a json lmao. Just saying -
+
+Ensure all tables are present in your postgresql server. Check out `Schema.sql` for that. `requirements.txt` has to be checked for the proper packages you need to run Geralt's instance.
+The [**website**](https://bsod2528.github.io/Posts/Geralt) provided above provides all necessary details for setting up and running your very own instance of Geralt.
 
 ---
 

@@ -1,107 +1,104 @@
+from click import command
 import discord
 
 from discord import ButtonStyle
+from discord.ext import commands
 
 import Source.Kernel.Views.Interface as Interface
 
-# Class for paginator using buttons. Button style and label has been inspired from RoboDanny [Discord.py Bot] by "Danny aka Rapptz" -> Github Profile
+# Sub - class for paginator using buttons. Button style and label has been inspired from RoboDanny [Discord.py Bot] by "Danny aka Rapptz" -> Github Profile
 class Paginator(discord.ui.View):
-    def __init__(self, bot, ctx, EMBEDS : list[discord.Embed]):
-        super().__init__(timeout = 60)
+    def __init__(self, bot, ctx : commands.context, embeds : list[discord.Embed]):
+        super().__init__()
         self.bot        =   bot
-        self.CTX        =   ctx
-        self.TOTAL      =   len(EMBEDS)
-        self.EMBED      :   list[discord.Embed] =   EMBEDS
-        self.CURRENT    =   0
+        self.ctx        =   ctx
+        self.total      =   len(embeds)
+        self.embeds     :   list[discord.Embed] =   embeds
+        self.current    =   0
 
-        if self.TOTAL >= 1:
-            self.LEFT.disabled = True
-            self.MAX_LEFT.disabled = True
+        if self.total >= 1:
+            self.left.disabled = True
+            self.max_left.disabled = True
 
     @discord.ui.button(label = "<<", style = ButtonStyle.gray, custom_id = "<<")
-    async def MAX_LEFT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
-        self.CURRENT    =   0
-        self.LEFT.disabled = True
-        BUTTON.disabled = True
+    async def max_left(self, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = True):
+        self.current    =   0
+        self.left.disabled = True
+        button.disabled = True
         
-        if self.TOTAL >= 1:
-            self.RIGHT.disabled = False
-            self.MAX_RIGHT.disabled = False
+        if self.total >= 1:
+            self.right.disabled = False
+            self.max_right.disabled = False
         else:
-            self.RIGHT.disabled = True
-            self.MAX_RIGHT.disabled = True
+            self.right.disabled = True
+            self.max_right.disabled = True
 
-        await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = self)
+        await interaction.response.edit_message(embed = self.embeds[self.current], view = self)
     
     @discord.ui.button(label = "<", style = ButtonStyle.blurple, custom_id = "<")
-    async def LEFT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
-        self.CURRENT    -=  1
+    async def left(self, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = True):
+        self.current    -=  1
         
-        if self.TOTAL >= 1:
-            self.MAX_RIGHT.disabled = False
-            self.RIGHT.disabled = False
+        if self.total >= 1:
+            self.max_right.disabled = False
+            self.right.disabled = False
         else:
-            self.MAX_RIGHT.disabled = True
-            self.RIGHT.disabled = True
+            self.max_right.disabled = True
+            self.right.disabled = True
 
-        if self.CURRENT <= 0:
-            self.CURRENT = 0
-            self.MAX_LEFT.disabled = True
-            BUTTON.disabled = True
+        if self.current <= 0:
+            self.current = 0
+            self.max_left.disabled = True
+            button.disabled = True
         else:
-            self.MAX_LEFT.disabled = False
-            BUTTON.disabled = False
+            self.max_left.disabled = False
+            button.disabled = False
 
-        await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
+        await interaction.response.edit_message(embed = self.embeds[self.current], view = button.view)
     
     @discord.ui.button(label = ">", style = ButtonStyle.blurple, custom_id = ">")
-    async def RIGHT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = True):
-        self.CURRENT    +=  1
+    async def right(self, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = True):
+        self.current    +=  1
 
-        if self.CURRENT >= self.TOTAL - 1:
-            self.CURRENT = self.TOTAL - 1
-            BUTTON.disabled = True
-            self.MAX_RIGHT.disabled = True
+        if self.current >= self.total - 1:
+            self.current = self.total - 1
+            button.disabled = True
+            self.max_right.disabled = True
 
-        if len(self.EMBED) >= 1:
-            self.MAX_LEFT.disabled = False
-            self.LEFT.disabled = False
+        if len(self.embeds) >= 1:
+            self.max_left.disabled = False
+            self.left.disabled = False
         else:
-            self.LEFT.disabled = True
-            self.MAX_LEFT.disabled = True
+            self.left.disabled = True
+            self.max_left.disabled = True
 
-        await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
+        await interaction.response.edit_message(embed = self.embeds[self.current], view = button.view)
     
     @discord.ui.button(label = ">>", style = ButtonStyle.gray, custom_id = ">>")
-    async def MAX_RIGHT(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction, disabled : bool = False):
-        self.CURRENT    =   self.TOTAL - 1
+    async def max_right(self, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = False):
+        self.current    =   self.total - 1
         
-        BUTTON.disabled = True
-        self.RIGHT.disabled = True
+        button.disabled = True
+        self.right.disabled = True
 
-        if self.TOTAL >= 1:
-            self.MAX_LEFT.disabled = False
-            self.LEFT.disabled = False
+        if self.total >= 1:
+            self.max_left.disabled = False
+            self.left.disabled = False
         else:
-            self.MAX_LEFT.disabled = True
-            self.LEFT.disabled = True
+            self.max_left.disabled = True
+            self.left.disabled = True
         
-        await INTERACTION.response.edit_message(embed = self.EMBED[self.CURRENT], view = BUTTON.view)
+        await interaction.response.edit_message(embed = self.embeds[self.current], view = button.view)
 
     @discord.ui.button(label = "Exit", style = ButtonStyle.danger, custom_id = "Delete")
-    async def DELETE(self, BUTTON : discord.ui.button, INTERACTION : discord.Interaction):
-        await INTERACTION.message.delete()     
+    async def delete(self, button : discord.ui.button, interaction : discord.Interaction):
+        await interaction.message.delete()     
     
-    async def SEND(self, ctx):
-        self.message    =   await ctx.reply(embed = self.EMBED[0], view = self, mention_author = False)
+    async def send(self, ctx):
+        self.message    =   await ctx.reply(embed = self.embeds[0], view = self, mention_author = False)
         return self.message
-    
-    async def on_timeout(self) -> None:
-        for View in self.children:
-            View.disabled = True
-            await self.message.edit(view = self)
 
-    async def interaction_check(self, INTERACTION : discord.Interaction) -> bool:
-            if INTERACTION.user == self.CTX.author:
+    async def interaction_check(self, interaction : discord.Interaction) -> bool:
+            if interaction.user == self.ctx.author:
                 return True
-            await INTERACTION.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)    
+            await interaction.response.send_message(content = f"{Interface.PAIN}", ephemeral = True)    
