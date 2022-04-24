@@ -39,7 +39,7 @@ class ButtonTag(discord.ui.View):
                 await interaction.response.send_message(content = f"The following has been stored in the database :\n\n>>> ────\n │ ` ─ ` ID : \"{id}\"\n │ ` ─ ` Name : \"{self.tag_name.value}\"\n │ ` ─ ` Content : \"{self.tag_content.value}\"\n────", ephemeral = True)
 
                 tag_embed = discord.Embed(
-                    description = f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n────\n>>> │ ` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n │ ` ─ ` Content : \"{self.tag_content.value}\"\n │ ` ─ ` Created On : {self.bot.datetime(interaction.created_at, style = 'f')}\n────",
+                    description = f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n>>> ────\n │ ` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n │ ` ─ ` Content : \"{self.tag_content.value}\"\n │ ` ─ ` Created On : {self.bot.datetime(interaction.created_at, style = 'f')}\n────",
                     colour = self.bot.colour)
                 tag_embed.set_author(name = f"{interaction.user} ─ has made a tag!",icon_url = "https://cdn.discordapp.com/emojis/905754435379163176.gif?size=96&quality=lossless")
                 tag_embed.set_thumbnail(url = interaction.user.display_avatar.url)
@@ -224,12 +224,11 @@ class Tags(commands.Cog):
         else:
             try:
                 await self.bot.db.execute("UPDATE tags SET content = $1 WHERE id = $2 AND author_id = $3 AND guild_id = $4", edited_content, tag_id, ctx.author.id, ctx.guild.id)
-                await self.bot.db.execute("UPDATE tags SET edited_on = $1 WHERE id = $2 AND author_id = $3 AND guild_id = $4", ctx.message.created_at, tag_id, ctx.author.id, ctx.guild.id)
-                tag_deets = await self.bot.db.fetchval("SELECT (name, content, edited_on) FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3", tag_id, ctx.author.id, ctx.guild.id)
+                tag_deets = await self.bot.db.fetchval("SELECT (name, content) FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3", tag_id, ctx.author.id, ctx.guild.id)
                 await ctx.reply(f"""Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) with the following details :
 \n────
 > │ ` ─ ` Content : \"{tag_deets[1]}\"
-> │ ` ─ ` Edited On : {self.bot.datetime(tag_deets[2], style = 'f')}
+> │ ` ─ ` Edited On : {self.bot.datetime(ctx.message.created_at, style = 'f')}
 ────""")
                 await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
             except Exception as exception:
