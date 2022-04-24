@@ -1,7 +1,7 @@
 .vscode
 config.env
 Geralt-env
-__pycache__
+/__pycache__
 Source/Cogs/__pycache__
 Source/Cogs/Fun/__pycache__
 Source/Cogs/Misc/__pycache__
