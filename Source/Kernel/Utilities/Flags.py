@@ -1,7 +1,3 @@
-import discord
-
-from discord import VoiceRegion as VR
-
 # Has required flags for Server and User Info Commands
 def user_perms(permissions):
     perms_list  =   []

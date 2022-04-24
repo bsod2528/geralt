@@ -1,8 +1,12 @@
-.env
-venv
+.vscode
+config.env
+Geralt-env
+__pycache__
 Source/Cogs/__pycache__
 Source/Cogs/Fun/__pycache__
 Source/Cogs/Misc/__pycache__
+Source/Cogs/Tags/__pycache__
+Source/Cogs/Help/__pycache__
 Source/Cogs/Guild/__pycache__
 Source/Cogs/Events/__pycache__
 Source/Kernel/Views/__pycache__
@@ -11,5 +15,3 @@ Source/Cogs/Developer/__pycache__
 Source/Cogs/Moderation/__pycache__
 Source/Kernel/Utilities/__pycache__
 Source/Cogs/ErrorHandler/__pycache__
-Source/Cogs/Application/__pycache__
-.vscode

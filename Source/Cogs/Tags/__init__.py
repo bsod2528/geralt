@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .Fun import Fun
+from .Tags import Tags
 
 async def setup(bot):
-    await bot.add_cog(Fun(bot))
+    await bot.add_cog(Tags(bot))

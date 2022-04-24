@@ -9,46 +9,46 @@ from Source.Kernel.Views.Interface import Confirmation
 class Guild(commands.Cog):
     """Guild Management Commands"""
     def __init__(self, bot):
-        self.bot    =   bot
+        self.bot = bot
 
     async def fetch_prefix(self, message : discord.Message):
         return tuple([pre["guild_prefix"] for pre in await self.bot.db.fetch("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", message.guild.id)]) or self.bot.default_prefix
 
     @commands.group(
-        name    =   "data",
-        aliases =   ["db"],
-        brief   =   "DB Related Commands for Guild Admin")
+        name = "data",
+        brief = "DB Related Commands for Guild Admin",
+        aliases = ["db"])
     @commands.has_guild_permissions(administrator = True)
     async def data(self, ctx : commands.context):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
-    
+
     @data.command(
-        name    =   "show",
-        brief   =   "Shows Stored Information")
+        name = "show",
+        brief = "Shows Stored Information")
     async def show_info(self, ctx : commands.context):
         """Shows the entire information"""
-        guild_info              =   await self.bot.db.fetchval(f"SELECT * FROM guild_info WHERE name = $1", ctx.guild.name)
-        guild_info_list         =   []
+        guild_info = await self.bot.db.fetchval(f"SELECT * FROM guild_info WHERE name = $1", ctx.guild.name)
+        guild_info_list = []
         for info in guild_info:
             guild_info_list.append(f"{info['name']}")
 
-        show_emb    =   discord.Embed(
-            title   =   f"{ctx.guild.name}",
-            colour  =   self.bot.colour)
+        show_emb = discord.Embed(
+            title = f"{ctx.guild.name}",
+            colour = self.bot.colour)
         show_emb.add_field(
-            name    =   "<:GeraltRightArrow:904740634982760459> Stored Information :",
-            value   =   f"".join(info for info in guild_info_list))
+            name = "<:GeraltRightArrow:904740634982760459> Stored Information :",
+            value = f"".join(info for info in guild_info_list))
         await ctx.send(embed = show_emb)
 
     @data.command(
-        name    =   "clear",
-        aliases =   ["cl"],
-        brief   =   "Delete Information.")
+        name = "clear",
+        brief = "Delete Information.",
+        aliases = ["cl"])
     async def clear_info(self, ctx : commands.context):
         """Deletes the information stored in database"""
-        async def YES(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = True):
-            if interaction.user != ctx.author:
+        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button, disabled : bool = True):
+            if button.user != ctx.author:
                 await interaction.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await ui.response.edit(content = f"As you wish, I will be deleting all the information of **{ctx.guild.name}** from my database <:DuckThumbsUp:917007413259956254>",  view = None, allowed_mentions = self.bot.mentions)
             button.disabled = True
@@ -57,71 +57,71 @@ class Guild(commands.Cog):
             await asyncio.sleep(1) 
             await ui.response.edit(content = "Successfully deleted all the information <:Dayum:907110455095480340>", allowed_mentions = self.bot.Mention)
         
-        async def NO(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = True):
-            if interaction.user != ctx.author:
+        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button, disabled : bool = True):
+            if button.user != ctx.author:
                 await interaction.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await ui.response.edit(content = "Okay <:HaroldSaysOkay:907110916104007681> Seems like you are okay with me storing the information.",  view = None, allowed_mentions = self.bot.mentions)
             button.disabled = True
-        Confirmation.response = await ctx.reply("Are you sure you want to **delete** all the information stored in the database <:BallManHmm:933398958263386222>", view = Confirmation(YES, NO), allowed_mentions = self.bot.mentions)
-    
+        Confirmation.response = await ctx.reply("Are you sure you want to **delete** all the information stored in the database <:BallManHmm:933398958263386222>", view = Confirmation(yes, no), allowed_mentions = self.bot.mentions)
+
     @data.command(
-        name    =   "add",
-        brief   =   "Adds Information")
+        name = "add",
+        brief = "Adds Information")
     async def add_info(self, ctx : commands.context):
         """Adds data back into the database"""
-        async def yes(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction):
-            if interaction.user != ctx.author:
+        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+            if button.user != ctx.author:
                 await interaction.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await ui.response.edit(content = f"As you wish, I will be adding all the information of **{ctx.guild.name}** from my database <:DuckThumbsUp:917007413259956254>", view = None, allowed_mentions = self.bot.mentions)
             await self.bot.DB.execute(f"INSERT INTO guild_info (id, name, owner_id) VALUES ($1, $2, $3)", ctx.guild.id, ctx.guild.name, ctx.guild.owner.id)
             await asyncio.sleep(1) 
             await ui.response.edit(content = "Successfully added all the information <:Dayum:907110455095480340>",  view = None, allowed_mentions = self.bot.Mention)
         
-        async def no(ui : discord.ui.View, button : discord.ui.button, interaction : discord.Interaction, disabled : bool = True):
-            if interaction.user != ctx.author:
+        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button, disabled : bool = True):
+            if button.user != ctx.author:
                 await interaction.response.send_message(content = "This is meant for **Guild Administrators** to interact with <a:PAIN:939876989655994488>", ephemeral = True)
             await ui.response.edit(content = f"Okay <:HaroldSaysOkay:907110916104007681> Seems like I'm not adding {ctx.guild.name}'s information today <:SarahThonk:907109849437982750>", allowed_mentions = self.bot.mentions)
             button.disabled = True
         Confirmation.response = await ctx.reply("Are you sure you want to **add** all the information stored in the database <:BallManHmm:933398958263386222>", view = Confirmation(yes, no), allowed_mentions = self.bot.mentions)
-    
+
     @commands.group(
-        name    =   "prefix",
-        aliases =   ["p"],
-        brief   =   "Prefix Related Sub-Commands")
+        name = "prefix",
+        brief = "Prefix Related Sub-Commands",
+        aliases = ["p"])
     @commands.has_guild_permissions(administrator = True)
     async def prefix(self, ctx : commands.context):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
-        
+
     @prefix.command(
-        name    =   "set",
-        aliases =   ["s"],
-        brief   =   "Set Guild Prefix")
+        name = "set",
+        brief = "Set Guild Prefix",
+        aliases = ["s"])
     async def prefix_set(self, ctx : commands.context, *, prefix : str = None):
         """Add custom prefixes. However, the default one will not work."""
         try:
-            if prefix   ==  "--":
+            if prefix == "--":
                 await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
             elif prefix is None:
                 await ctx.reply("You do realise you have to enter a `new prefix` for that to become the prefix for this guild?")
             else:
                 await self.bot.db.execute("INSERT INTO custom_prefix (guild_prefix, guild_id, guild_name) VALUES ($1, $2, $3)", prefix, ctx.guild.id, ctx.guild.name)
-                self.bot.prefixes[ctx.guild.id] =   await self.fetch_prefix(ctx.message)
+                self.bot.prefixes[ctx.guild.id] = await self.fetch_prefix(ctx.message)
                 await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** will here after be `{prefix}` <:SarahLaugh:907109900952420373>")
         
         except PSQL.UniqueViolationError:
             await self.bot.db.execute("UPDATE custom_prefix SET guild_prefix = $1 WHERE guild_id = $2 AND guild_name = $3", prefix, ctx.guild.id, ctx.guild.name)
             await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** has been updated `{prefix}` <a:DuckPopcorn:917013065650806854>")
-            self.bot.prefixes[ctx.guild.id] =   await self.fetch_prefix(ctx.message)
-    
-    @prefix.command(
-        name    =   "reset",
-        aliases =   ["r"],
-        brief   =   "Resets to default")
-    async def prefix_reset(self, ctx : commands.context):
-            await self.bot.db.execute("DELETE FROM custom_prefix WHERE guild_id = $1 AND guild_name = $2", ctx.guild.id, ctx.guild.name)
-            await ctx.reply(f"Reset prefix back to `{self.bot.default_prefix}` ")
-            self.bot.prefixes[ctx.guild.id] =   self.bot.default_prefix
+            self.bot.prefixes[ctx.guild.id] = await self.fetch_prefix(ctx.message)
 
-def setup(bot):
-    bot.add_cog(Guild(bot)) 
+    @prefix.command(
+        name = "reset",
+        brief = "Resets to default",
+        aliases = ["r"])
+    async def prefix_reset(self, ctx : commands.context):
+        await self.bot.db.execute("DELETE FROM custom_prefix WHERE guild_id = $1 AND guild_name = $2", ctx.guild.id, ctx.guild.name)
+        await ctx.reply(f"Reset prefix back to `{self.bot.default_prefix}` ")
+        self.bot.prefixes[ctx.guild.id] = self.bot.default_prefix
+
+async def setup(bot):
+    await bot.add_cog(Guild(bot)) 

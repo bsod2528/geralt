@@ -2,5 +2,5 @@ from __future__ import annotations
 
 from .Developer import Developer
 
-def setup(bot):
-    bot.add_cog(Developer(bot))
+async def setup(bot):
+    await bot.add_cog(Developer(bot))
