@@ -117,7 +117,7 @@ class Tags(commands.Cog):
         if not tag_deets:
              return await ctx.reply(f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>")
         else:
-             await ctx.send(tag_deets)
+             await ctx.send(tag_deets, reference = ctx.message.reference if ctx.message.reference else None)
              await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
 
     @tag.command(
