@@ -41,6 +41,7 @@ class Fun(commands.Cog):
     @commands.group(
         name = "snipe",
         aliases = ["s"])
+    @commands.guild_only()
     async def snipe(self, ctx):
         """Get edited / deleted messages"""
         if ctx.invoked_subcommand is None:

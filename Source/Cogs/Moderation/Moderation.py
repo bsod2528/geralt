@@ -27,6 +27,7 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "kick",
         brief = "Kicks User")
+    @commands.guild_only()
     @commands.has_guild_permissions(kick_members = True)
     async def kick(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
@@ -62,6 +63,7 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "ban",
         brief = "Bans User")
+    @commands.guild_only()
     @commands.has_guild_permissions(ban_members = True)
     async def kick(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Teach them a lesson by kicking them out."""
@@ -96,6 +98,7 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "mute",
         brief = "Mutes User")
+    @commands.guild_only()
     @commands.has_guild_permissions(manage_roles = True)
     async def mute(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Mute toxic users"""
@@ -145,6 +148,7 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "unmute",
         brief = "Unmutes User")
+    @commands.guild_only()
     @commands.has_guild_permissions(manage_roles = True)
     async def unmute(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Unmute users"""
@@ -192,6 +196,7 @@ class Moderation(commands.Cog):
         name = "setnick",
         brief = "Change Nick",
         aliases = ["nick"])
+    @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames = True)
     async def nick(self, ctx : commands.context, user : discord.Member, *, nick : str):
         """Change the Nickname of a member"""

@@ -62,16 +62,16 @@ class Misc(commands.Cog):
         info_emb = discord.Embed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url = self.bot.pfp,
-            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#2528**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on __<t:{round(ctx.me.created_at.timestamp())}:D>__\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D ",
+            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#2528**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
             colour = self.bot.colour)
         info_emb.add_field(
             name = "General Statistics :",
-            value = f"**<:ReplyContinued:930634770004725821> - Guilds In :** `{len(self.bot.guilds)}`" \
-                    f"\n**<:Reply:930634822865547294> - Channels In :** `{sum(1 for x in self.bot.get_all_channels())}`")
+            value = f"<:ReplyContinued:930634770004725821> ` ─ ` Guilds In : `{len(self.bot.guilds)}`" \
+                    f"\n<:Reply:930634822865547294> ` ─ ` Channels In : `{sum(1 for x in self.bot.get_all_channels())}`")
         info_emb.add_field(
             name = "Program Statistics :",
-            value = f"**<:ReplyContinued:930634770004725821> - Base Language :** <:WinPython:898614277018124308> [**Python 3.10.0**](https://www.python.org/downloads/release/python-3100/)" \
-                    f"\n**<:Reply:930634822865547294> - Base Library :** <a:Discord:930855436670889994> [**Discord.py**](https://github.com/DisnakeDev/disnake)")
+            value = f"<:ReplyContinued:930634770004725821> ` ─ ` Language : <:WinPython:898614277018124308> [**Python 3.10.0**](https://www.python.org/downloads/release/python-3100/)" \
+                    f"\n<:Reply:930634822865547294> ` ─ ` Base Library : <a:Discord:930855436670889994> [**Discord.py**](https://github.com/DisnakeDev/disnake)")
         info_emb.set_thumbnail(url = self.bot.pfp)
         async with ctx.typing():
             await asyncio.sleep(0.5)
@@ -211,7 +211,7 @@ class Misc(commands.Cog):
         """Sends my uptime -- how long I've been online for"""
         time = discord.utils.utcnow() - self.bot.uptime
         await ctx.trigger_typing()
-        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been `online` for -\n>>> <:ReplyContinued:930634770004725821> - Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294> - Roughly Since : {self.bot.datetime(self.bot.uptime, style = 'R')} <a:CoffeeSip:907110027951742996>")
+        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"online\" for -\n>>> <:ReplyContinued:930634770004725821>` - ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` - ` Roughly Since : {self.bot.datetime(self.bot.uptime, style = 'R')} ({self.bot.datetime(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
 
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.command(

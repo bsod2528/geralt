@@ -18,6 +18,7 @@ class Guild(commands.Cog):
         name = "data",
         brief = "DB Related Commands for Guild Admin",
         aliases = ["db"])
+    @commands.guild_only()
     @commands.has_guild_permissions(administrator = True)
     async def data(self, ctx : commands.context):
         if ctx.invoked_subcommand is None:
@@ -88,6 +89,7 @@ class Guild(commands.Cog):
         name = "prefix",
         brief = "Prefix Related Sub-Commands",
         aliases = ["p"])
+    @commands.guild_only()
     @commands.has_guild_permissions(administrator = True)
     async def prefix(self, ctx : commands.context):
         if ctx.invoked_subcommand is None:

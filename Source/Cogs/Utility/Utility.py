@@ -29,6 +29,7 @@ class Utility(commands.Cog):
         name = "userinfo",
         brief = "Get user information",
         aliases = ["user", "ui"])
+    @commands.guild_only()
     async def userinfo(self, ctx : commands.context, *, user : discord.Member = None):
         """Get entire details about a user."""
         user = user or ctx.author
@@ -51,14 +52,14 @@ class Utility(commands.Cog):
             colour = user.colour)
         general_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> General Info :",
-            value = f"> **<:ReplyContinued:930634770004725821> - Name :** {user.mention} \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - Nickname :** {(user.nick) or 'No nickname set'} \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - Discriminator :** `#{user.discriminator}` \n"
-                    f"> **<:Reply:930634822865547294> - Identification No. :** `{user.id}` \n")
+            value = f"> │ ` ─ ` Name : {user.mention} \n" \
+                    f"> │ ` ─ ` Nickname : {(user.nick) or 'No nickname set'} \n" \
+                    f"> │ ` ─ ` Discriminator : `#{user.discriminator}` \n"
+                    f"> │ ` ─ ` Identification No. : `{user.id}` \n────")
         general_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Account Info :",
-            value = f"> **<:ReplyContinued:930634770004725821> - Created on :**{self.bot.datetime(user.created_at, style = 'D')} ({self.bot.datetime(user.created_at, style = 'R')}) \n" \
-                    f"> **<:Reply:930634822865547294> - Joined Guild on :**{self.bot.datetime(user.joined_at, style = 'D')} ({self.bot.datetime(user.joined_at, style = 'R')})\n",
+            value = f"> │ ` ─ ` Created on : {self.bot.datetime(user.created_at, style = 'D')} ({self.bot.datetime(user.created_at, style = 'R')}) \n" \
+                    f"> │ ` ─ ` Joined Guild on : {self.bot.datetime(user.joined_at, style = 'D')} ({self.bot.datetime(user.joined_at, style = 'R')})\n────",
             inline = False)
         general_emb.set_thumbnail(url = avatar)
         general_emb.timestamp = discord.utils.utcnow()
@@ -68,14 +69,14 @@ class Utility(commands.Cog):
             colour = user.colour)
         guild_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Permissions Present :",
-            value = f"> **<:Reply:930634822865547294> -** {perms_}")
+            value = f"> │ ` ─ ` {perms_}\n────")
         guild_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Top Most Role :",
-            value = f"> **<:Reply:930634822865547294> -** {user.top_role.mention}",
+            value = f"> │ ` ─ ` {user.top_role.mention}\n────",
             inline = False)
         guild_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> All Roles Present :",
-            value = f"> **<:Reply:930634822865547294> -** {roles}",
+            value = f"> │ ` ─ ` {roles}\n────",
             inline = False)
         guild_emb.set_thumbnail(url = avatar)
         guild_emb.timestamp = discord.utils.utcnow()
@@ -85,22 +86,22 @@ class Utility(commands.Cog):
             colour = user.colour)
         misc_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Badges Present :",
-            value = f"> **<:Reply:930634822865547294> - **{Flags.user_badges(user = user, fetch_user = fetched_user) if Flags.user_badges(user = user, fetch_user = fetched_user) else '`No Badges Present`'}")
+            value = f"> │ ` ─ `{Flags.user_badges(user = user, fetch_user = fetched_user) if Flags.user_badges(user = user, fetch_user = fetched_user) else '`No Badges Present`'}")
         misc_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Accent Colours :",
-            value = f"> **<:ReplyContinued:930634770004725821> - Banner Colour :** `{str(fetched_user.accent_colour).upper()}` \n" \
-                    f"> **<:Reply:930634822865547294> - Guild Role Colour :** `{user.color if user.color is not discord.Color.default() else 'Default'}`",
+            value = f"> │ ` ─ ` Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
+                    f"> │ ` ─ ` Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
             inline = False)  
         misc_emb.add_field(
             name = "Activity :",
-            value = f"> **<:Reply:930634822865547294> -** {activity_holder}",
+            value = f"> │ ` ─ ` {activity_holder}",
             inline = False)
         misc_emb.set_thumbnail(url = avatar)
         misc_emb.timestamp = discord.utils.utcnow()
         
         pfp_emb = discord.Embed(
             title = f":scroll: {user}'s PFP",
-            description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) **|** [**PNG Format**]({user.display_avatar.with_static_format('png')}) **|** [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
+            description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) │ [**PNG Format**]({user.display_avatar.with_static_format('png')}) │ [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
             colour = user.colour)
         pfp_emb.set_image(url = avatar)
         pfp_emb.timestamp = discord.utils.utcnow()
@@ -143,15 +144,15 @@ class Utility(commands.Cog):
             colour = self.bot.colour)
         general_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> General Information :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {ctx.guild.owner.mention} (`{ctx.guild.owner.id}`) \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(ctx.guild.roles)}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{ctx.guild.id}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(ctx.guild.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
-                    f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(ctx.guild.filesize_limit)}`")
+            value = f"> │ ` ─ ` <a:Owner:905750348457738291> Owner : {ctx.guild.owner.mention} (`{ctx.guild.owner.id}`) \n" \
+                    f"> │ ` ─ ` <a:Users:905749451350638652> No. of Roles : `{len(ctx.guild.roles)}` \n" \
+                    f"> │ ` ─ ` <a:Info:905750331789561856> Identification No. : `{ctx.guild.id}` \n" \
+                    f"> │ ` ─ ` <a:Verify:905748402871095336> Verification Level : {str(ctx.guild.verification_level).replace('_', ' ').replace('`NONE`', '`NILL`').title()} \n" \
+                    f"> │ ` ─ ` <:WinFileBruh:898571301986373692> File Transfer Limit: `{humanize.naturalsize(ctx.guild.filesize_limit)}`\n────")
         general_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Initialisation :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.datetime(ctx.guild.created_at)} \n" \
-                    f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n",
+            value = f"> │ ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.datetime(ctx.guild.created_at)} \n" \
+                    f"> │ ` ─ ` <:ISus:915817563307515924> Media Filteration : For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n────",
             inline = False)
         general_emb.set_thumbnail(url = ctx.guild.icon.url)
         general_emb.timestamp = discord.utils.utcnow()
@@ -161,15 +162,15 @@ class Utility(commands.Cog):
             colour = self.bot.colour)
         other_emb.add_field(
             name ="<:GeraltRightArrow:904740634982760459> Channel Information :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(ctx.guild.text_channels)}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(ctx.guild.voice_channels)}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(ctx.guild.threads)}` \n" \
-                    f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(ctx.guild.stage_channels)}` \n",
+            value = f"> │ ` ─ ` <:Channel:905674680436944906> Text : `{len(ctx.guild.text_channels)}` \n" \
+                    f"> │ ` ─ ` <:Voice:905746719034187796> Voice : `{len(ctx.guild.voice_channels)}` \n" \
+                    f"> │ ` ─ ` <a:Thread:905750997706629130> Threads : `{len(ctx.guild.threads)}` \n" \
+                    f"> │ ` ─ ` <:StageChannel:905674422839554108> Stage : `{len(ctx.guild.stage_channels)}` \n────",
             inline = False)
         other_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Emotes Present :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([animated for animated in ctx.guild.emojis if animated.animated])}` / `{ctx.guild.emoji_limit}` \n" \
-                    f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([non_animated for non_animated in ctx.guild.emojis if not non_animated.animated])}` / `{ctx.guild.emoji_limit}`",
+            value = f"> │ ` ─ ` <a:IThink:933315875501641739> Animated : `{len([animated for animated in ctx.guild.emojis if animated.animated])}` / `{ctx.guild.emoji_limit}` \n" \
+                    f"> │ ` ─ ` <:BallManHmm:933398958263386222> Non - Animated : `{len([non_animated for non_animated in ctx.guild.emojis if not non_animated.animated])}` / `{ctx.guild.emoji_limit}`\n────",
             inline = False)
         other_emb.set_thumbnail(url = ctx.guild.icon.url)
         other_emb.timestamp = discord.utils.utcnow()
@@ -179,23 +180,23 @@ class Utility(commands.Cog):
             colour = self.bot.colour)
         user_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> No. of User :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda u : u.bot is False, ctx.guild.members)))}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda u : u.bot, ctx.guild.members)))}` \n" \
-                    f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{ctx.guild.member_count}` \n",
+            value = f"> │ ` ─ ` <a:HumanBro:905748764432662549> No. of Humans : `{len(list(filter(lambda u : u.bot is False, ctx.guild.members)))}` \n" \
+                    f"> │ ` ─ ` <a:BotLurk:905749164355379241> No. of Bots : `{len(list(filter(lambda u : u.bot, ctx.guild.members)))}` \n" \
+                    f"> │ ` ─ ` <a:Users:905749451350638652> Total : `{ctx.guild.member_count}`\n────",
             inline  =   False)
         user_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Activity Information :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <:Online:905757053119766528> Online :** `{user_status[0]}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <:Idle:905757063064453130> Idle :** `{user_status[1]}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <:DnD:905759353141874709> Do Not Disturb :** `{user_status[2]}` \n" \
-                    f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{user_status[3]}`",
+            value = f"> │ ` ─ ` <:Online:905757053119766528> Online : `{user_status[0]}` \n" \
+                    f"> │ ` ─ ` <:Idle:905757063064453130> Idle : `{user_status[1]}` \n" \
+                    f"> │ ` ─ ` <:DnD:905759353141874709> Do Not Disturb : `{user_status[2]}` \n" \
+                    f"> │ ` ─ ` <:Offline:905757032521551892> Offline : `{user_status[3]}`\n────",
             inline = False)
         user_emb.set_thumbnail(url = ctx.guild.icon.url)
         user_emb.timestamp = discord.utils.utcnow()
     
         icon_emb = discord.Embed(
             title = f":scroll: {ctx.guild.name}'s Icon",
-            description = f"[**JPG Format**]({ctx.guild.icon.with_static_format('jpg')}) **|** [**PNG Format**]({ctx.guild.icon.with_static_format('png')}) **|** [**WEBP Format**]({ctx.guild.icon.with_static_format ('webp')})",
+            description = f"[**JPG Format**]({ctx.guild.icon.with_static_format('jpg')}) │ [**PNG Format**]({ctx.guild.icon.with_static_format('png')}) │ [**WEBP Format**]({ctx.guild.icon.with_static_format ('webp')})",
             colour = self.bot.colour)
         icon_emb.set_image(url = ctx.guild.icon.url)
         icon_emb.timestamp = discord.utils.utcnow()
@@ -300,21 +301,19 @@ class Utility(commands.Cog):
                 return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
-                view.style = ButtonStyle.grey  
             if id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", id, ctx.author.name):
                 await interaction.response.defer()
                 return await ui.response.edit(content = f"<:GeraltRightArrow:904740634982760459> **Task ID ** `{id}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = ui)
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(f"DELETE FROM todo WHERE task_id = $1", id)
-                await ui.response.edit(content = f"Successfully removed **Task ID -** `{ui}` <:HaroldSaysOkay:907110916104007681>", view = ui)
+                await ui.response.edit(content = f"Successfully removed **Task ID -** `{id}` <:HaroldSaysOkay:907110916104007681>", view = ui)
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             if interaction.user != ctx.author:
                 return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True  
-                view.style  =   ButtonStyle.grey
             await interaction.response.defer()
             await ui.response.edit(content = f"Okay then, I haven't removed Task ID - `{id}` from your list <:DuckSip:917006564265705482>", view = ui)
         
@@ -336,8 +335,7 @@ class Utility(commands.Cog):
                     return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
                 fetch_task = await self.bot.db.execute(f"DELETE FROM todo WHERE user_id = $1", ctx.author.id)
                 for view in ui.children:
-                    view.disabled = True  
-                    view.style = ButtonStyle.grey
+                    view.disabled = True 
                 if not fetch_task:
                     await interaction.response.defer()
                     await ui.response.edit("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:CoffeeSip:907110027951742996>", view = ui)
@@ -350,7 +348,6 @@ class Utility(commands.Cog):
                     return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
                 for view in ui.children:
                     view.disabled = True  
-                    view.style  =   ButtonStyle.grey
                 await interaction.response.defer()
                 await ui.response.edit(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = ui)
         
