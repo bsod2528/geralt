@@ -3,8 +3,9 @@ import discord
 from discord import Forbidden
 from discord.ext import commands
 
-import Source.Kernel.Utilities.Crucial as crucial
+import Source.Kernel.Utilities.Crucial as Crucial
 import Source.Kernel.Views.Interface as Interface
+import Source.Kernel.Views.Paginator as Paginator
 
 class Fun(commands.Cog):
     """Simple commands that induce Fun"""
@@ -22,7 +23,7 @@ class Fun(commands.Cog):
     @commands.Cog.listener()
     async def on_message_edit(self, pre_edit, post_edit):
         self.pre_edit[pre_edit.channel.id] =   (pre_edit.jump_url, pre_edit.content, pre_edit.author, pre_edit.channel.id, pre_edit.created_at)
-        self.pre_edit[post_edit.channel.id] =   (post_edit.content, post_edit.author, post_edit.channel.id, post_edit.edited_at)
+        self.post_edit[post_edit.channel.id] =   (post_edit.content, post_edit.author, post_edit.channel.id, post_edit.edited_at)
 
     # Mimics a user by sending a webhook as them.
     @commands.command(
@@ -30,7 +31,7 @@ class Fun(commands.Cog):
         brief = "Send a Webhook")
     async def echo(self, ctx : commands.context, user : discord.Member, *, message):
         """Send a webhook message as the user you mentioned"""
-        wbhk = await crucial.fetch_webhook(ctx.channel)
+        wbhk = await Crucial.fetch_webhook(ctx.channel)
         thread = discord.utils.MISSING
         if isinstance(ctx.channel, discord.Thread):
             thread = ctx.channel
@@ -142,6 +143,46 @@ class Fun(commands.Cog):
                 await pop_game.start()
             else:
                 await ctx.reply(f"**{ctx.author}** - please mention a size. Your choices are :\n<:ReplyContinued:930634770004725821> - `small`\n<:ReplyContinued:930634770004725821> - `medium`\n<:Reply:930634822865547294> - `large`.")
-   
+    
+    @commands.group(
+        name = "click",
+        brief = "Click and Win",
+        aliases = ["cl"])
+    @commands.guild_only()
+    async def click(self, ctx):
+        """Enjoy a nice satisfying game by clicking on the button!"""
+        if ctx.invoked_subcommand is None:
+            await Interface.ClickGame(self.bot, ctx).send(ctx)
+            return
+
+    @click.command(
+        name = "leaderboard",
+        brief = "Check your rank",
+        aliases = ["lb", "rank"])
+    async def click_score(self, ctx):
+        guild_score_query = await self.bot.db.fetch("SELECT player_id, clicks FROM click_guild WHERE guild_id = $1 ORDER BY clicks DESC", ctx.guild.id)
+        serial_no = 1
+        leaderboard = []
+        for data in guild_score_query:
+            leaderboard.append(f"> ` ─ ` <@{data['player_id']}> : `{data['clicks']}`\n")
+            serial_no += 1
+        
+        if not guild_score_query:
+            return await ctx.reply(f"No one from **{ctx.guild}** has played `{ctx.clean_prefix}click` game <a:Noo:915422306896072744>. Feel honoured and be the first one !")
+        else:
+            while leaderboard:
+                leaderboard_emb = discord.Embed(
+                    title = f"Click Scores for {ctx.guild} :",
+                    description = f"The following showcases the top 10 scores for `{ctx.clean_prefix}click`",
+                    colour = self.bot.colour)
+                leaderboard_emb.add_field(
+                    name = "Top 10 Scores",
+                    value = "".join(leaderboard[:10]))
+                leaderboard_emb.timestamp = discord.utils.utcnow()
+                leaderboard_emb.set_thumbnail(url = ctx.guild.icon.url)
+                leaderboard_emb.set_footer(text = f"Run {ctx.clean_prefix}click for more sub ─ commands.")
+                leaderboard = leaderboard[10:]
+            await ctx.send(embed = leaderboard_emb, view = Interface.ClickGlobalLeaderboard(self.bot, ctx))
+
 async def setup(bot):
     await bot.add_cog(Fun(bot))
