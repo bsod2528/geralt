@@ -10,9 +10,17 @@ from bot import CONFIG
 
 class Events(commands.Cog):
     def __init__(self, bot):
-        self.bot    =   bot
+        self.bot = bot
         
     colour.init()
+
+    @commands.Cog.listener()
+    async def on_message_edit(self, before : discord.Message, after : discord.Message):
+        """Invokes command [if needed] on editing a message"""
+        if after.content == before.content:
+            return  
+        else:
+            await self.bot.process_commands(after)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):

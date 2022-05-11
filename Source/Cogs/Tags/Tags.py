@@ -1,4 +1,5 @@
 import io
+import typing
 import aiohttp
 import discord
 import traceback
@@ -40,8 +41,7 @@ class ButtonTag(discord.ui.View):
                 else:
                     await self.bot.db.execute(f"INSERT INTO tags (name, content, author_id, author_name, guild_id, created_on, jump_url) VALUES ($1, $2, $3, $4, $5, $6, $7)", self.tag_name.value.strip(), self.tag_content.value, self.ctx.author.id, self.ctx.author.name, self.ctx.guild.id, self.ctx.message.created_at, self.ctx.message.jump_url)
                     id = await self.bot.db.fetchval("SELECT id FROM tags WHERE name = $1 AND content = $2", self.tag_name.value, self.tag_content.value)
-                    await interaction.user.send(content = f"The following has been stored in the database :\n\n>>> ────\n` ─ ` ID : \"{id}\"\n` ─ ` Name : \"{self.tag_name.value}\"\n` ─ ` Content : \"{self.tag_content.value}\"\n────")
-                    await interaction.response.send_message(content = f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n>>> ────\n` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n` ─ ` Content : \n\"{self.tag_content.value}\"\n` ─ ` Created On : {self.bot.datetime(interaction.created_at, style = 'f')}\n────", ephemeral = False)
+                    await interaction.response.send_message(content = f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n>>> ────\n` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n` ─ ` Created On : {self.bot.datetime(interaction.created_at, style = 'f')}\n────", ephemeral = False)
             
             except PSQL.UniqueViolationError:
                 return await interaction.response.send_message(content = f"`{self.tag_name.value}` ─ is a tag which is already present. Please try again with another with another name", ephemeral = True)
@@ -59,7 +59,7 @@ class ButtonTag(discord.ui.View):
                     await modal_webhook.send(content = "|| Break Point ||")
                 await session.close()
 
-    @discord.ui.button(label = "Create Tag", style = discord.ButtonStyle.grey, emoji = "<a:Verify:905748402871095336>")
+    @discord.ui.button(label = "Create Tag", style = discord.ButtonStyle.grey, emoji = "<a:PandaNote:961260552435413052>")
     async def create_tag(self, interaction : discord.Interaction, button : discord.ui.button):
         pain = f"{interaction.user.mention} ─ This view can't be handled by you at the moment <:Bonked:934033408106057738>, it is meant for {self.ctx.author.mention}\nInvoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user == self.ctx.author:
@@ -93,7 +93,7 @@ class ButtonTag(discord.ui.View):
             return await self.message.edit(content = f"**{self.ctx.author}** ─ I'm sorry to say that this view has timed out <a:VariableCry:942041851228196884>. Please run `{self.ctx.clean_prefix}tag make` to make a tag <a:ZizzyHappy:915131835443474492>", view = self)        
         except Exception:
             return
-
+            
 class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -117,8 +117,8 @@ class Tags(commands.Cog):
         if not tag_deets:
              return await ctx.reply(f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>")
         else:
-             await ctx.send(tag_deets, reference = ctx.message.reference if ctx.message.reference else None)
-             await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
+            await ctx.send(tag_deets, reference = ctx.message.reference if ctx.message.reference else None)
+            await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
 
     @tag.command(
         name = "make",
@@ -144,15 +144,15 @@ class Tags(commands.Cog):
 
     @tag.command(
         name = "list",
-        brief = "Send tags list",
+        brief = "Send user's tags list",
         aliases = ["l"])
-    async def tag_list(self, ctx, flag : str):
-        user = ctx.author
-        tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE author_id = $1 AND guild_id = $2", ctx.author.id, ctx.guild.id)
+    async def tag_list(self, ctx, user : discord.Member = None):
+        user = user or ctx.author 
+        tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE author_id = $1 AND guild_id = $2", user.id, ctx.guild.id)
         tag_list = []
         serial_no = 1
         for tags in tag_fetch:
-            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` ID : {tags['id']}\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
+            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` ID : `{tags['id']}`\n> │ ` ─ ` Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
             serial_no += 1
 
         if not tag_fetch:
@@ -162,8 +162,8 @@ class Tags(commands.Cog):
                 tag_list_emb = discord.Embed(
                     description = f"".join(tasks for tasks in tag_list),
                     colour = self.bot.colour)
-                tag_list_emb.set_author(name = f"{ctx.author}'s Tag List :")
-                tag_list_emb.set_thumbnail(url = ctx.author.display_avatar.url)
+                tag_list_emb.set_author(name = f"{user}'s Tag List :")
+                tag_list_emb.set_thumbnail(url = user.display_avatar.url)
                 tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
                 tag_list_emb.timestamp = discord.utils.utcnow()
                 await ctx.reply(embed = tag_list_emb, mention_author = False)
@@ -174,8 +174,8 @@ class Tags(commands.Cog):
                     tag_list_emb = discord.Embed(
                         description = "".join(tag_list[:3]),
                         colour = self.bot.colour)
-                    tag_list_emb.set_author(name = f"{ctx.author}'s Tag List :")
-                    tag_list_emb.set_thumbnail(url = ctx.author.display_avatar.url)
+                    tag_list_emb.set_author(name = f"{user}'s Tag List :")
+                    tag_list_emb.set_thumbnail(url = user.display_avatar.url)
                     tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
                     tag_list_emb.timestamp = discord.utils.utcnow()
                     tag_list = tag_list[3:]
@@ -184,20 +184,20 @@ class Tags(commands.Cog):
     
     @tag.command(
         name = "all",
-        brief = "Send tags list")
+        brief = "Send guild's tags list")
     async def tag_all(self, ctx):
         user = ctx.author
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE guild_id = $1", ctx.guild.id)
         tag_list = []
         serial_no = 1
         for tags in tag_fetch:
-            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\" ─ ID : `{tags['id']}`│ Uses : `{tags['uses']}`\n> │ ` ─ ` Owner : <@{tags['author_id']}>\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
+            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : <@{tags['author_id']}>\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
             serial_no += 1
 
         if not tag_fetch:
             await ctx.reply(f"**{user}** ─ There are no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag` and you will get to know <:Okay:913796811737686086>")
         else:
-            if serial_no <= 5:
+            if serial_no <= 4:
                 tag_list_emb = discord.Embed(
                     description = f"".join(tasks for tasks in tag_list),
                     colour = self.bot.colour)
@@ -212,14 +212,15 @@ class Tags(commands.Cog):
                 while tag_list:
                     tag_list_emb = discord.Embed(
                         title = f"{ctx.guild}'s Tag List :",
-                        description = "".join(tag_list[:5]),
+                        description = "".join(tag_list[:3]),
                         colour = self.bot.colour)
                     tag_list_emb.set_thumbnail(url = ctx.guild.icon.url)
                     tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
                     tag_list_emb.timestamp = discord.utils.utcnow()
-                    tag_list = tag_list[5:]
+                    tag_list = tag_list[3:]
                     embed_list.append(tag_list_emb)     
                 await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+    
     @tag.command(
         name = "info",
         brief = "Get info")
@@ -255,18 +256,33 @@ class Tags(commands.Cog):
     async def tag_edit(self, ctx, tag_id : int, *, edited_content : str):
         """Edit a tag that you already made"""
         if tag_id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3", tag_id, ctx.author.id, ctx.guild.id):
-            await ctx.reply(f"**{ctx.author}** ─     this is a tag which you either don't own or is not in the database.")
+            await ctx.reply(f"**{ctx.author}** ─ this is a tag which you either don't own or is not in the database.")
             await ctx.message.add_reaction("<:NanoCross:965845144307912754>")
             return 
         else:
             try:
                 await self.bot.db.execute("UPDATE tags SET content = $1 WHERE id = $2 AND author_id = $3 AND guild_id = $4", edited_content, tag_id, ctx.author.id, ctx.guild.id)
                 tag_deets = await self.bot.db.fetchval("SELECT (name, content) FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3", tag_id, ctx.author.id, ctx.guild.id)
-                await ctx.reply(f"""Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) with the following details :
-\n────
-> │ ` ─ ` Content : \"{tag_deets[1]}\"
-> │ ` ─ ` Edited On : {self.bot.datetime(ctx.message.created_at, style = 'f')}
-────""")
+                
+                class ContentButton(discord.ui.View):
+
+                    @discord.ui.button(label = "Edited Content", style = discord.ButtonStyle.grey, emoji = "<a:ZizzyHappy:915131835443474492>")
+                    async def content_button(self, interaction : discord.Interaction, button : discord.ui.button):
+                        await interaction.response.send_message(content = f"Content edited by {ctx.author.mention} :\n\n>>> ────\n{tag_deets[1]}\n────", ephemeral = True)
+                    
+                    async def on_error(self, interaction : discord.Interaction, error : Exception) -> None:
+                        async with aiohttp.ClientSession() as session:
+                            content_webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
+                        data = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+                        try:
+                            await content_webhook.send(content = f"```py\n{data}\n```\n|| Break Point ||")
+                        except(discord.HTTPException, discord.Forbidden):
+                            await content_webhook.send(file = discord.File(io.StringIO(data), filename = "Traceback.py"))
+                            await content_webhook.send(content = "|| Break Point ||")
+                        await session.close()
+                        await interaction.response.send_message(content = f"```py\n{error}\n```", ephemeral = True)
+
+                await ctx.reply(f"Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) ", view = ContentButton())
                 await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
             except Exception as exception:
                 await ctx.send(f"{exception}")
@@ -306,9 +322,9 @@ class Tags(commands.Cog):
     @tag.command(
         name = "transfer",
         brief = "Transfer Ownership")
-    async def tag_transfer(self, ctx, id : int, user : discord.Member = None):
+    async def tag_transfer(self, ctx, tag_id : int, user : discord.Member):
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
-        tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", id, ctx.guild.id)
+        tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", tag_id, ctx.guild.id)
         if user is None:
             return await ctx.send(f"Please mention a user to transfer the ownership of the tag.")
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
@@ -316,13 +332,13 @@ class Tags(commands.Cog):
                 return interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
-            if id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2", id, ctx.author.id):
+            if id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2", tag_id, ctx.author.id):
                 await interaction.response.defer()
-                return await ui.response.edit(f"\"**{tag_deets}**\" (`{id}`) ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>", view = ui)
+                return await ui.response.edit(f"\"**{tag_deets}**\" (`{tag_id}`) ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>", view = ui)
             else:
                 await interaction.response.defer()
-                await self.bot.db.execute("UPDATE tags SET author_id = $1, author_name = $2 WHERE id = $3 AND guild_id = $4", user.id, user.name, id, ctx.guild.id)
-                await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ has been successfully transferred to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
+                await self.bot.db.execute("UPDATE tags SET author_id = $1, author_name = $2 WHERE id = $3 AND guild_id = $4", user.id, user.name, tag_id, ctx.guild.id)
+                await ui.response.edit(content = f"\"**{tag_deets}**\" (`{tag_id}`) ─ has been successfully transferred to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             if interaction.user != ctx.author:
@@ -330,9 +346,9 @@ class Tags(commands.Cog):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
-            await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ will not be transfered to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
+            await ui.response.edit(content = f"\"**{tag_deets}**\" (`{tag_id}`) ─ will not be transfered to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
 
-        Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to \"transfer\" tag ─ \"**{tag_deets}**\" (`{id}`) to {user.mention} <:SIDGoesHmmMan:967421008137056276>", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)    
+        Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to \"transfer\" tag ─ \"**{tag_deets}**\" (`{tag_id}`) to {user.mention} <:SIDGoesHmmMan:967421008137056276>", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)    
     
 async def setup(bot):
     await bot.add_cog(Tags(bot))

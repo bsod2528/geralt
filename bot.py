@@ -12,6 +12,7 @@ import colorama as colour
 from dotenv import dotenv_values
 from discord.ext import commands    
 
+
 import Source.Kernel.Views.Interface as Interface 
 
 COGS_EXTENSIONS    =   [    
@@ -32,6 +33,7 @@ DEVELOPER_IDS   =   [750979369001811982, 760823877034573864]
 
 dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
+os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True" 
 
 CONFIG = dotenv_values("config.env")
 TOKEN = CONFIG.get("TOKEN")
@@ -43,12 +45,12 @@ colour.init()
 
 async def db_connect(): 
     try:
-        print(f"{colour.Fore.LIGHTYELLOW_EX}-> {time.strftime('%c', time.gmtime())} - Waking up {colour.Style.RESET_ALL}")
-        print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.gmtime())} - Establishing connection with my database. {colour.Style.RESET_ALL}")
+        print(f"{colour.Fore.LIGHTYELLOW_EX}-> {time.strftime('%c', time.localtime())} ─ Waking up {colour.Style.RESET_ALL}")
+        print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Establishing connection with my database. {colour.Style.RESET_ALL}")
         Geralt.db = await asyncpg.create_pool(dsn = DB_URL)
-        print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.gmtime())} - Connection established successfully. {colour.Style.RESET_ALL}")
+        print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Connection established successfully. {colour.Style.RESET_ALL}")
     except Exception as exception:
-        print(f"{colour.Fore.RED}-> {time.strftime('%c', time.gmtime())} - Couldnt connect due to : {exception} {colour.Style.RESET_ALL}")
+        print(f"{colour.Fore.RED}-> {time.strftime('%c', time.localtime())} ─ Couldnt connect due to : {exception} {colour.Style.RESET_ALL}")
 
 class Geralt(commands.Bot):
     """Geralt's custom sub - class"""
@@ -65,14 +67,14 @@ class Geralt(commands.Bot):
             case_insensitive = True,
             strip_after_prefix = True,)
         
-        self.default_prefix = ".g"
-        self.add_persistent_views = False
-        self.owner_ids = DEVELOPER_IDS
         self.pfp = CONFIG.get("PFP")
-        self.description = "I'm Back Bitches"
+        self.colour = discord.Colour.from_rgb(117, 128, 219)
         self.datetime = discord.utils.format_dt        
         self.mentions = discord.AllowedMentions.none()
-        self.colour = discord.Colour.from_rgb(117, 128, 219)
+        self.owner_ids = DEVELOPER_IDS
+        self.default_prefix = ".g"
+        self.add_persistent_views = False
+        self.description = "I'm Back Bitches"
         
         self.prefixes = {} # Caching the prefixing so it doesn't query the DB each time a command is called.
 
@@ -84,19 +86,19 @@ class Geralt(commands.Bot):
         return prefix
 
     async def setup_hook(self) -> None:
-        print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.gmtime())} - Loading all Extensions.{colour.Style.RESET_ALL}")
+        print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Loading all Extensions.{colour.Style.RESET_ALL}")
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)
             except Exception as exception:
-                print(f"{colour.Fore.LIGHTRED_EX}-> {time.strftime('%c', time.gmtime())} - {exception} : {exception} {colour.Style.RESET_ALL}\n")
+                print(f"{colour.Fore.LIGHTRED_EX}-> {time.strftime('%c', time.localtime())} ─ {exception} : {exception} {colour.Style.RESET_ALL}\n")
         
-        print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.gmtime())} - Extensions Successfully Loaded. {colour.Style.RESET_ALL}")
+        print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded. {colour.Style.RESET_ALL}")
 
     async def on_ready(self):
         if not self.add_persistent_views:
             self.add_view(Interface.Info(commands.context, commands.Bot))
-            self.add_persistent_views = True
+            self.add_persistent_views = True    
             
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
@@ -106,8 +108,9 @@ class Geralt(commands.Bot):
             await self.change_presence(
                 status = discord.Status.idle,
                 activity = discord.Activity(type = discord.ActivityType.listening, name = f".ghelp")) 
-            await wbhk.send(f"<:Balank:912244138567663627>\n──\n<:GeraltRightArrow:904740634982760459> **Sent at -** {self.datetime(discord.utils.utcnow(), style = 'F')}\n```prolog\nNo. of Users - {len(list(self.get_all_members()))}\nNo. of Guilds - {len(self.guilds)}\nWoke up at - {time.strftime('%c', time.gmtime())}```──\n<:Balank:912244138567663627>")
-            print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.gmtime())} - Awakened {colour.Style.RESET_ALL}")
+            await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.datetime(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\nNo. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
+            print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Awakened {colour.Style.RESET_ALL}")
+            await session.close()
 
 Geralt = Geralt()
 

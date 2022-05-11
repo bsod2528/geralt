@@ -13,9 +13,7 @@ class Moderation(commands.Cog):
     def Check_Hierarchy(ctx : commands.context, user : discord.Member):
         if isinstance(user, discord.Member):
             if user == ctx.guild.owner:
-                raise commands.BadArgument(f"Oh come on, they're the owner ffs.")
-            elif not ctx.guild:
-                raise commands.BadArgument(f"{ctx.command} can be performed in a guild only")
+                raise commands.BadArgument(f"Oh come on, they're the owner.\n")
             elif user == ctx.author:
                 raise commands.BadArgument("Self Sabotage, nice... I'm not doing it -")
             elif user == ctx.guild.me:
@@ -65,7 +63,7 @@ class Moderation(commands.Cog):
         brief = "Bans User")
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members = True)
-    async def kick(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
+    async def ban(self, ctx : commands.context, user : discord.Member, *, reason : str = "Not Provided"):
         """Teach them a lesson by kicking them out."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         self.Check_Hierarchy(ctx, user)
@@ -143,7 +141,7 @@ class Moderation(commands.Cog):
                     view.disabled = True
                 await interaction.response.edit_message(content = f"**{user.mention}** will not be muted.", allowed_mentions = self.bot.mentions, view = ui)
 
-        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **mute** {user.mention}\n<:Reply:930634822865547294> **- For :** {reason}", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.Mention)
+        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to **mute** {user.mention}\n<:Reply:930634822865547294> **- For :** {reason}", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
 
     @commands.command(
         name = "unmute",

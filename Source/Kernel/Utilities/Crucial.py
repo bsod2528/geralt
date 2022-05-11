@@ -34,8 +34,8 @@ async def fetch_webhook(channel) -> discord.Webhook:
             if hook.token:
                 return hook
     webhook = await channel.create_webhook(
-        name    =   "Geralt Webhook", 
-        avatar  =   await channel.guild.me.display_avatar.read())
+        name = "Geralt Webhook", 
+        avatar = await channel.guild.me.display_avatar.read())
     return webhook
 
 # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
@@ -52,16 +52,16 @@ class Plural:
 
 class TabulateData:
     def __init__(self):
-        self._widths    =   []
-        self._columns   =   []
-        self._rows      =   []
+        self._widths = []
+        self._columns = []
+        self._rows = []
 
     def columns(self, columns):
         self._columns = columns
         self._widths = [len(c) + 2 for c in columns]
 
-    def row_add(self, row):
-        rows    =   [str(r) for r in row]
+    def add_rows(self, row):
+        rows = [str(r) for r in row]
         self._rows.append(rows)
         for index, element in enumerate(rows):
             width = len(element) + 2
@@ -70,16 +70,16 @@ class TabulateData:
 
     def rows_added(self, rows):
         for row in rows:
-            self.row_add(row)
+            self.add_rows(row)
 
     def render(self):
-        sep =   "+".join("-"* w for w in self._widths)
-        sep =   f"+{sep}+"
+        sep = "+".join("-"* w for w in self._widths)
+        sep = f"+{sep}+"
         
-        to_draw =   [sep]
+        to_draw = [sep]
 
         def get_entry(d):
-            elem    =   "|".join(f"{e:^{self._widths[i]}}" for i, e in enumerate(d))
+            elem = "|".join(f"{e:^{self._widths[i]}}" for i, e in enumerate(d))
             return f"|{elem}|"
 
         to_draw.append(get_entry(self._columns))

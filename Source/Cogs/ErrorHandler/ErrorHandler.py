@@ -14,45 +14,38 @@ class ErrorHandler(commands.Cog):
         self.bot = bot        
         
     @commands.Cog.listener()
-    async def on_command_error(self, ctx : commands.context, error):
+    async def on_command_error(self, ctx, error):
 
         if hasattr(ctx.command, "on_error"):
             return
 
         error = getattr(error, "original", error)
-            
+    
         if isinstance(error, commands.CommandNotFound):
             return
         
         if isinstance(error, commands.DisabledCommand):
-            await ctx.trigger_typing()
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
     
         if  isinstance(error, commands.BotMissingPermissions):
-            await ctx.trigger_typing()
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
         
         if isinstance(error, commands.MissingPermissions):
-            await ctx.trigger_typing()
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
 
         if isinstance(error, commands.NotOwner):
             return
         
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.trigger_typing()
             return await Interface.CommandSyntax(self.bot, ctx, error).send(ctx)
         
         if isinstance(error, commands.MemberNotFound):
-            await ctx.trigger_typing()
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
 
         if isinstance(error, commands.BadArgument):
-            await ctx.trigger_typing()
             return await Interface.CommandSyntax(self.bot, ctx, error).send(ctx)
            
         if isinstance(error, commands.errors.CommandOnCooldown):
-            await ctx.trigger_typing()
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
         
         else:
@@ -84,6 +77,7 @@ class ErrorHandler(commands.Cog):
                 else:
                     await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "Traceback.py"))
                     await send_error.send("||Break Point||")
+                    return 
                 await session.close()
 
 async def setup(bot):

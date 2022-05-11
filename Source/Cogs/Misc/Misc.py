@@ -13,6 +13,7 @@ from discord.enums import ButtonStyle
 
 from bot import CONFIG
 import Source.Kernel.Views.Interface as Interface
+import Source.Kernel.Views.Paginator as Paginator
 
 class Misc(commands.Cog):
     """Miscellaneous Commands"""
@@ -45,10 +46,10 @@ class Misc(commands.Cog):
 
         ping_emb = discord.Embed(
             title = "__ My Latencies : __",
-            description = f"""```prolog\n> PostgreSQL     : {round(db_ping, 1)} ms
-> Discord API    : {websocket_ping:,.0f} ms
-> Message Typing : {round(typing_ping, 1)} ms\n```""",
-            colour = self.bot.colour)
+            description = f"""```ansi\n[0;1;37;40m > [0m [0;1;34mPostgreSQL[0m     [0;1;37;40m : [0m [0;1;31m{round(db_ping, 1)} ms[0m
+[0;1;37;40m > [0m [0;1;34mDiscord API[0m    [0;1;37;40m : [0m [0;1;31m{websocket_ping:,.0f} ms[0m
+[0;1;37;40m > [0m [0;1;34mMessage Typing[0m [0;1;37;40m : [0m [0;1;31m{round(typing_ping, 1)} ms[0m\n```""",
+            colour = 0x2F3136)
         ping_emb.timestamp = discord.utils.utcnow()
         await ctx.reply(embed = ping_emb, mention_author = False)
 
@@ -62,7 +63,7 @@ class Misc(commands.Cog):
         info_emb = discord.Embed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url = self.bot.pfp,
-            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am an **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#2528**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
+            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hostede **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#2528**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
             colour = self.bot.colour)
         info_emb.add_field(
             name = "General Statistics :",
@@ -189,7 +190,7 @@ class Misc(commands.Cog):
         name = "json",
         brief = "Sends JSON Data",
         aliases = ["raw"])
-    async def json(self, ctx : commands.context, message : typing.Optional[discord.Message]):
+    async def json(self, ctx : commands.context, message     : typing.Optional[discord.Message]):
         """Get the JSON Data for a message."""
         message : discord.Message = getattr(ctx.message.reference, "resolved", message)
         if not message:
@@ -199,7 +200,6 @@ class Misc(commands.Cog):
         except discord.HTTPException as HTTP:
             raise commands.BadArgument("OOP, there's an error, please try again")
         json_data = json.dumps(message_data, indent = 2)
-        await ctx.trigger_typing()
         await ctx.reply(f"Here you go <:NanoTick:925271358735257651>", file = discord.File(io.StringIO(json_data), filename = "Message-Raw-Data.json"), allowed_mentions = self.bot.mentions)
 
     @commands.cooldown(3, 5, commands.BucketType.user)
@@ -210,7 +210,8 @@ class Misc(commands.Cog):
     async def uptime(self, ctx : commands.context):
         """Sends my uptime -- how long I've been online for"""
         time = discord.utils.utcnow() - self.bot.uptime
-        await ctx.trigger_typing()
+        async with ctx.typing():
+            await asyncio.sleep(0.5)
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"online\" for -\n>>> <:ReplyContinued:930634770004725821>` - ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` - ` Roughly Since : {self.bot.datetime(self.bot.uptime, style = 'R')} ({self.bot.datetime(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
 
     @commands.cooldown(2, 5, commands.BucketType.user)
@@ -239,12 +240,13 @@ class Misc(commands.Cog):
             return await ctx.reply(f"{ctx.author.mention} No results found.```\n{query}```")
 
         web_result_list = []
-        serial_no = 1
+        serial_no = 0
         for values in json_value["items"]:
+            serial_no += 1
             url = values["link"]
             title = values["title"]
-            web_result_list.append(f"> **{serial_no}). [{title}]({url})**\n")
-            serial_no += 1
+            snippet = values.get("snippet")
+            web_result_list.append(f"│ ` - ` **{serial_no}). [{title}]({url})**\n")
         
         web_emb = discord.Embed(
             description = f"".join(results for results in web_result_list),
@@ -264,13 +266,15 @@ class Misc(commands.Cog):
             colour = self.bot.colour)
         invite_emb.add_field(
             name = "Permissions :",
-            value = f"> <:replycont:875990141427146772> **-** [**Administrator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=8&scope=bot+applications.commands)\n" \
-                    f"> <:replycont:875990141427146772> **-** [**Moderator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=1116922503303&scope=bot+applications.commands)\n" \
-                    f"> <:Reply:930634822865547294> **-** [**Regular Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=67420289&scope=bot+applications.commands)")
+            value = f"────\n> │ ` - ` <a:WumpusVibe:905457020575031358> [**Regular Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=67420289&scope=bot+applications.commands)\n" \
+                    f"> │ ` - ` <:ModBadge:904765450066473031> [**Moderator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=1116922503303&scope=bot+applications.commands)\n" \
+                    f"> │ ` - ` <a:Owner:905750348457738291> [**Administrator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=8&scope=bot+applications.commands)\n────")
         invite_emb.set_thumbnail(url = self.bot.pfp)
         invite_emb.set_author(name = f"{ctx.message.author} : Invite Links Below", icon_url = ctx.author.display_avatar.url)
         invite_emb.timestamp = discord.utils.utcnow()
         await ctx.reply(embed = invite_emb, mention_author = False)
-        
+    
+
+
 async def setup(bot):
     await bot.add_cog(Misc(bot))

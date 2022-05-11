@@ -1,5 +1,7 @@
 import io
 import time
+import aiohttp
+import asyncio
 import discord
 import textwrap
 import humanize
@@ -9,7 +11,7 @@ import contextlib
 from discord.ext import commands
 from discord.enums import ButtonStyle
 
-from bot import COGS_EXTENSIONS
+from bot import COGS_EXTENSIONS, CONFIG
 import Source.Kernel.Views.Paginator as Paginator
 import Source.Kernel.Utilities.Crucial as crucial
 import Source.Kernel.Views.Interface as Interface
@@ -45,7 +47,7 @@ class Developer(commands.Cog):
         brief = "Eternal Sleep",
         aliases = ["snap"])
     @commands.is_owner()
-    async def die(self, ctx : commands.context):
+    async def die(self, ctx : commands.Context):
         """Sends the bot to eternal sleep"""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
@@ -55,6 +57,10 @@ class Developer(commands.Cog):
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = "Okay then, I shall go to eternal sleep", view = ui, allowed_mentions = self.bot.mentions)
+            async with aiohttp.ClientSession() as session:
+                death_webhook = discord.Webhook.partial(id = CONFIG.get("NOTIF_ID"), token = CONFIG.get("NOTIF_TOKEN"), session = session)
+                await death_webhook.send(content = f"<:GeraltRightArrow:904740634982760459> Going to die right at {self.bot.datetime(discord.utils.utcnow(), style = 'F')} Byee <a:Byee:915568796536815616>\n```prolog\nNo. of Users ─ {len(list(self.bot.get_all_members()))}\nNo. of Guilds ─ {len(self.bot.guilds)}\nDying at ─ {time.strftime('%c', time.gmtime())}```───\n|| Break Point ||")
+                await session.close()
             await self.bot.close()
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
@@ -64,16 +70,22 @@ class Developer(commands.Cog):
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = "Seems like I'm gonna be alive for a bit longer", view = ui, allowed_mentions = self.bot.mentions)
-        await ctx.trigger_typing()
-        Interface.Confirmation.response = await ctx.reply("Do you want to kill me?", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
+        async with ctx.channel.typing():
+            await asyncio.sleep(0.1)
+            Interface.Confirmation.response = await ctx.reply("Do you want to kill me?", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
 
     @commands.command(
         name = "dm", 
         brief = "dm them")
     async def dm(self, ctx, user : discord.User, *, message : str):
         """DM a particular user."""
-        await user.send(f"<:GeraltRightArrow:904740634982760459> You have received a DM from **BSOD#2528** :\n\n>>> {message}")
-        await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
+        try:
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label = "Support", style = discord.ButtonStyle.link, url = "https://discord.gg/JXEu2AcV5Y", emoji = "<a:BotLurk:905749164355379241>"))
+            await user.send(f"<:GeraltRightArrow:904740634982760459> You have received a DM from **BSOD#2528**. If you have any queries, join our support server :\n\n>>> ─────\n{message}\n─────", view = view)
+            await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
+        except Exception as exception:
+            await ctx.send(exception)
 
     # Evaluate command for running both asynchronous and sychronous programs.
     @commands.command(
@@ -146,10 +158,12 @@ class Developer(commands.Cog):
         """Loads the Extension mentioned."""
         try:
             await self.bot.load_extension(f"Source.Cogs.{cog}")
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await ctx.reply(f"**{cog}** : Successfully Loaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
         except Exception as exception:
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await ctx.reply(f"Couldn't load **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
 
     # Unloads extension of choice
@@ -162,10 +176,12 @@ class Developer(commands.Cog):
         """Unloads the Extension mentioned."""
         try:
             await self.bot.unload_extension(f"Source.Cogs.{cog}")
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await ctx.reply(f"**{cog}** : Successfully Unloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
         except Exception as exception:
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await ctx.reply(f"Couldn't unload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
  
     # Reloads extension of choice
@@ -182,16 +198,19 @@ class Developer(commands.Cog):
                     await self.bot.reload_extension(cogs)
                 await ctx.reply(f"Reloaded `{len(cogs)}` files <:RavenPray:914410353155244073>")
             except Exception as exception:
-                await ctx.trigger_typing()
-                await ctx.reply(f"Couldn't reload all the extensions : `{exception}`", allowed_mentions = self.bot.mentions)
+                async with ctx.channel.typing():
+                    await asyncio.sleep(0.1)
+                    await ctx.reply(f"Couldn't reload all the extensions : `{exception}`", allowed_mentions = self.bot.mentions)
         else:
             try:
                 await self.bot.reload_extension(f"Source.Cogs.{cog}")
-                await ctx.trigger_typing()
+                async with ctx.channel.typing():
+                    await asyncio.sleep(0.1)
                 await ctx.reply(f"**{cog}** : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
             except Exception as exception:
-                await ctx.trigger_typing()
-                await ctx.reply(f"Couldn't reload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
+                async with ctx.channel.typing():
+                    await asyncio.sleep(0.1)
+                    await ctx.reply(f"Couldn't reload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
   
     # Group of Commands used for changing presence.
     @commands.group(
@@ -322,7 +341,8 @@ class Developer(commands.Cog):
 
         if fetched_guild.banner is None:
             embed_list = [general_emb, other_emb, user_emb, icon_emb]
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
         else:
             banner_emb = discord.Embed(
@@ -333,7 +353,8 @@ class Developer(commands.Cog):
             banner_emb.timestamp = discord.utils.utcnow()
             
             embed_list = [general_emb, other_emb, user_emb, icon_emb, banner_emb]
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
   
     # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
@@ -368,6 +389,8 @@ class Developer(commands.Cog):
         rendered = table.render()
 
         final = f"{rendered}\n"
+        async with ctx.channel.typing():
+            await asyncio.sleep(0.1)
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {crucial.Plural(rows):row} in {latency:.2f}ms", file = discord.File(io.StringIO(final), filename = "Query-Result.sql"), allowed_mentions = self.bot.mentions)
       
 async def setup(bot):

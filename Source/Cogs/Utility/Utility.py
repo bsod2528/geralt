@@ -1,4 +1,5 @@
 import typing
+import asyncio
 import discord
 import humanize
 
@@ -32,97 +33,102 @@ class Utility(commands.Cog):
     @commands.guild_only()
     async def userinfo(self, ctx : commands.context, *, user : discord.Member = None):
         """Get entire details about a user."""
-        user = user or ctx.author
-        roles = ""
-        for role in user.roles:
-            if role is ctx.guild.default_role: continue
-            roles = f"{roles} {role.mention}"
-        if roles != "":
-            roles = f"{roles}"
-        fetched_user = await ctx.bot.fetch_user(user.id)
-        permissions = Flags.user_perms(user.guild_permissions)
-        if permissions:
-            perms_ = f"{' **|** '}".join(permissions)
-        avatar = user.display_avatar.with_static_format("png")
-        activity = discord.utils.find(lambda act: isinstance(act, discord.CustomActivity), user.activities)
-        activity_holder = f"`{discord.utils.remove_markdown(activity.name)}`" if activity and activity.name else f'`{user}` has no activity at the moment.'
+        try:
+            user = user or ctx.author
+            roles = ""
+            for role in user.roles:
+                if role is ctx.guild.default_role: continue
+                roles = f"{roles} {role.mention}"
+            if roles != "":
+                roles = f"{roles}"
+            fetched_user = await ctx.bot.fetch_user(user.id)
+            permissions = Flags.user_perms(user.guild_permissions)
+            if permissions:
+                perms_ = f"{' **|** '}".join(permissions)
+            avatar = user.display_avatar.with_static_format("png")
+            activity = discord.utils.find(lambda act: isinstance(act, discord.CustomActivity), user.activities)
+            activity_holder = f"`{discord.utils.remove_markdown(activity.name)}`" if activity and activity.name else f'`{user}` has no activity at the moment.'
 
-        general_emb = discord.Embed(
-            title = f":scroll: {user}'s Information",
-            colour = user.colour)
-        general_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> General Info :",
-            value = f"> │ ` ─ ` Name : {user.mention} \n" \
-                    f"> │ ` ─ ` Nickname : {(user.nick) or 'No nickname set'} \n" \
-                    f"> │ ` ─ ` Discriminator : `#{user.discriminator}` \n"
-                    f"> │ ` ─ ` Identification No. : `{user.id}` \n────")
-        general_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Account Info :",
-            value = f"> │ ` ─ ` Created on : {self.bot.datetime(user.created_at, style = 'D')} ({self.bot.datetime(user.created_at, style = 'R')}) \n" \
-                    f"> │ ` ─ ` Joined Guild on : {self.bot.datetime(user.joined_at, style = 'D')} ({self.bot.datetime(user.joined_at, style = 'R')})\n────",
-            inline = False)
-        general_emb.set_thumbnail(url = avatar)
-        general_emb.timestamp = discord.utils.utcnow()
-
-        guild_emb = discord.Embed(
-            title = f":scroll: {user} in {ctx.guild}",
-            colour = user.colour)
-        guild_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Permissions Present :",
-            value = f"> │ ` ─ ` {perms_}\n────")
-        guild_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Top Most Role :",
-            value = f"> │ ` ─ ` {user.top_role.mention}\n────",
-            inline = False)
-        guild_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> All Roles Present :",
-            value = f"> │ ` ─ ` {roles}\n────",
-            inline = False)
-        guild_emb.set_thumbnail(url = avatar)
-        guild_emb.timestamp = discord.utils.utcnow()
-
-        misc_emb = discord.Embed(
-            title = f":scroll: {user}'s - Misc. Information",
-            colour = user.colour)
-        misc_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Badges Present :",
-            value = f"> │ ` ─ `{Flags.user_badges(user = user, fetch_user = fetched_user) if Flags.user_badges(user = user, fetch_user = fetched_user) else '`No Badges Present`'}")
-        misc_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Accent Colours :",
-            value = f"> │ ` ─ ` Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
-                    f"> │ ` ─ ` Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
-            inline = False)  
-        misc_emb.add_field(
-            name = "Activity :",
-            value = f"> │ ` ─ ` {activity_holder}",
-            inline = False)
-        misc_emb.set_thumbnail(url = avatar)
-        misc_emb.timestamp = discord.utils.utcnow()
-        
-        pfp_emb = discord.Embed(
-            title = f":scroll: {user}'s PFP",
-            description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) │ [**PNG Format**]({user.display_avatar.with_static_format('png')}) │ [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
-            colour = user.colour)
-        pfp_emb.set_image(url = avatar)
-        pfp_emb.timestamp = discord.utils.utcnow()
-
-        banner_emb = None
-
-        if fetched_user.banner is None:
-            embed_list = [general_emb, guild_emb, misc_emb, pfp_emb]
-            await ctx.trigger_typing()
-            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
-        else:
-            banner_emb = discord.Embed(
-                title = f":scroll: {user}'s Banner",
-                description = f"[**Download Banner Here**]({fetched_user.banner.url})",
+            general_emb = discord.Embed(
+                title = f":scroll: {user}'s Information",
                 colour = user.colour)
-            banner_emb.set_image(url = fetched_user.banner.url)
-            banner_emb.timestamp = discord.utils.utcnow()
-            
-            embed_list = [general_emb, guild_emb, misc_emb, pfp_emb, banner_emb]
-            await ctx.trigger_typing()
-            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+            general_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> General Info :",
+                value = f"> │ ` ─ ` Name : {user.mention} \n" \
+                        f"> │ ` ─ ` Nickname : {(user.nick) or 'No nickname set'} \n" \
+                        f"> │ ` ─ ` Discriminator : `#{user.discriminator}` \n"
+                        f"> │ ` ─ ` Identification No. : `{user.id}` \n────")
+            general_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Account Info :",
+                value = f"> │ ` ─ ` Created on : {self.bot.datetime(user.created_at, style = 'D')} ({self.bot.datetime(user.created_at, style = 'R')}) \n" \
+                        f"> │ ` ─ ` Joined Guild on : {self.bot.datetime(user.joined_at, style = 'D')} ({self.bot.datetime(user.joined_at, style = 'R')})\n────",
+                inline = False)
+            general_emb.set_thumbnail(url = avatar)
+            general_emb.timestamp = discord.utils.utcnow()
+
+            guild_emb = discord.Embed(
+                title = f":scroll: {user} in {ctx.guild}",
+                colour = user.colour)
+            guild_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Permissions Present :",
+                value = f"> │ ` ─ ` {perms_}\n────")
+            guild_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Top Most Role :",
+                value = f"> │ ` ─ ` {user.top_role.mention}\n────",
+                inline = False)
+            guild_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> All Roles Present :",
+                value = f"> │ ` ─ ` {roles}\n────",
+                inline = False)
+            guild_emb.set_thumbnail(url = avatar)
+            guild_emb.timestamp = discord.utils.utcnow()
+
+            misc_emb = discord.Embed(
+                title = f":scroll: {user}'s - Misc. Information",
+                colour = user.colour)
+            misc_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Badges Present :",
+                value = f"> │ ` ─ ` {Flags.user_badges(user = user, fetch_user = fetched_user) if Flags.user_badges(user = user, fetch_user = fetched_user) else 'No Badges Present'}")
+            misc_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Accent Colours :",
+                value = f"> │ ` ─ ` Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
+                        f"> │ ` ─ ` Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
+                inline = False)  
+            misc_emb.add_field(
+                name = "Activity :",
+                value = f"> │ ` ─ ` {activity_holder}",
+                inline = False)
+            misc_emb.set_thumbnail(url = avatar)
+            misc_emb.timestamp = discord.utils.utcnow()
+        
+            pfp_emb = discord.Embed(
+                title = f":scroll: {user}'s PFP",
+                description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) │ [**PNG Format**]({user.display_avatar.with_static_format('png')}) │ [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
+                colour = user.colour)
+            pfp_emb.set_image(url = avatar)
+            pfp_emb.timestamp = discord.utils.utcnow()
+
+            banner_emb = None
+
+            if fetched_user.banner is None:
+                embed_list = [general_emb, guild_emb, misc_emb, pfp_emb]
+                async with ctx.channel.typing():
+                    await asyncio.sleep(0.1)
+                await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
+            else:
+                banner_emb = discord.Embed(
+                    title = f":scroll: {user}'s Banner",
+                    description = f"[**Download Banner Here**]({fetched_user.banner.url})",
+                    colour = user.colour)
+                banner_emb.set_image(url = fetched_user.banner.url)
+                banner_emb.timestamp = discord.utils.utcnow()
+
+                embed_list = [general_emb, guild_emb, misc_emb, pfp_emb, banner_emb]
+                async with ctx.channel.typing():
+                    await asyncio.sleep(0.1)
+                await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+        except Exception as exception:
+            await ctx.send(exception)
 
     @commands.command(
         name = "serverinfo",
@@ -205,7 +211,8 @@ class Utility(commands.Cog):
 
         if fetched_guild.banner is None:
             embed_list = [general_emb, other_emb, user_emb, icon_emb]
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
         else:
             banner_emb = discord.Embed(
@@ -216,7 +223,8 @@ class Utility(commands.Cog):
             banner_emb.timestamp = discord.utils.utcnow()
             
             embed_list = [general_emb, other_emb, user_emb, icon_emb, banner_emb]
-            await ctx.trigger_typing()
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
             await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
 
     @commands.group(
@@ -231,11 +239,14 @@ class Utility(commands.Cog):
     @todo.command(
         name = "add",
         brief = "Add item to your list.")
-    async def todo_add(self, ctx : commands.context, *, task : str = None):
+    async def todo_add(self, ctx : commands.context, *, task : str):
         """Add tasks to your todo list."""
-        await self.bot.db.execute(f"INSERT INTO todo (user_name, user_id, discriminator, task, task_created_at, url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING task_id", ctx.author.name, ctx.author.id, ctx.author.discriminator, task, ctx.message.created_at, ctx.message.jump_url)
-        task_id = await self.bot.db.fetchval(f"SELECT task_id FROM todo WHERE task = $1", task)
-        await ctx.reply(f"Successfully added task.\n<:Reply:930634822865547294> **Task ID -** `{task_id}`")
+        if not task:
+            return await ctx.reply(f"**{ctx.author}** ─ You have to pass in a `task` so that I can add it to your todo list.")
+        else:
+            await self.bot.db.execute(f"INSERT INTO todo (user_name, user_id, discriminator, task, task_created_at, url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING task_id", ctx.author.name, ctx.author.id, ctx.author.discriminator, task, ctx.message.created_at, ctx.message.jump_url)
+            task_id = await self.bot.db.fetchval(f"SELECT task_id FROM todo WHERE task = $1", task)
+            await ctx.reply(f"Successfully added task.\n<:Reply:930634822865547294> **Task ID -** `{task_id}`")
 
     @todo.command(
         name = "list",
@@ -280,20 +291,20 @@ class Utility(commands.Cog):
     @todo.command(
         name = "edit",
         brief = "Edit task")    
-    async def todo_edit(self, ctx : commands.context, id : int, *, edited : str):
+    async def todo_edit(self, ctx : commands.context, task_id : int, *, edited : str):
         """Edit a particular task."""
         
-        if id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", id, ctx.author.name):
-            await ctx.reply(f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{id}` - is a task either which you do not own or is not present in the database <:DutchySMH:930620665139191839>")
+        if task_id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", task_id, ctx.author.name):
+            await ctx.reply(f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{task_id}` - is a task either which you do not own or is not present in the database <:DutchySMH:930620665139191839>")
         else:
-            await self.bot.db.execute(f"UPDATE todo SET task = $1, url = $2, task_created_at = $3 WHERE task_id = $4", edited, ctx.message.jump_url, ctx.message.created_at, id)
-            await ctx.reply(f"Successfully edited **Task ID -** `{id}`")
+            await self.bot.db.execute(f"UPDATE todo SET task = $1, url = $2, task_created_at = $3 WHERE task_id = $4", edited, ctx.message.jump_url, ctx.message.created_at, task_id)
+            await ctx.reply(f"Successfully edited **Task ID -** `{task_id}`")
 
     @todo.command(
         name = "remove",
         brief = "Removes Task",
         aliases = ["finished", "done"])
-    async def todo_remove(self, ctx : commands.context, *, id : int):
+    async def todo_remove(self, ctx : commands.context, *, task_id : int):
         """Remove a particular task."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
@@ -301,13 +312,13 @@ class Utility(commands.Cog):
                 return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
-            if id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", id, ctx.author.name):
+            if task_id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", task_id, ctx.author.name):
                 await interaction.response.defer()
-                return await ui.response.edit(content = f"<:GeraltRightArrow:904740634982760459> **Task ID ** `{id}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = ui)
+                return await ui.response.edit(content = f"<:GeraltRightArrow:904740634982760459> **Task ID ** `{task_id}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = ui)
             else:
                 await interaction.response.defer()
-                await self.bot.db.execute(f"DELETE FROM todo WHERE task_id = $1", id)
-                await ui.response.edit(content = f"Successfully removed **Task ID -** `{id}` <:HaroldSaysOkay:907110916104007681>", view = ui)
+                await self.bot.db.execute(f"DELETE FROM todo WHERE task_id = $1", task_id)
+                await ui.response.edit(content = f"Successfully removed **Task ID -** `{task_id}` <:HaroldSaysOkay:907110916104007681>", view = ui)
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             if interaction.user != ctx.author:
@@ -315,9 +326,9 @@ class Utility(commands.Cog):
             for view in ui.children:
                 view.disabled = True  
             await interaction.response.defer()
-            await ui.response.edit(content = f"Okay then, I haven't removed Task ID - `{id}` from your list <:DuckSip:917006564265705482>", view = ui)
+            await ui.response.edit(content = f"Okay then, I haven't removed Task ID - `{task_id}` from your list <:DuckSip:917006564265705482>", view = ui)
         
-        Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to remove Task ID - `{id}` from your list <:BallManHmm:933398958263386222>", view = Interface.Confirmation(ctx, yes, no))    
+        Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to remove Task ID - `{task_id}` from your list <:BallManHmm:933398958263386222>", view = Interface.Confirmation(ctx, yes, no))    
 
     @todo.command(
         name = "clear",
@@ -351,7 +362,7 @@ class Utility(commands.Cog):
                 await interaction.response.defer()
                 await ui.response.edit(content = "Okay then, I haven't deleted any `tasks` from your list <a:IEat:940413722537644033>", view = ui)
         
-        Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to delete a total of `{len(total)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(ctx, yes, no))
+        Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to delete a total of `{len(total)}` tasks in your list <a:IThink:933315875501641739>", view = Interface.Confirmation(ctx, yes, no))
 
     @commands.command(
         name = "spotify",

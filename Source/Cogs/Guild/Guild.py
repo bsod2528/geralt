@@ -29,18 +29,10 @@ class Guild(commands.Cog):
         brief = "Shows Stored Information")
     async def show_info(self, ctx : commands.context):
         """Shows the entire information"""
-        guild_info = await self.bot.db.fetchval(f"SELECT * FROM guild_info WHERE name = $1", ctx.guild.name)
-        guild_info_list = []
-        for info in guild_info:
-            guild_info_list.append(f"{info['name']}")
+        guild_deets = await self.bot.db.fetchval(f"SELECT (id, name, owner_id) FROM guild_info WHERE name = $1 AND id = $2", ctx.guild.name, ctx.guild.id)
+        await ctx.send(content = f"""The following details have been stored :
 
-        show_emb = discord.Embed(
-            title = f"{ctx.guild.name}",
-            colour = self.bot.colour)
-        show_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Stored Information :",
-            value = f"".join(info for info in guild_info_list))
-        await ctx.send(embed = show_emb)
+>>> │ ` ─ ` Name : \"**{guild_deets[1]}**\" ─ (`{guild_deets[0]}`)\n│ ` ─ ` Owner : <@{guild_deets[2]}> ─ (`{guild_deets[2]}`")""", allowed_mentions = self.bot.mentions)
 
     @data.command(
         name = "clear",
@@ -92,8 +84,8 @@ class Guild(commands.Cog):
     @commands.guild_only()
     @commands.has_guild_permissions(administrator = True)
     async def prefix(self, ctx : commands.context):
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help(ctx.command)
+        current_prefix = await self.bot.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", ctx.guild.id)
+        await ctx.reply(f"My prefix for **{ctx.guild.name}** is `{current_prefix}` <:OkayDude:955454653900922901>")
 
     @prefix.command(
         name = "set",
