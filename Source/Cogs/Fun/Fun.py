@@ -1,6 +1,8 @@
+import typing
 import discord
 
 from discord import Forbidden
+from discord import app_commands
 from discord.ext import commands
 
 import Source.Kernel.Utilities.Crucial as Crucial
@@ -13,30 +15,44 @@ class Fun(commands.Cog):
         self.bot = bot
         self.delete = {} # -------
         self.pre_edit = {} #     |-- > Snipe command related dictionaries
-        self.post_edit = {} # --=
+        self.post_edit = {} # --=)
 
     # Listeners for "snipe" command
     @commands.Cog.listener()
-    async def on_message_delete(self, message):
-        self.delete[message.channel.id] =   (message.content, message.author, message.channel.id, message.created_at)
+    async def on_message_delete(self, message : discord.Message):
+        self.delete[message.channel.id] = (message.content, message.author, message.channel.id, message.created_at)
 
     @commands.Cog.listener()
-    async def on_message_edit(self, pre_edit, post_edit):
-        self.pre_edit[pre_edit.channel.id] =   (pre_edit.jump_url, pre_edit.content, pre_edit.author, pre_edit.channel.id, pre_edit.created_at)
-        self.post_edit[post_edit.channel.id] =   (post_edit.content, post_edit.author, post_edit.channel.id, post_edit.edited_at)
+    async def on_message_edit(self, pre_edit : discord.Message, post_edit : discord.Message):
+        self.pre_edit[pre_edit.channel.id] = (pre_edit.jump_url, pre_edit.content, pre_edit.author, pre_edit.channel.id, pre_edit.created_at)
+        self.post_edit[post_edit.channel.id] = (post_edit.content, post_edit.author, post_edit.channel.id, post_edit.edited_at)
 
     # Mimics a user by sending a webhook as them.
-    @commands.command(
+    @commands.hybrid_command(
         name = "as", 
-        brief = "Send a Webhook")
-    async def echo(self, ctx : commands.context, user : discord.Member, *, message):
+        brief = "Send a Webhook",
+        with_app_command = True)
+    @app_commands.guild_only()
+    @app_commands.describe(user = "Select a user to mimic")    
+    @app_commands.describe(message = "Type out the message you want to send.")
+    @commands.guild_only()
+    async def echo(self, ctx : commands.Context, user : discord.Member, *, message : str):
         """Send a webhook message as the user you mentioned"""
-        wbhk = await Crucial.fetch_webhook(ctx.channel)
-        thread = discord.utils.MISSING
-        if isinstance(ctx.channel, discord.Thread):
-            thread = ctx.channel
-        await wbhk.send(message, avatar_url = user.display_avatar.url, username = user.display_name, thread = thread)
-        await ctx.message.delete(delay = 0)
+        if ctx.interaction:
+            await ctx.interaction.response.defer(thinking = True, ephemeral = True)
+            wbhk = await Crucial.fetch_webhook(ctx.channel)
+            thread = discord.utils.MISSING
+            if isinstance(ctx.channel, discord.Thread):
+                thread = ctx.channel
+            await wbhk.send(message, avatar_url = user.display_avatar.url, username = user.display_name, thread = thread)
+            await ctx.send("Successfully sent <:NanoTick:925271358735257651>", ephemeral = True)
+        else:
+            wbhk = await Crucial.fetch_webhook(ctx.channel)
+            thread = discord.utils.MISSING
+            if isinstance(ctx.channel, discord.Thread):
+                thread = ctx.channel
+            await wbhk.send(message, avatar_url = user.display_avatar.url, username = user.display_name, thread = thread)
+            await ctx.message.delete(delay = 0)
  
     # Snipe command as a group
     @commands.group(
@@ -53,10 +69,10 @@ class Fun(commands.Cog):
         name = "delete",
         brief = "Snipe Deleted Messages",
         aliases = ["del", "d"])
-    async def delete(self, ctx : commands.context):
+    async def snipe_delete(self, ctx : commands.Context):
         """Get the details of the recently deleted message"""
         try:    
-            message, author, channel, time    =   self.delete[ctx.channel.id]    
+            message, author, channel, time = self.delete[ctx.channel.id]    
             delete_emb = discord.Embed(
                 title = "Sniped Deleted Message",
                 description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.datetime(time)}",
@@ -74,7 +90,7 @@ class Fun(commands.Cog):
         name = "edit",
         brief = "Snipe Edited Messages",
         aliases = ["ed", "e"])
-    async def edit(self, ctx : commands.context):
+    async def snipe_edit(self, ctx : commands.Context):
         """Get the details of the recently edited message"""
         try:    
             url, message, author, channel, pre_time = self.pre_edit[ctx.channel.id]    
@@ -95,11 +111,19 @@ class Fun(commands.Cog):
             await ctx.reply(embed = edit_emb, allowed_mentions = self.bot.mentions, view = view)
         except:
             await ctx.reply("No one has edited any messages as of now <a:BotLurk:905749164355379241>", allowed_mentions = self.bot.mentions)
-  
+    
+    @snipe.command(
+        name = "list",
+        brief = "Get a list of sniped messages",
+        aliases = ["l"])
+    async def snipe_list(self, ctx : commands.Context):
+        """Get a list of all deleted and edited messages"""
+        await ctx.send("hi", view = Interface.SnipeView(self.bot, ctx))
+
     @commands.command(
         name = "nitro",
         brief = "Gift Nitro")
-    async def nitro(self, ctx : commands.context, *, user : discord.Member = None):
+    async def nitro(self, ctx : commands.Context, *, user : discord.Member = None):
         """Gift a user free nitro!"""
         try:
             if user is None:
@@ -125,7 +149,7 @@ class Fun(commands.Cog):
     @commands.command(
         name = "pop",
         brief = "Pop Buttons!")
-    async def pop(self, ctx, *, size : str = None):
+    async def pop(self, ctx : commands.Context, *, size : str = None):
         """Fidget with the buttons by popping them!"""
         
         if size is None:
@@ -149,40 +173,27 @@ class Fun(commands.Cog):
         brief = "Click and Win",
         aliases = ["cl"])
     @commands.guild_only()
-    async def click(self, ctx):
+    async def click(self, ctx : commands.Context):
         """Enjoy a nice satisfying game by clicking on the button!"""
         if ctx.invoked_subcommand is None:
-            await Interface.ClickGame(self.bot, ctx).send(ctx)
-            return
+            await ctx.send_help(ctx.command)
+    
+    @click.command(
+        name = "start",
+        brief = "Start a game of click")
+    async def click_start(self, ctx : commands.Context, *, flag : typing.Optional[Interface.ClickSize]):
+        if not flag:
+            await Interface.ClickGame(self.bot, ctx, size = 1).send(ctx)
+        if flag:
+            await Interface.ClickGame(self.bot, ctx, size = flag.size).send(ctx)
 
     @click.command(
         name = "leaderboard",
         brief = "Check your rank",
         aliases = ["lb", "rank"])
-    async def click_score(self, ctx):
-        guild_score_query = await self.bot.db.fetch("SELECT player_id, clicks FROM click_guild WHERE guild_id = $1 ORDER BY clicks DESC", ctx.guild.id)
-        serial_no = 1
-        leaderboard = []
-        for data in guild_score_query:
-            leaderboard.append(f"> ` ─ ` <@{data['player_id']}> : `{data['clicks']}`\n")
-            serial_no += 1
-        
-        if not guild_score_query:
-            return await ctx.reply(f"No one from **{ctx.guild}** has played `{ctx.clean_prefix}click` game <a:Noo:915422306896072744>. Feel honoured and be the first one !")
-        else:
-            while leaderboard:
-                leaderboard_emb = discord.Embed(
-                    title = f"Click Scores for {ctx.guild} :",
-                    description = f"The following showcases the top 10 scores for `{ctx.clean_prefix}click`",
-                    colour = self.bot.colour)
-                leaderboard_emb.add_field(
-                    name = "Top 10 Scores",
-                    value = "".join(leaderboard[:10]))
-                leaderboard_emb.timestamp = discord.utils.utcnow()
-                leaderboard_emb.set_thumbnail(url = ctx.guild.icon.url)
-                leaderboard_emb.set_footer(text = f"Run {ctx.clean_prefix}click for more sub ─ commands.")
-                leaderboard = leaderboard[10:]
-            await ctx.send(embed = leaderboard_emb, view = Interface.ClickGlobalLeaderboard(self.bot, ctx))
+    async def click_score(self, ctx : commands.Context):
+        await Interface.ClickLeaderboard(self.bot, ctx).send()
+
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))
