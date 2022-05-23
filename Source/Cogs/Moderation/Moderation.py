@@ -46,7 +46,6 @@ class Moderation(commands.Cog):
             kick_emb.set_thumbnail(url = user.display_avatar.url)
             for view in ui.children:
                 view.disabled = True            
-            await interaction.response.defer()
             await interaction.response.edit_message(content = f"\u2001", embed = kick_emb, view = ui)
         
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
@@ -56,7 +55,7 @@ class Moderation(commands.Cog):
                 view.disabled = True
             await interaction.response.edit_message(content = f"**{user.mention}** will not be kicked.", allowed_mentions = self.bot.mentions, view = ui)
     
-        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to kick {user.mention}", view = Interface.Confirmation(yes, no), allowed_mentions = self.bot.mentions)
+        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to kick {user.mention}", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
 
     @commands.command(
         name = "ban",
@@ -70,9 +69,9 @@ class Moderation(commands.Cog):
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             if interaction.user != ctx.author:
                 await interaction.response.send_message(content = f"{pain}", ephemeral = True)    
-            await user.kick(reason = f"{user} - {reason} by {ctx.author}")
+            await user.ban(reason = f"{user} - {reason} by {ctx.author}")
             ban_emb = discord.Embed(
-                title = "Kick - Has Occured.",
+                title = "Ban - Has Occured.",
                 description = f">>> {user.mention} has been **banned** <a:Banned:941667204334764042> !\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.datetime(ctx.message.created_at, style = 'F')}",
                 colour = self.bot.colour)
             ban_emb.add_field(
@@ -91,7 +90,7 @@ class Moderation(commands.Cog):
                 view.disabled = True
             await interaction.response.edit_message(content = f"**{user.mention}** will not be banned.", allowed_mentions = self.bot.mentions, view = ui)
     
-        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to ban {user.mention}", view = Interface.Confirmation(yes, no), allowed_mentions = self.bot.mentions)
+        Interface.Confirmation.response = await ctx.send(f"Are you sure you want to ban {user.mention}", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
   
     @commands.command(
         name = "mute",

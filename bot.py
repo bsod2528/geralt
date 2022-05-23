@@ -10,8 +10,8 @@ import datetime
 import colorama as colour
 
 from dotenv import dotenv_values
+from discord import Interaction, app_commands
 from discord.ext import commands    
-
 
 import Source.Kernel.Views.Interface as Interface 
 
@@ -28,8 +28,6 @@ COGS_EXTENSIONS    =   [
     "Source.Cogs.Moderation",
     "Source.Cogs.ErrorHandler"
 ]
-                    # BSOD#2528 [ ME ]  # SID#0007
-DEVELOPER_IDS   =   [750979369001811982, 760823877034573864]
 
 dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
@@ -38,6 +36,9 @@ os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
 CONFIG = dotenv_values("config.env")
 TOKEN = CONFIG.get("TOKEN")
 DB_URL = CONFIG.get("DB_URL")
+
+                # BSOD#2528 [ ME ]   # SID#3928
+DEVELOPER_IDS = [750979369001811982, 760823877034573864]
 
 Timestamp = datetime.datetime.now(datetime.timezone.utc)
 
@@ -62,10 +63,11 @@ class Geralt(commands.Bot):
         super().__init__(
             status = discord.Status.online,
             intents = discord.Intents.all(),
+            tree_cls = app_commands.CommandTree,
             activity = discord.Activity(type = discord.ActivityType.playing, name = "Waking up to Die"),
             command_prefix = self.get_prefix,
             case_insensitive = True,
-            strip_after_prefix = True,)
+            strip_after_prefix = True)
         
         self.pfp = CONFIG.get("PFP")
         self.colour = discord.Colour.from_rgb(117, 128, 219)
@@ -87,6 +89,9 @@ class Geralt(commands.Bot):
 
     async def setup_hook(self) -> None:
         print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Loading all Extensions.{colour.Style.RESET_ALL}")
+        
+        self.tree.copy_global_to(guild = discord.Object(id = 889522892088410142))
+        
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)

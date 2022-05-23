@@ -84,8 +84,9 @@ class Guild(commands.Cog):
     @commands.guild_only()
     @commands.has_guild_permissions(administrator = True)
     async def prefix(self, ctx : commands.context):
-        current_prefix = await self.bot.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", ctx.guild.id)
-        await ctx.reply(f"My prefix for **{ctx.guild.name}** is `{current_prefix}` <:OkayDude:955454653900922901>")
+        if ctx.invoked_subcommand is None:
+            current_prefix = await self.bot.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", ctx.guild.id)
+            await ctx.reply(f"My prefix for **{ctx.guild.name}** is `{current_prefix}` <:OkayDude:955454653900922901>")
 
     @prefix.command(
         name = "set",

@@ -328,7 +328,7 @@ class Utility(commands.Cog):
             await interaction.response.defer()
             await ui.response.edit(content = f"Okay then, I haven't removed Task ID - `{task_id}` from your list <:DuckSip:917006564265705482>", view = ui)
         
-        Interface.Confirmation.response    =    await ctx.reply(f"Are you sure you want to remove Task ID - `{task_id}` from your list <:BallManHmm:933398958263386222>", view = Interface.Confirmation(ctx, yes, no))    
+        Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to remove Task ID - `{task_id}` from your list <:BallManHmm:933398958263386222>", view = Interface.Confirmation(ctx, yes, no))    
 
     @todo.command(
         name = "clear",
@@ -371,9 +371,12 @@ class Utility(commands.Cog):
     async def spotify(self, ctx : commands.context, *, user : typing.Union[discord.Member, discord.User] = None):
         """Get Information on what the user is listening to."""
         user = user or ctx.author
-        spotify = discord.utils.find(lambda sp : isinstance(sp, discord.Spotify), user.activities)
+        try:
+            spotify = discord.utils.find(lambda sp : isinstance(sp, discord.Spotify), user.activities)
+        except:
+            return await ctx.reply(f"`{user}` is not in this guild, I'm sorry.")
         if spotify is None:
-            if user ==  ctx.author:
+            if user == ctx.author:
                 return await ctx.reply("You are not listening to Spotify right now.")
             else:
                 return await ctx.reply(f"**{user}** is not listening to any song on **Spotify** right now.")
@@ -384,11 +387,11 @@ class Utility(commands.Cog):
                 colour = self.bot.colour)
             spotify_emb.add_field(
                 name = "Song Information :",
-                value = f"> **<:ReplyContinued:930634770004725821> - Name :** [**{spotify.title}**]({spotify.track_url}) (`{spotify.track_id}`)\n" \
-                        f"> **<:ReplyContinued:930634770004725821> - Album :** {spotify.album}\n" \
-                        f"> **<:Reply:930634822865547294> - Duration :** {humanize.precisedelta(spotify.duration)}")
+                value = f"> <:ReplyContinued:930634770004725821> ` - ` **Name :** [**{spotify.title}**]({spotify.track_url})\n" \
+                        f"> <:ReplyContinued:930634770004725821> ` - ` **Album :** {spotify.album}\n" \
+                        f"> <:Reply:930634822865547294> ` - ` **Duration :** \"{humanize.precisedelta(spotify.duration)}\"")
             spotify_emb.set_thumbnail(url = spotify.album_cover_url)
-        await ctx.send(embed = spotify_emb)
-        
+            await ctx.reply(embed = spotify_emb, mention_author = False)
+                
 async def setup(bot):
     await bot.add_cog(Utility(bot))

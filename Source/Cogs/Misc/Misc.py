@@ -63,7 +63,7 @@ class Misc(commands.Cog):
         info_emb = discord.Embed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url = self.bot.pfp,
-            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hostede **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#2528**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
+            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hostede **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
             colour = self.bot.colour)
         info_emb.add_field(
             name = "General Statistics :",
@@ -194,7 +194,7 @@ class Misc(commands.Cog):
         """Get the JSON Data for a message."""
         message : discord.Message = getattr(ctx.message.reference, "resolved", message)
         if not message:
-            return await ctx.reply(f"**{ctx.author}**, please reply to the message or enter the message id if you want to see the raw message on.")
+            return await ctx.reply(f"**{ctx.author}**, please \n\n` - ` reply to the message \n` - ` enter the message id \n` - ` send the message link \nif you want to see the raw message on.")
         try:
             message_data = await self.bot.http.get_message(message.channel.id, message.id)
         except discord.HTTPException as HTTP:
@@ -212,7 +212,7 @@ class Misc(commands.Cog):
         time = discord.utils.utcnow() - self.bot.uptime
         async with ctx.typing():
             await asyncio.sleep(0.5)
-        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"online\" for -\n>>> <:ReplyContinued:930634770004725821>` - ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` - ` Roughly Since : {self.bot.datetime(self.bot.uptime, style = 'R')} ({self.bot.datetime(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
+        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"**online**\" for -\n>>> <:ReplyContinued:930634770004725821>` - ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` - ` Roughly Since : {self.bot.datetime(self.bot.uptime, style = 'R')} ({self.bot.datetime(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
 
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.command(
@@ -261,7 +261,7 @@ class Misc(commands.Cog):
         name = "invite",
         brief = "Get Invite Link",
         aliases = ["inv"])
-    async def invite(self, ctx : commands.context):
+    async def invite(self, ctx : commands.Context):
         invite_emb = discord.Embed(
             colour = self.bot.colour)
         invite_emb.add_field(
@@ -269,12 +269,33 @@ class Misc(commands.Cog):
             value = f"────\n> │ ` - ` <a:WumpusVibe:905457020575031358> [**Regular Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=67420289&scope=bot+applications.commands)\n" \
                     f"> │ ` - ` <:ModBadge:904765450066473031> [**Moderator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=1116922503303&scope=bot+applications.commands)\n" \
                     f"> │ ` - ` <a:Owner:905750348457738291> [**Administrator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=8&scope=bot+applications.commands)\n────")
-        invite_emb.set_thumbnail(url = self.bot.pfp)
+        invite_emb.set_thumbnail(url = ctx.me.display_avatar)
         invite_emb.set_author(name = f"{ctx.message.author} : Invite Links Below", icon_url = ctx.author.display_avatar.url)
         invite_emb.timestamp = discord.utils.utcnow()
         await ctx.reply(embed = invite_emb, mention_author = False)
-    
 
+    @commands.command(
+        name = "usage",
+        brief = "Get command usage",
+        aliases = ["cu"])
+    async def usage(self, ctx):
+        """Get a list of how many commands have been used here"""
+        fetch_usage = await self.bot.db.fetch("SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id)
+        cmd_usage = [f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.datetime(data['invoked_at'], style = 'R')}\n────\n" for data in fetch_usage]
+        if not cmd_usage:
+            return await ctx.reply(f"No one has invoked any command in \"**{ctx.guild}**\" still. Be the first one \N{HANDSHAKE}")
+        embed_list = []
+        while cmd_usage:
+            cmd_usage_emb = discord.Embed(
+                title = f"Commands Used in {ctx.guild}",
+                description = "".join(cmd_usage[:4]),
+                colour = self.bot.colour)
+            cmd_usage_emb.timestamp = discord.utils.utcnow()
+            cmd_usage_emb.set_footer(text = "Shows from most used to least used commands")
+            cmd_usage_emb.set_thumbnail(url = ctx.guild.icon.url)
+            cmd_usage = cmd_usage[4:]
+            embed_list.append(cmd_usage_emb)
+        await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
 
 async def setup(bot):
     await bot.add_cog(Misc(bot))

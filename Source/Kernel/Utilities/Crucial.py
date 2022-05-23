@@ -8,7 +8,7 @@ async def total_lines(path : str, filetype : str = ".py"):
     for i in os.scandir(path):
         if i.is_file():
             if i.path.endswith(filetype):
-                lines += len((await (await aiofiles.open(i.path, 'r')).read()).split("\n"))
+                lines += len((await (await aiofiles.open(i.path, "r", encoding = "utf-8")).read()).split("\n"))
         elif i.is_dir():
             lines += await total_lines(i.path, filetype)
     return lines
@@ -19,10 +19,10 @@ async def misc(path : str, filetype: str = ".py", file_has: str = "def"):
     for i in os.scandir(path):
         if i.is_file():
             if i.path.endswith(filetype):
-                count_lines += len([line for line in (await (await aiofiles.open(i.path, 'r')).read()).split("\n") if file_has in line])
+                count_lines += len([line for line in (await (await aiofiles.open(i.path, "r", encoding = "utf-8")).read()).split("\n") if file_has in line])
         elif i.is_dir():
             count_lines += await misc(i.path, filetype, file_has)
-    return count_lines
+    return count_lines 
 
 # Make a webhook if it's own is not present.
 async def fetch_webhook(channel) -> discord.Webhook:

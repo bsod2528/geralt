@@ -3,6 +3,7 @@ import aiohttp
 import discord
 import traceback
 
+from discord import app_commands
 from discord.ext import commands
 
 from bot import CONFIG
@@ -24,6 +25,9 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
         
+        if isinstance(error, app_commands.errors.CommandNotFound):
+            return
+
         if isinstance(error, commands.DisabledCommand):
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
     
@@ -32,7 +36,13 @@ class ErrorHandler(commands.Cog):
         
         if isinstance(error, commands.MissingPermissions):
             return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+        
+        if isinstance(error, commands.NoPrivateMessage):
+            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
 
+        if isinstance(error, discord.errors.NotFound):
+            return
+    
         if isinstance(error, commands.NotOwner):
             return
         

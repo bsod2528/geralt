@@ -1,5 +1,6 @@
 import io
 import time
+import typing
 import aiohttp
 import asyncio
 import discord
@@ -8,6 +9,7 @@ import humanize
 import traceback
 import contextlib
 
+from types import NoneType
 from discord.ext import commands
 from discord.enums import ButtonStyle
 
@@ -16,19 +18,8 @@ import Source.Kernel.Views.Paginator as Paginator
 import Source.Kernel.Utilities.Crucial as crucial
 import Source.Kernel.Views.Interface as Interface
 
-# Class for buttons in eval command.
-class EvalButtons(discord.ui.View):
-    def __init__(self, ctx):
-        super().__init__()
-        self.ctx = ctx
-    
-    @discord.ui.button(label = "Traceback", style = ButtonStyle.gray)
-    async def traceback(self, interaction : discord.Interaction, button : discord.ui.button):
-        tb_emb = discord.Embed(
-            title = "Errors Going Boing",
-            description = f"{Exception.__class__.__name__} -> {Exception}",
-            colour= self.bot.colour)
-        await interaction.response.send_message(embed = tb_emb, ephemeral = True)
+class SyncFlag(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
+    cosmic : str = NoneType
 
 class Developer(commands.Cog):
     """Developer Commands"""
@@ -77,12 +68,13 @@ class Developer(commands.Cog):
     @commands.command(
         name = "dm", 
         brief = "dm them")
+    @commands.is_owner()
     async def dm(self, ctx, user : discord.User, *, message : str):
         """DM a particular user."""
         try:
             view = discord.ui.View()
             view.add_item(discord.ui.Button(label = "Support", style = discord.ButtonStyle.link, url = "https://discord.gg/JXEu2AcV5Y", emoji = "<a:BotLurk:905749164355379241>"))
-            await user.send(f"<:GeraltRightArrow:904740634982760459> You have received a DM from **BSOD#2528**. If you have any queries, join our support server :\n\n>>> ─────\n{message}\n─────", view = view)
+            await user.send(f"<:GeraltRightArrow:904740634982760459> You have received a DM from **{ctx.author}**. If you have any queries, join our support server :\n\n>>> ─────\n{message}\n─────", view = view)
             await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
         except Exception as exception:
             await ctx.send(exception)
@@ -115,20 +107,14 @@ class Developer(commands.Cog):
         try:    
             exec(compile, environment)
         except Exception as exception:
-            tb_emb = discord.Embed(
-                description = f"```py\n{exception.__class__.__name__} -> {exception}\n```",
-                colour = self.bot.colour)
-            return await ctx.send(embed = tb_emb)
+            return await ctx.send(f"```py\n{exception.__class__.__name__} : {exception}\n```")
         func = environment["func"]
         try:
             with contextlib.redirect_stdout(stdout):
                 returned_value = await func()
         except Exception as exception:
             value = stdout.getvalue()
-            emb = discord.Embed(
-                description = f"```py\n{value}{traceback.format_exc()}\n```",
-                color = 0x2F3136)
-            message = await ctx.send(embed = emb)
+            message = await ctx.send(f"```py\n{value} {traceback.format_exc()}\n```")
             await ctx.message.add_reaction("<:WinUnheck:898572376147623956>")
         else:
             value = stdout.getvalue()
@@ -138,15 +124,9 @@ class Developer(commands.Cog):
                 pass
             if returned_value is None:
                 if value:
-                    value_emb = discord.Embed(
-                        description = f"```py\n{value}\n```",
-                        colour = self.bot.colour)
-                    await ctx.send(embed = value_emb, mention_author = False)
+                    await ctx.send(f"```py\n{value}\n```", mention_author = False)
             else:
-                emb = discord.Embed(
-                    description = f"```py\n{value}{returned_value}\n```",
-                    colour = self.bot.colour)
-                await ctx.send(embed = emb, mention_author = False)
+                await ctx.send(f"```py\n{value}{returned_value}\n```", mention_author = False)
 
     # Loads extension of choice
     @commands.command(
@@ -160,11 +140,11 @@ class Developer(commands.Cog):
             await self.bot.load_extension(f"Source.Cogs.{cog}")
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await ctx.reply(f"**{cog}** : Successfully Loaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
+            await ctx.reply(f"\"**{cog}**\" : Successfully Loaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
         except Exception as exception:
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await ctx.reply(f"Couldn't load **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
+            await ctx.reply(f"Couldn't load \"**{cog}**\" :\n```py\n{exception}\n```", allowed_mentions = self.bot.mentions)
 
     # Unloads extension of choice
     @commands.command(
@@ -178,11 +158,11 @@ class Developer(commands.Cog):
             await self.bot.unload_extension(f"Source.Cogs.{cog}")
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await ctx.reply(f"**{cog}** : Successfully Unloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
+            await ctx.reply(f"\"**{cog}**\" : Successfully Unloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
         except Exception as exception:
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await ctx.reply(f"Couldn't unload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
+            await ctx.reply(f"Couldn't unload \"**{cog}**\" :\n```py\n{exception}\n```", allowed_mentions = self.bot.mentions)
  
     # Reloads extension of choice
     @commands.command(
@@ -200,17 +180,17 @@ class Developer(commands.Cog):
             except Exception as exception:
                 async with ctx.channel.typing():
                     await asyncio.sleep(0.1)
-                    await ctx.reply(f"Couldn't reload all the extensions : `{exception}`", allowed_mentions = self.bot.mentions)
+                    await ctx.reply(f"Couldn't reload all the extensions : \n```py\n{exception}\n```", allowed_mentions = self.bot.mentions)
         else:
             try:
                 await self.bot.reload_extension(f"Source.Cogs.{cog}")
                 async with ctx.channel.typing():
                     await asyncio.sleep(0.1)
-                await ctx.reply(f"**{cog}** : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
+                await ctx.reply(f"\"**{cog}**\" : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
             except Exception as exception:
                 async with ctx.channel.typing():
                     await asyncio.sleep(0.1)
-                    await ctx.reply(f"Couldn't reload **{cog}** : `{exception}`", allowed_mentions = self.bot.mentions)
+                    await ctx.reply(f"Couldn't reload \"**{cog}**\" : \n```py\n{exception}\n```", allowed_mentions = self.bot.mentions)
   
     # Group of Commands used for changing presence.
     @commands.group(
@@ -254,12 +234,38 @@ class Developer(commands.Cog):
     @dev.command(
         name = "leave",
         brief = "Leaves Guild")
-    async def off(self, ctx, *, guild : int):
-        """Sets the bot status as Idle"""
-        guild = await self.bot.fetch_guild(guild)
+    async def off(self, ctx, *, guild_id : int):
+        """Leaves from a specified guild"""
+        guild = await self.bot.fetch_guild(guild_id)
         await guild.leave()
         await ctx.reply(f"Left **{guild}** on {self.bot.datetime(discord.utils.utcnow(), style = 'F')}")
-  
+    
+    @dev.command(
+        name = "alltags",
+        brief = "Sends all tags",
+        aliases = ["at"])
+    async def all_tags(self, ctx):
+        """Sends tags from all guilds"""
+        tag_fetch = await self.bot.db.fetch("SELECT * FROM tags ORDER BY id")
+        tag_list = []
+        serial_no = 1
+        for tags in tag_fetch:
+            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : \"**{tags['author_name']}**\" (`{tags['author_id']}`)\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
+            serial_no += 1
+        else:
+            # Huge thanks to Zeus432 [ Github ID ] for helping me enable the pagination :D
+            embed_list = []
+            while tag_list:
+                tag_list_emb = discord.Embed(
+                    title = f"Global Tag List :",
+                    description = "".join(tag_list[:3]),
+                    colour = self.bot.colour)
+                tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
+                tag_list_emb.timestamp = discord.utils.utcnow()
+                tag_list = tag_list[3:]
+                embed_list.append(tag_list_emb)     
+            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+
     @commands.command(
         name = "guildfetch",
         brief = "Get guild information",
@@ -380,7 +386,7 @@ class Developer(commands.Cog):
 
         rows = len(results)
         if multi_line or rows == 0:
-            return await ctx.send(f"`{latency:.2f}ms: {results}`")
+            return await ctx.send(f"<:GeraltRightArrow:904740634982760459> No records were for found for the following query : ```sql\n{query}\n```")
 
         headers = list(results[0].keys())
         table = crucial.TabulateData()
@@ -393,5 +399,25 @@ class Developer(commands.Cog):
             await asyncio.sleep(0.1)
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {crucial.Plural(rows):row} in {latency:.2f}ms", file = discord.File(io.StringIO(final), filename = "Query-Result.sql"), allowed_mentions = self.bot.mentions)
       
+    @commands.command(
+        name = "sync",
+        brief = "Sync App Commands")
+    @commands.is_owner()
+    async def cmd_sync(self, ctx, *, flag : typing.Optional[SyncFlag]):
+        if not flag:
+            try:
+                await self.bot.tree.sync(guild = discord.Object(id = 889522892088410142))
+                await ctx.message.add_reaction("<:DuckThumbsUp:917007413259956254>")
+            except Exception:
+                message =  await ctx.reply(f"```py\n{Exception}\n```")
+                await message.add_reaction("<a:LifeSucks:932255208044650596>")
+        if flag:
+            try:
+                await self.bot.tree.sync()
+                await ctx.message.add_reaction("<:DuckThumbsUp:917007413259956254>")
+            except Exception:
+                message =  await ctx.reply(f"```py\n{Exception}\n```")
+                await message.add_reaction("<a:LifeSucks:932255208044650596>")
+
 async def setup(bot):
     await bot.add_cog(Developer(bot))
