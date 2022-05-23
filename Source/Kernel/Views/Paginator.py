@@ -1,3 +1,5 @@
+from dis import dis
+import typing
 import discord
 
 from discord import ButtonStyle
@@ -10,7 +12,7 @@ class Paginator(discord.ui.View):
         self.bot = bot
         self.ctx = ctx
         self.total = len(embeds)
-        self.embeds : list[discord.Embed] =   embeds
+        self.embeds : list[discord.Embed] = embeds
         self.current = 0
 
         if self.total >= 1:
@@ -92,7 +94,10 @@ class Paginator(discord.ui.View):
         await interaction.message.delete()     
     
     async def send(self, ctx):
-        self.message = await ctx.reply(embed = self.embeds[0], view = self, mention_author = False)
+        if self.ctx.interaction:
+            self.message = await ctx.reply(embed = self.embeds[0], view = self, mention_author = False, ephemeral = True)
+        else:
+            self.message = await ctx.reply(embed = self.embeds[0], view = self, mention_author = False, ephemeral = False)
         return self.message
 
     async def interaction_check(self, interaction : discord.Interaction) -> bool:
