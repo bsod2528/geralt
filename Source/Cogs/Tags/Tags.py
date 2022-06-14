@@ -8,22 +8,29 @@ import asyncpg as PSQL
 from discord import app_commands
 from discord.ext import commands
 
-from bot import CONFIG
-import Source.Kernel.Views.Paginator as Paginator
-import Source.Kernel.Views.Interface as Interface
+from ...kernel.views.tags import TagButton
+from ...kernel.views.meta import Confirmation
+from ...kernel.views.paginator import Paginator
+from ...kernel.subclasses.bot import CONFIG, Geralt
+from ...kernel.subclasses.context import GeraltContext
 
 class TagFlags(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
     tag : int
     guild : int
 
 class Tags(commands.Cog):
-    def __init__(self, bot):
+    """Allows you to tag text for later retrieval."""
+    def __init__(self, bot : Geralt):
         self.bot = bot
+
+    @property
+    def emote(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name = "Tags", id = 905457020575031358, animated = True)   
 
     # Huge thanks to Zeus432 [ Github ID ] for helping me enable the pagination :D
     # Huge thanks to `rtk-rnjn` [ Github ID ] for helping me invoke the tag w/o a separate command
 
-    async def tag_call(self, ctx, tag_name):
+    async def tag_call(self, ctx : GeraltContext, tag_name):
         """Call a tag"""
         tag_deets = await self.bot.db.fetchval("SELECT (content) FROM tags WHERE name = $1 AND guild_id = $2", tag_name, ctx.guild.id)
         if not tag_deets:
@@ -32,48 +39,31 @@ class Tags(commands.Cog):
             await ctx.send(tag_deets, reference = ctx.message.reference if ctx.message.reference else None)
             await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
 
-    async def tag_raw(self, ctx, *, tag_name : str = None):
-        """Removes all formatting and sends a tag in a raw manner."""
+    async def tag_raw(self, ctx : GeraltContext, *, tag_name : str = None):
         tag_data = await self.bot.db.fetchval("SELECT (content) FROM tags WHERE name = $1 AND guild_id = $2", tag_name, ctx.guild.id)
         await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
         if tag_name is None:
-            if ctx.interaction:
-                return await ctx.reply(f"**{ctx.author}** ─ call a tag by passing in a `tag_name`", ephemeral = True)
-            else:
-                return await ctx.reply(f"**{ctx.author}** ─ call a tag by passing in a `tag_name`", ephemeral = False)
+                return await ctx.reply(f"**{ctx.author}** ─ call a tag by passing in a `tag_name`")
         if not tag_data:
-            if ctx.interaction:
-                return await ctx.reply(f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>", ephemeral = True)
-            else:
-                return await ctx.reply(f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>", ephemeral = False)
+                return await ctx.reply(f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>")
         else:
-            if ctx.interaction:
-                await ctx.reply(discord.utils.escape_markdown(tag_data), ephemeral = True)
-            else:
-                await ctx.reply(discord.utils.escape_markdown(tag_data), ephemeral = False)
+            await ctx.reply(discord.utils.escape_markdown(tag_data))
 
 
-    async def tag_list(self, ctx, *, user : typing.Optional[typing.Union[discord.User, discord.Member]]):
-        """Get a list of tags made by a user."""
+    async def tag_list(self, ctx : GeraltContext, *, user : typing.Optional[typing.Union[discord.User, discord.Member]]):
         user = user or ctx.author 
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE author_id = $1 AND guild_id = $2 ORDER BY name", user.id, ctx.guild.id)
         tag_list = []
         serial_no = 1
         for tags in tag_fetch:
-            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` ID : `{tags['id']}`\n> │ ` ─ ` Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
+            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` ID : `{tags['id']}`\n> │ ` ─ ` Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.timestamp(tags['created_on'], style = 'R')}\n────\n")
             serial_no += 1
 
         if not tag_fetch:
             if user == ctx.author:
-                if ctx.interaction:
-                    await ctx.reply(f"**{user}** ─ You own no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>", ephemeral = True)
-                else:
-                    await ctx.reply(f"**{user}** ─ You own no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>", ephemeral = False)
+                await ctx.reply(f"**{user}** ─ You own no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>")
             if user == user:
-                if ctx.interaction:
-                    await ctx.reply(f"**{user}** ─ owns no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>", ephemeral = True)
-                else:
-                    await ctx.reply(f"**{user}** ─ owns no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>", ephemeral = False)
+                await ctx.reply(f"**{user}** ─ owns no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>")
         else:
             if serial_no <= 4:
                 tag_list_emb = discord.Embed(
@@ -83,10 +73,7 @@ class Tags(commands.Cog):
                 tag_list_emb.set_thumbnail(url = user.display_avatar.url)
                 tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.", icon_url = ctx.author.display_avatar)
                 tag_list_emb.timestamp = discord.utils.utcnow()
-                if ctx.interaction:
-                    await ctx.reply(embed = tag_list_emb, mention_author = False, ephemeral = True)
-                else:
-                    await ctx.reply(embed = tag_list_emb, mention_author = False, ephemeral = False)
+                await ctx.reply(embed = tag_list_emb, mention_author = False)
             else:
                 embed_list = []
                 while tag_list:
@@ -99,23 +86,19 @@ class Tags(commands.Cog):
                     tag_list_emb.timestamp = discord.utils.utcnow()
                     tag_list = tag_list[3:]
                     embed_list.append(tag_list_emb)     
-                await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+                await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
 
-    async def tag_all(self, ctx):
-        """Get a list of all tags present in this server."""
+    async def tag_all(self, ctx : GeraltContext):
         user = ctx.author
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE guild_id = $1 ORDER BY name", ctx.guild.id)
         tag_list = []
         serial_no = 1
         for tags in tag_fetch:
-            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : <@{tags['author_id']}>\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
+            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : <@{tags['author_id']}>\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.timestamp(tags['created_on'], style = 'R')}\n────\n")
             serial_no += 1
 
         if not tag_fetch:
-            if ctx.interaction:
-                await ctx.reply(f"**{user}** ─ There are no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` and you will get to know <:Okay:913796811737686086>", ephemeral = True)
-            else:
-                await ctx.reply(f"**{user}** ─ There are no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` and you will get to know <:Okay:913796811737686086>", ephemeral = False)
+            await ctx.reply(f"**{user}** ─ There are no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` and you will get to know <:Okay:913796811737686086>")
         else:
             if serial_no <= 4:
                 tag_list_emb = discord.Embed(
@@ -125,10 +108,7 @@ class Tags(commands.Cog):
                 tag_list_emb.set_thumbnail(url = ctx.guild.icon.url)
                 tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.", icon_url = ctx.author.display_avatar)
                 tag_list_emb.timestamp = discord.utils.utcnow()
-                if ctx.interaction:
-                    await ctx.reply(embed = tag_list_emb, mention_author = False, ephemeral = True)
-                else:
-                    await ctx.reply(embed = tag_list_emb, mention_author = False, ephemeral = False)
+                await ctx.reply(embed = tag_list_emb, mention_author = False)
             else:
                 embed_list = []
                 while tag_list:
@@ -141,16 +121,12 @@ class Tags(commands.Cog):
                     tag_list_emb.timestamp = discord.utils.utcnow()
                     tag_list = tag_list[3:]
                     embed_list.append(tag_list_emb)     
-                await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+                await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
     
-    async def tag_info(self, ctx, *, tag_name : commands.clean_content):
-        """Get entire details of a tag."""
+    async def tag_info(self, ctx : GeraltContext, *, tag_name : commands.clean_content):
         tag_deets = await self.bot.db.fetchval("SELECT (id, author_id, content, uses, created_on, jump_url) FROM tags WHERE name = $1 AND guild_id = $2", tag_name, ctx.guild.id)
         if not tag_deets:
-            if ctx.interaction:
-                return await ctx.reply(f"`{tag_name}` ─ is a tag either which is not present in this guild or not in my database.", ephemeral = True)
-            else:
-                return await ctx.reply(f"`{tag_name}` ─ is a tag either which is not present in this guild or not in my database.", ephemeral = False)
+            return await ctx.reply(f"`{tag_name}` ─ is a tag either which is not present in this guild or not in my database.")
         tag_owner = await ctx.bot.fetch_user(tag_deets[1])
         jump_button = discord.ui.View()
         jump_button.add_item(discord.ui.Button(label = "Jump to Message", style = discord.ButtonStyle.link, url = tag_deets[5], emoji = "<a:ChainLink:936158619030941706>"))
@@ -162,22 +138,18 @@ class Tags(commands.Cog):
 \n────
 > │ ` ─ ` Name : \"**{tag_name}**\" (`{tag_deets[0]}`)
 > │ ` ─ ` Owner : {tag_owner.mention} (`{tag_owner.id}`)
-> │ ` ─ ` Created On : {self.bot.datetime(tag_deets[4], style = 'f')}
+> │ ` ─ ` Created On : {self.bot.timestamp(tag_deets[4], style = 'f')}
 > │ ` ─ ` No. of Times Used : `{tag_deets[3]}`
 ────""",
             colour = self.bot.colour)
         tag_deets_emb.set_thumbnail(url = tag_owner.display_avatar.url)
         tag_deets_emb.timestamp = discord.utils.utcnow()
-        if ctx.interaction:
-            await ctx.reply(embed = tag_deets_emb, view = jump_button, ephemeral = True)
-        else:
-            await ctx.reply(embed = tag_deets_emb, view = jump_button, ephemeral = False)
+        await ctx.reply(embed = tag_deets_emb, view = jump_button)
 
-    async def tag_edit(self, ctx, tag_id : int, *, edited_content : str):
-        """Edit a tag that you already made"""
+    async def tag_edit(self, ctx : GeraltContext, tag_id : int, *, edited_content : str):
         if tag_id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3", tag_id, ctx.author.id, ctx.guild.id):
             await ctx.reply(f"**{ctx.author}** ─ this is a tag which you either don't own or is not in the database.")
-            await ctx.message.add_reaction("<:NanoCross:965845144307912754>")
+            await ctx.add_nanocross()
             return 
         else:
             await self.bot.db.execute("UPDATE tags SET content = $1, author_name = $2 WHERE id = $3 AND author_id = $4 AND guild_id = $5", edited_content, str(ctx.author), tag_id, ctx.author.id, ctx.guild.id)
@@ -201,50 +173,37 @@ class Tags(commands.Cog):
                         await session.close()
                     await interaction.response.send_message(content = f"```py\n{error}\n```", ephemeral = True)
 
-            if ctx.interaction:
-                await ctx.reply(f"Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) ", ephemeral = True)
-            else:
-                await ctx.reply(f"Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) ", view = ContentButton(), ephemeral = False)
-                await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
+            await ctx.reply(f"Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) ", view = ContentButton())
+            await ctx.add_nanotick()
 
-    async def tag_remove(self, ctx, id : int):
-        """Delete your tag from the server."""
-        pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
+    async def tag_remove(self, ctx : GeraltContext, id : int):
         tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", id, ctx.guild.id)
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
-            if interaction.user != ctx.author:
-                return interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
             if id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2", id, ctx.author.id):
                 await interaction.response.defer()
                 await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>", view = ui)
+                await ctx.add_nanocross()
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute("DELETE FROM tags WHERE id = $1 AND guild_id = $2 AND author_id = $3", id, ctx.guild.id, ctx.author.id)
                 await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ has been successfully deleted from your tag list <:NanoTick:925271358735257651>", view = ui)
+                await ctx.add_nanotick()
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
-            if interaction.user != ctx.author:
-                return interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ will not be deleted from your tag list <:NanoTick:925271358735257651>", view = ui)
         
-        if ctx.interaction:
-            Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to remove tag ─ \"**{tag_deets}**\" (`{id}`) from your list <a:IThink:933315875501641739>", view = Interface.Confirmation(ctx, yes, no), ephemeral = True)    
-        else:
-            Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to remove tag ─ \"**{tag_deets}**\" (`{id}`) from your list <a:IThink:933315875501641739>", view = Interface.Confirmation(ctx, yes, no), ephemeral = False)    
+        Confirmation.response = await ctx.send(f"Are you sure you want to remove tag ─ \"**{tag_deets}**\" (`{id}`) from your list <a:IThink:933315875501641739>", view = Confirmation(ctx, yes, no))   
 
-    async def tag_transfer(self, ctx, tag_id : int, user : discord.Member):
-        pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
+    async def tag_transfer(self, ctx : GeraltContext, tag_id : int, user : discord.Member):
         tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", tag_id, ctx.guild.id)
         if user is None:
             return await ctx.send(f"Please mention a user to transfer the ownership of the tag.")
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
-            if interaction.user != ctx.author:
-                return interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
             if id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2", tag_id, ctx.author.id):
@@ -256,24 +215,19 @@ class Tags(commands.Cog):
                 await ui.response.edit(content = f"\"**{tag_deets}**\" (`{tag_id}`) ─ has been successfully transferred to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
-            if interaction.user != ctx.author:
-                return interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = f"\"**{tag_deets}**\" (`{tag_id}`) ─ will not be transfered to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
 
-        if ctx.interaction:
-            Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to \"transfer\" tag ─ \"**{tag_deets}**\" (`{tag_id}`) to {user.mention} <:SIDGoesHmmMan:967421008137056276>", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions, ephemeral = True)    
-        else:
-            Interface.Confirmation.response = await ctx.reply(f"Are you sure you want to \"transfer\" tag ─ \"**{tag_deets}**\" (`{tag_id}`) to {user.mention} <:SIDGoesHmmMan:967421008137056276>", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions, ephemeral = False)    
+            Confirmation.response = await ctx.reply(f"Are you sure you want to \"transfer\" tag ─ \"**{tag_deets}**\" (`{tag_id}`) to {user.mention} <:SIDGoesHmmMan:967421008137056276>", view = Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)    
 
     async def autocomplete(self, interaction : discord.Interaction, current : str) -> typing.List[app_commands.Choice[str]]:
         tag_deets = await self.bot.db.fetch("SELECT (name) FROM tags WHERE guild_id = $1", interaction.guild_id)
         names = [f"{deets[0]}" for deets in tag_deets]
         return [app_commands.Choice(name = names, value = names) for names in names if current.lower() in names]
 
-    async def edit_autocomplete(self, interaction : discord.Interaction, current : int) -> typing.List[app_commands.Choice[int]]:
+    async def edit_or_transfer_autocomplete(self, interaction : discord.Interaction, current : int) -> typing.List[app_commands.Choice[int]]:
         tag_deets = await self.bot.db.fetch("SELECT (id) FROM tags WHERE guild_id = $1 AND author_id = $2 ORDER BY id DESC", interaction.guild_id, interaction.user.id)
         ids = [deets[0] for deets in tag_deets]
         return [app_commands.Choice(name = ids, value = ids) for ids in ids]
@@ -285,22 +239,21 @@ class Tags(commands.Cog):
         with_app_command = True)
     @commands.guild_only()
     @app_commands.guild_only()
-    async def tag(self, ctx, *, tag_name : str = None):
+    async def tag(self, ctx : GeraltContext, *, tag_name : str = None):
         """Make me to say something upon being invoking a trigger"""
         if not tag_name:
-            return await ctx.send_help(ctx.command)
+            return await ctx.command_help()
         if ctx.invoked_subcommand is None:
-            await self.tag_call(ctx, tag_name)
-            return
+            return await self.tag_call(ctx, tag_name)
     
     @tag.command(
         name = "make",
         brief = "Make a tag",
         aliases = ["add"],
-        with_app_command = True)
-    async def tag_make(self, ctx):
-        f"""Create a tag for `{ctx.guild}`"""
-        await Interface.TagButton(self.bot, ctx).send(ctx)
+        with_app_command = False)
+    async def tag_make(self, ctx : GeraltContext):
+        """Make a tag."""
+        await TagButton(self.bot, ctx).send(ctx)
 
     @tag.command(
         name = "raw",
@@ -310,7 +263,8 @@ class Tags(commands.Cog):
     @app_commands.describe(tag_name = "Choose a tag to view in raw format")
     @app_commands.rename(tag_name = "name")
     @app_commands.autocomplete(tag_name = autocomplete)
-    async def _raw(self, ctx, *, tag_name : str):
+    async def _raw(self, ctx : GeraltContext, *, tag_name : str):
+        """See the tag without any markdown present."""
         await self.tag_raw(ctx, tag_name = tag_name)
     
     @tag.command(
@@ -319,13 +273,17 @@ class Tags(commands.Cog):
         aliases = ["l"],
         with_app_command = True)    
     @app_commands.describe(user = "Get a list of tags present by the user you mentioned.")
-    async def _list(self, ctx, *, user : typing.Optional[typing.Union[discord.User, discord.Member]]):
+    async def _list(self, ctx : GeraltContext, *, user : typing.Optional[typing.Union[discord.User, discord.Member]]):
+        """Get a list of all tags owned by a user in this guild.
+        ────
+        If `user` is not passed in, you will receive a list of your tags."""
         await self.tag_list(ctx, user = user)
     
     @tag.command(
         name = "all",
         brief = "Send guild's tags list")
-    async def _all(self, ctx):
+    async def _all(self, ctx : GeraltContext):
+        """Get a list of all tags present in this guild."""
         await self.tag_all(ctx)
     
     @tag.command(
@@ -335,19 +293,21 @@ class Tags(commands.Cog):
     @app_commands.autocomplete(tag_name = autocomplete)
     @app_commands.describe(tag_name = "Get information on a tag.")
     @app_commands.rename(tag_name = "name")
-    async def _info(self, ctx, *, tag_name : str):
+    async def _info(self, ctx : GeraltContext, *, tag_name : str):
+        """Get entire details of a tag in this guild."""
         await self.tag_info(ctx, tag_name = tag_name)
 
     @tag.command(
         name = "edit",
         brief = "Edit a tag",
         with_app_command = True)
-    @app_commands.autocomplete(tag_id = edit_autocomplete)
+    @app_commands.autocomplete(tag_id = edit_or_transfer_autocomplete)
     @app_commands.describe(tag_id = "ID of the tag you want to edit")
     @app_commands.describe(edited_content = "New content that you want to display upon the tag being called.")
     @app_commands.rename(edited_content = "content")
     @app_commands.rename(tag_id = "id")
-    async def _edit(self, ctx, tag_id : int, *, edited_content : str):
+    async def _edit(self, ctx : GeraltContext, tag_id : int, *, edited_content : str):
+        """Edit a tags content which you own in this guild."""
         await self.tag_edit(ctx, tag_id = tag_id, edited_content = edited_content)
 
     @tag.command(
@@ -357,24 +317,33 @@ class Tags(commands.Cog):
         with_app_command = True)
     @app_commands.describe(tag_id = "Provide the tag id of which you want to delete.")
     @app_commands.rename(tag_id = "id")
-    async def _remove(self, ctx, tag_id : int):
+    async def _remove(self, ctx : GeraltContext, tag_id : int):
+        """Delete a tag you own in this guild."""
         await self.tag_remove(ctx, id = tag_id)
     
     @tag.command(
         name = "transfer",
         brief = "Transfer Ownership",
         with_app_command = True)
+    @app_commands.autocomplete(tag_id = edit_or_transfer_autocomplete)
     @app_commands.describe(tag_id = "Provide the ID of the tag you want to transfer to.")
     @app_commands.describe(user = "Mention the user you want to transfer the tag to ")
     @app_commands.rename(tag_id = "id")
-    async def _transfer(self, ctx, tag_id : int, *, user : discord.Member):
+    async def _transfer(self, ctx : GeraltContext, tag_id : int, *, user : discord.Member):
+        """Transfer a tag you own to another user in this guild."""
         await self.tag_transfer(ctx, tag_id = tag_id, user = user)
     
     @tag.command(
         name = "import",
         with_app_command = False)
-    async def tag_import(self, ctx, *, flag : typing.Optional[TagFlags]):
-        """Import tags from other guilds"""
+    async def tag_import(self, ctx : GeraltContext, *, flag : typing.Optional[TagFlags]):
+        """Import tags from other guilds.
+        ────
+        **Flags Present :**
+        `--tag` : ID of the tag
+        `--guild` : ID of the guild
+        **Example :**
+        `.gtag import --tag <int> --guild <int>`"""
         if not flag:
             return await ctx.reply("Please pass in `--tag <int>` and `--guild <int>`")
         if flag:
@@ -393,6 +362,3 @@ class Tags(commands.Cog):
                 await ctx.reply(f"Successfully transferred :\n\n> Tag Name : \"`{tag_deets[0]}`\"\n> Tag ID : `{id}`", view = ImportedContent())
             except PSQL.UniqueViolationError:
                 return await ctx.send(f"`{tag_deets[0]}` is a tag which is already present in \"**{ctx.guild}**\"")
-            
-async def setup(bot):
-    await bot.add_cog(Tags(bot))

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .Help import CustomHelp
+from .help import Help
 
 async def setup(bot):
-    await bot.add_cog(CustomHelp(bot))
+    await bot.add_cog(Help(bot))

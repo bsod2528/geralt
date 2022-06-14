@@ -1,6 +1,6 @@
 # Has required flags for Server and User Info Commands
 def user_perms(permissions):
-    perms_list  =   []
+    perms_list = []
     if permissions.administrator:
         perms_list.append("Admin")
         return["Admin"]
@@ -49,43 +49,43 @@ def user_perms(permissions):
     return perms_list
 
 def user_badges(user, fetch_user):
-    user_flags  =   user.public_flags
-    flags       =   dict(user_flags)
-    flags_emote =   ""
+    user_flags = user.public_flags
+    flags = dict(user_flags)
+    flags_emote = ""
 
     if flags["staff"] is True:
-        flags_emote  =   f"{flags_emote} <:DiscordStaff:905668211163406387> `Staff`"
+        flags_emote = f"{flags_emote} <:DiscordStaff:905668211163406387> `Staff`"
         
     if flags["partner"] is True:
-        flags_emote  =   f"{flags_emote} <a:DiscordPartner:905674460118540308> `Partner`"
+        flags_emote = f"{flags_emote} <a:DiscordPartner:905674460118540308> `Partner`"
         
     if flags["hypesquad"] is True:
-        flags_emote  =   f"{flags_emote} <a:WumpusHypesquad:905661121501990923> `Hypesquad`"
+        flags_emote  = f"{flags_emote} <a:WumpusHypesquad:905661121501990923> `Hypesquad`"
         
     if flags["bug_hunter"] is True:
-        flags_emote  =   f"{flags_emote} <:BugHunter:905668417372180540> `Bug Hunter`"
+        flags_emote  = f"{flags_emote} <:BugHunter:905668417372180540> `Bug Hunter`"
         
     if flags["hypesquad_bravery"] is True:
-        flags_emote  =   f"{flags_emote} <:Bravery:905661473940979732> `Hypesquad Bravery`"
+        flags_emote = f"{flags_emote} <:Bravery:905661473940979732> `Hypesquad Bravery`"
         
     if flags["hypesquad_brilliance"] is True:
-        flags_emote  =   f"{flags_emote} <:Brilliance:905661426373373962> `Hypesquad Brilliance`"
+        flags_emote = f"{flags_emote} <:Brilliance:905661426373373962> `Hypesquad Brilliance`"
         
     if flags["hypesquad_balance"] is True:
-        flags_emote  =   f"{flags_emote} <:Balance:932965710337019924> `Hypesquad Balance`"
+        flags_emote = f"{flags_emote} <:Balance:932965710337019924> `Hypesquad Balance`"
         
     if flags["early_supporter"] is True:
-        flags_emote  =   f"{flags_emote} <:EarlySupporter:905674700955467806> `Early Supporter`"
+        flags_emote = f"{flags_emote} <:EarlySupporter:905674700955467806> `Early Supporter`"
         
     if user.premium_since or user.avatar.is_animated():
-        flags_emote  =   f"{flags_emote} <:WumpusNitro:905674712590454834> `Nitro Subscriber`"
+        flags_emote = f"{flags_emote} <:WumpusNitro:905674712590454834> `Nitro Subscriber`"
         
     if user.premium_since:
-        flags_emote  =   f"{flags_emote} <a:Nitro:905661661191479326> `Server Booster`"
+        flags_emote = f"{flags_emote} <a:Nitro:905661661191479326> `Server Booster`"
         
     if flags["verified_bot_developer"] is True:
-        flags_emote  =   f"{flags_emote} <:VerifiedDev:905668791831265290> `Early Verified Bot Dev.`"
+        flags_emote = f"{flags_emote} <:VerifiedDev:905668791831265290> `Early Verified Bot Dev.`"
         
-    if flags_emote   ==  "" : flags_emote = None
+    if flags_emote == "" : flags_emote = None
     
     return flags_emote

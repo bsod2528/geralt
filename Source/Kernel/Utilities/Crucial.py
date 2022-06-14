@@ -73,14 +73,14 @@ class TabulateData:
             self.add_rows(row)
 
     def render(self):
-        sep = "+".join("-"* w for w in self._widths)
-        sep = f"+{sep}+"
+        sep = "─".join("─"* w for w in self._widths)
+        sep = f"│─{sep}─│"
         
         to_draw = [sep]
 
         def get_entry(d):
-            elem = "|".join(f"{e:^{self._widths[i]}}" for i, e in enumerate(d))
-            return f"|{elem}|"
+            elem = "│".join(f"{e:^{self._widths[i]}}" for i, e in enumerate(d))
+            return f"│{elem}│"
 
         to_draw.append(get_entry(self._columns))
         to_draw.append(sep)

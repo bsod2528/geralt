@@ -5,77 +5,101 @@ import aiohttp
 import asyncio
 import discord
 import textwrap
-import humanize
 import traceback
 import contextlib
 
 from types import NoneType
 from discord.ext import commands
-from discord.enums import ButtonStyle
 
-from bot import COGS_EXTENSIONS, CONFIG
-import Source.Kernel.Views.Paginator as Paginator
-import Source.Kernel.Utilities.Crucial as crucial
-import Source.Kernel.Views.Interface as Interface
+from ...kernel.views.paginator import Paginator
+from ...kernel.views.meta import Leave, Confirmation
+from ...kernel.subclasses.context import GeraltContext
+from ...kernel.utilities.crucial import Plural, TabulateData
+from ...kernel.subclasses.bot import CONFIG, COGS_EXTENSIONS, Geralt
 
 class SyncFlag(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
     cosmic : str = NoneType
 
 class Developer(commands.Cog):
-    """Developer Commands"""
-    def __init__(self, bot):
+    """Developer Commands [ Bot owners only ]"""
+    def __init__(self, bot : Geralt):
         self.bot = bot
+    
+    @property
+    def emote(self) -> discord.PartialEmoji:
+        return discord.PartialEmoji(name = "Dev", id = 905750348457738291, animated = True)   
     
     def cleanup_code(self, content):
         """Automatically removes code blocks from the code."""
         if content.startswith('```') and content.endswith('```'):
             return '\n'.join(content.split('\n')[1:-1])
         return content.strip('` \n')
+
+    @commands.group(
+        name = "no-prefix",
+        brief = "Sets prefix to \" \"",
+        aliases = ["np"])
+    @commands.is_owner()
+    async def no_prefix(self, ctx : GeraltContext):
+        if ctx.invoked_subcommand is None:
+            self.bot.no_prefix = True
+            await ctx.add_nanotick()
     
+    @no_prefix.command(
+        name = "enable",
+        brief = "Enables No Prefix",
+        aliases = ["e"])
+    async def no_prefix_enable(self, ctx : GeraltContext):
+        self.bot.no_prefix = True
+        await ctx.add_nanotick()
+    
+    @no_prefix.command(
+        name = "disable",
+        brief = "Disables No Prefix",
+        aliases = ["d"])
+    async def no_prefix_disable(self, ctx : GeraltContext):
+        self.bot.no_prefix = False
+        await ctx.add_nanotick()
+
     # Shuts the bot down in a friendly manner.
     @commands.command(
         name = "die",
         brief = "Eternal Sleep",
         aliases = ["snap"])
     @commands.is_owner()
-    async def die(self, ctx : commands.Context):
+    async def die(self, ctx : GeraltContext):
         """Sends the bot to eternal sleep"""
-        pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
-            if interaction.user != ctx.author:
-                await interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = "Okay then, I shall go to eternal sleep", view = ui, allowed_mentions = self.bot.mentions)
             async with aiohttp.ClientSession() as session:
                 death_webhook = discord.Webhook.partial(id = CONFIG.get("NOTIF_ID"), token = CONFIG.get("NOTIF_TOKEN"), session = session)
-                await death_webhook.send(content = f"<:GeraltRightArrow:904740634982760459> Going to die right at {self.bot.datetime(discord.utils.utcnow(), style = 'F')} Byee <a:Byee:915568796536815616>\n```prolog\nNo. of Users ─ {len(list(self.bot.get_all_members()))}\nNo. of Guilds ─ {len(self.bot.guilds)}\nDying at ─ {time.strftime('%c', time.gmtime())}```───\n|| Break Point ||")
+                await death_webhook.send(content = f"<:GeraltRightArrow:904740634982760459> Going to die right at {self.bot.timestamp(discord.utils.utcnow(), style = 'F')} Byee <a:Byee:915568796536815616>\n```prolog\nNo. of Users ─ {len(list(self.bot.get_all_members()))}\nNo. of Guilds ─ {len(self.bot.guilds)}\nDying at ─ {time.strftime('%c', time.gmtime())}```───\n|| Break Point ||")
                 await session.close()
             await self.bot.close()
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
-            if interaction.user != ctx.author:
-                await interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = "Seems like I'm gonna be alive for a bit longer", view = ui, allowed_mentions = self.bot.mentions)
         async with ctx.channel.typing():
             await asyncio.sleep(0.1)
-            Interface.Confirmation.response = await ctx.reply("Do you want to kill me?", view = Interface.Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
+            Confirmation.response = await ctx.reply("Do you want to kill me?", view = Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
 
     @commands.command(
         name = "dm", 
         brief = "dm them")
     @commands.is_owner()
-    async def dm(self, ctx, user : discord.User, *, message : str):
+    async def dm(self, ctx : GeraltContext, user : discord.User, *, message : str):
         """DM a particular user."""
         try:
             view = discord.ui.View()
             view.add_item(discord.ui.Button(label = "Support", style = discord.ButtonStyle.link, url = "https://discord.gg/JXEu2AcV5Y", emoji = "<a:BotLurk:905749164355379241>"))
             await user.send(f"<:GeraltRightArrow:904740634982760459> You have received a DM from **{ctx.author}**. If you have any queries, join our support server :\n\n>>> ─────\n{message}\n─────", view = view)
-            await ctx.message.add_reaction("<:NanoTick:925271358735257651>")
+            await ctx.add_nanotick()
         except Exception as exception:
             await ctx.send(exception)
 
@@ -85,7 +109,7 @@ class Developer(commands.Cog):
         brief   =   "Run Code",
         aliases =   ["e"])
     @commands.is_owner()
-    async def eval(self, ctx : commands.context, *, body : str):
+    async def eval(self, ctx : GeraltContext, *, body : str):
         """Running both asynchronous and sychronous programs"""
         environment = {
             "ctx" : ctx,
@@ -134,10 +158,10 @@ class Developer(commands.Cog):
         brief = "Loads Cog",
         aliases = ["l"])
     @commands.is_owner()
-    async def load(self, ctx : commands.context, *, cog : str):
+    async def load(self, ctx : GeraltContext, *, cog : str):
         """Loads the Extension mentioned."""
         try:
-            await self.bot.load_extension(f"Source.Cogs.{cog}")
+            await self.bot.load_extension(f"source.cogs.{cog}")
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
             await ctx.reply(f"\"**{cog}**\" : Successfully Loaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
@@ -152,10 +176,10 @@ class Developer(commands.Cog):
         brief = "Unloads Cog",
         aliases = ["ul"])
     @commands.is_owner()
-    async def unload(self, ctx : commands.context, *, cog : str):
+    async def unload(self, ctx : GeraltContext, *, cog : str):
         """Unloads the Extension mentioned."""
         try:
-            await self.bot.unload_extension(f"Source.Cogs.{cog}")
+            await self.bot.unload_extension(f"source.cogs.{cog}")
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
             await ctx.reply(f"\"**{cog}**\" : Successfully Unloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
@@ -170,7 +194,7 @@ class Developer(commands.Cog):
         brief = "Reloads Cog",
         aliases = ["rl"])
     @commands.is_owner()
-    async def reload(self, ctx : commands.context, *, cog : str = None):
+    async def reload(self, ctx : GeraltContext, *, cog : str = None):
         """Reloads the Extension mentioned."""
         if cog is None:
             try:
@@ -183,7 +207,7 @@ class Developer(commands.Cog):
                     await ctx.reply(f"Couldn't reload all the extensions : \n```py\n{exception}\n```", allowed_mentions = self.bot.mentions)
         else:
             try:
-                await self.bot.reload_extension(f"Source.Cogs.{cog}")
+                await self.bot.reload_extension(f"source.cogs.{cog}")
                 async with ctx.channel.typing():
                     await asyncio.sleep(0.1)
                 await ctx.reply(f"\"**{cog}**\" : Successfully Reloaded <:RavenPray:914410353155244073>", allowed_mentions = self.bot.mentions)
@@ -198,71 +222,63 @@ class Developer(commands.Cog):
         brief = "Simple Dev Stuff",
         aliases = ["devmode"])
     @commands.is_owner()
-    async def dev(self, ctx):
+    async def dev(self, ctx : GeraltContext):
         """Simple commands for dev to do"""
         if ctx.invoked_subcommand is None:
-            await ctx.send_help(ctx.command)
+            await ctx.command_help()
 
     @dev.command(
         name  = "total-guilds",
         aliases = ["tg"],
         brief = "Sends Guild List")
-    async def total_guilds(self, ctx):
+    async def total_guilds(self, ctx : GeraltContext):
         """Sends the entire guild list."""
         await ctx.reply(f"Currently in `{len(self.bot.guilds)}` Guilds.", allowed_mentions = self.bot.mentions)
         await ctx.send(f" ".join([f"> │ ` ─ ` \"{g.name}\" : {g.owner.mention} (`{g.id}`)\n" for g in self.bot.guilds]) + "", allowed_mentions = self.bot.mentions)
   
     @dev.command(
         name = "on",
-        brief = "Sets Status Offline")
-    async def on(self, ctx):
-        """Sets the bot status as Invisible"""
+        brief = "Sets Developer Mode On")
+    async def on(self, ctx : GeraltContext):
+        """Sets Developer Mode On"""
+        self.bot.developer_mode = True
         await self.bot.change_presence(
             status = discord.Status.invisible)
         await ctx.message.add_reaction("<:Offline:905757032521551892>")
 
     @dev.command(
         name = "off",
-        brief = "Sets Status Idle")
-    async def off(self, ctx):
-        """Sets the bot status as Idle"""
+        brief = "Sets Developer Mode Off")
+    async def off(self, ctx : GeraltContext):
+        """Sets Developer Mode Off"""
+        self.bot.developer_mode = False
         await self.bot.change_presence(
             status = discord.Status.idle,
             activity = discord.Activity(type = discord.ActivityType.listening, name = ".ghelp"))
         await ctx.message.add_reaction("<:Idle:905757063064453130>")
-  
-    @dev.command(
-        name = "leave",
-        brief = "Leaves Guild")
-    async def off(self, ctx, *, guild_id : int):
-        """Leaves from a specified guild"""
-        guild = await self.bot.fetch_guild(guild_id)
-        await guild.leave()
-        await ctx.reply(f"Left **{guild}** on {self.bot.datetime(discord.utils.utcnow(), style = 'F')}")
     
     @dev.command(
         name = "alltags",
         brief = "Sends all tags",
         aliases = ["at"])
-    async def all_tags(self, ctx):
+    async def all_tags(self, ctx : GeraltContext):
         """Sends tags from all guilds"""
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags ORDER BY id")
         tag_list = []
         serial_no = 1
         for tags in tag_fetch:
-            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : \"**{tags['author_name']}**\" (`{tags['author_id']}`)\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.datetime(tags['created_on'], style = 'R')}\n────\n")
+            tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : \"**{tags['author_name']}**\" (`{tags['author_id']}`)\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.timestamp(tags['created_on'], style = 'R')}\n────\n")
             serial_no += 1
         else:
-            # Huge thanks to Zeus432 [ Github ID ] for helping me enable the pagination :D
             embed_list = []
             while tag_list:
                 tag_list_emb = discord.Embed(
                     title = f"Global Tag List :",
-                    description = "".join(tag_list[:3]),
+                    description = "".join(tag_list[:5]),
                     colour = self.bot.colour)
                 tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
                 tag_list_emb.timestamp = discord.utils.utcnow()
-                tag_list = tag_list[3:]
+                tag_list = tag_list[5:]
                 embed_list.append(tag_list_emb)     
             await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
 
@@ -271,104 +287,50 @@ class Developer(commands.Cog):
         brief = "Get guild information",
         aliases = ["fg"])
     @commands.is_owner()
-    async def guild_fetch(self, ctx : commands.context, *, guild : discord.Guild):
-        """Get entire details about the guild."""
-        fetched_guild = await ctx.bot.fetch_guild(guild.id)
-        user_status = [
-                        len(list(filter(lambda u : str(u.status) == "online", guild.members))),
-                        len(list(filter(lambda u : str(u.status) == "idle", guild.members))),
-                        len(list(filter(lambda u : str(u.status) == "dnd", guild.members))),
-                        len(list(filter(lambda u : str(u.status) == "offline", guild.members)))
-                      ]
-        
-        general_emb = discord.Embed(
+    async def guild_fetch(self, ctx : GeraltContext, *, guild : discord.Guild):
+        """Get entire details about the guild."""        
+        fetched_guild = await self.bot.fetch_guild(guild.id)
+        fetched_guild_emb = discord.Embed(
             title = f":scroll: {guild.name}'s Information",
             colour = self.bot.colour)
-        general_emb.add_field(
+        fetched_guild_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> General Information :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:Owner:905750348457738291> Owner :** {guild.owner.mention} (`{guild.owner.id}`) \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Users:905749451350638652> No. of Roles :** `{len(guild.roles)}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Info:905750331789561856> Identification No. :** `{guild.id}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Verify:905748402871095336> Verification Level :** {str(guild.verification_level).replace('_', ' ').replace('`None`', '`Nill`').title()} \n" \
-                    f"> **<:Reply:930634822865547294> - <:WinFileBruh:898571301986373692> File Transfer Limit:** `{humanize.naturalsize(guild.filesize_limit)}`")
-        general_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Initialisation :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:Woo:905754435379163176> Made On :** {self.bot.datetime(guild.created_at)} \n" \
-                    f"> **<:Reply:930634822865547294> - <:ISus:915817563307515924> Media Filteration :** For `{str(guild.explicit_content_filter).replace('_',' ').replace('`None`', '`Nill`').title()}` \n",
-            inline = False)
-        general_emb.set_thumbnail(url = guild.icon.url)
-        general_emb.timestamp = discord.utils.utcnow()
-
-        other_emb = discord.Embed(
-            title = f":scroll: {guild.name}'s Other Information",
-            colour = self.bot.colour)
-        other_emb.add_field(
+            value = f"> **Owner :** {guild.owner} (`{guild.owner.id}`) \n" \
+                    f"> **Identification No. :** `{guild.id}` \n" \
+                    f"> **Made On :** {self.bot.timestamp(guild.created_at)} \n" \
+                    f"> **Joined On :** {self.bot.timestamp(guild.me.joined_at)}")
+        fetched_guild_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> Channel Information :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <:Channel:905674680436944906> Text :** `{len(guild.text_channels)}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <:Voice:905746719034187796> Voice :** `{len(guild.voice_channels)}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:Thread:905750997706629130> Threads :** `{len(guild.threads)}` \n" \
-                    f"> **<:Reply:930634822865547294> - <:StageChannel:905674422839554108> Stage :** `{len(guild.stage_channels)}` \n",
+            value = f"> **Text :** `{len(guild.text_channels)}` \n" \
+                    f"> **Voice :** `{len(guild.voice_channels)}` \n" \
+                    f"> **Threads :** `{len(guild.threads)}` \n" \
+                    f"> **Stage :** `{len(guild.stage_channels)}` \n",
             inline = False)
-        other_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Emotes Present :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:IThink:933315875501641739> Animated :** `{len([animated for animated in guild.emojis if animated.animated])}` / `{guild.emoji_limit}` \n" \
-                    f"> **<:Reply:930634822865547294> - <:BallManHmm:933398958263386222> Non - Animated :** `{len([non_animated for non_animated in guild.emojis if not non_animated.animated])}` / `{guild.emoji_limit}`",
-            inline = False)
-        other_emb.set_thumbnail(url = guild.icon.url)
-        other_emb.timestamp = discord.utils.utcnow()
-
-        user_emb = discord.Embed(
-            title = f":scroll: {guild.name}'s Users Information",
-            colour = self.bot.colour)
-        user_emb.add_field(
+        fetched_guild_emb.add_field(
             name = "<:GeraltRightArrow:904740634982760459> No. of User :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <a:HumanBro:905748764432662549> No. of Humans :** `{len(list(filter(lambda U : U.bot is False, guild.members)))}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <a:BotLurk:905749164355379241> No. of Bots :** `{len(list(filter(lambda U : U.bot, guild.members)))}` \n" \
-                    f"> **<:Reply:930634822865547294> - <a:Users:905749451350638652> Total :** `{guild.member_count}` \n",
+            value = f"> **No. of Humans :** `{len(list(filter(lambda U : U.bot is False, guild.members)))}` \n" \
+                    f"> **No. of Bots :** `{len(list(filter(lambda U : U.bot, guild.members)))}` \n" \
+                    f"> **Total :** `{guild.member_count}` \n",
             inline = False)
-        user_emb.add_field(
-            name = "<:GeraltRightArrow:904740634982760459> Activity Information :",
-            value = f"> **<:ReplyContinued:930634770004725821> - <:Online:905757053119766528> Online :** `{user_status[0]}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <:Idle:905757063064453130> Idle :** `{user_status[1]}` \n" \
-                    f"> **<:ReplyContinued:930634770004725821> - <:DnD:905759353141874709> Do Not Disturb :** `{user_status[2]}` \n" \
-                    f"> **<:Reply:930634822865547294> - <:Offline:905757032521551892> Offline :** `{user_status[3]}`",
-            inline = False)
-        user_emb.set_thumbnail(url = guild.icon.url)
-        user_emb.timestamp = discord.utils.utcnow()
-    
-        icon_emb = discord.Embed(
-            title = f":scroll: {guild.name}'s Icon",
-            description = f"[**JPG Format**]({guild.icon.with_static_format('jpg')}) **|** [**PNG Format**]({guild.icon.with_static_format('png')}) **|** [**WEBP Format**]({guild.icon.with_static_format ('webp')})",
-            colour = self.bot.colour)
-        icon_emb.set_image(url = guild.icon.url)
-        icon_emb.timestamp = discord.utils.utcnow()
-
-        banner_emb = None
+        fetched_guild_emb.set_thumbnail(url = guild.icon.url)
+        fetched_guild_emb.timestamp = discord.utils.utcnow()
 
         if fetched_guild.banner is None:
-            embed_list = [general_emb, other_emb, user_emb, icon_emb]
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
+            await ctx.reply(embed = fetched_guild_emb, mention_author = False, view = Leave(ctx, guild))
         else:
-            banner_emb = discord.Embed(
-                title = f":scroll: {guild.name}'s Banner",
-                description = f"[**Download Banner Here**]({fetched_guild.banner.url})",
-                colour = self.bot.colour)
-            banner_emb.set_image(url = fetched_guild.banner.url)
-            banner_emb.timestamp = discord.utils.utcnow()
-            
-            embed_list = [general_emb, other_emb, user_emb, icon_emb, banner_emb]
+            fetched_guild_emb.set_image(url = fetched_guild.banner.url)
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
-  
+            await ctx.reply(embed = fetched_guild_emb, mention_author = False, view = Leave(ctx, guild))
+        
     # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
     @commands.command(
         name = "sql",
         brief = "Query DB")
     @commands.is_owner()
-    async def sql(self, ctx : commands.context, *, query : str):
+    async def sql(self, ctx : GeraltContext, *, query : str):
         """Run SQL Queries"""
         query = self.cleanup_code(query)
         
@@ -389,7 +351,7 @@ class Developer(commands.Cog):
             return await ctx.send(f"<:GeraltRightArrow:904740634982760459> No records were for found for the following query : ```sql\n{query}\n```")
 
         headers = list(results[0].keys())
-        table = crucial.TabulateData()
+        table = TabulateData()
         table.columns(headers)
         table.rows_added(list(r.values()) for r in results)
         rendered = table.render()
@@ -397,27 +359,117 @@ class Developer(commands.Cog):
         final = f"{rendered}\n"
         async with ctx.channel.typing():
             await asyncio.sleep(0.1)
-        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {crucial.Plural(rows):row} in {latency:.2f}ms", file = discord.File(io.StringIO(final), filename = "Query-Result.sql"), allowed_mentions = self.bot.mentions)
+        await ctx.reply(f"<:GeraltRightArrow:904740634982760459> Returned {Plural(rows):row} in {latency:.2f}ms", file = discord.File(io.StringIO(final), filename = "Query-Result.sql"), allowed_mentions = self.bot.mentions)
       
     @commands.command(
         name = "sync",
         brief = "Sync App Commands")
     @commands.is_owner()
-    async def cmd_sync(self, ctx, *, flag : typing.Optional[SyncFlag]):
+    async def cmd_sync(self, ctx : GeraltContext, *, flag : typing.Optional[SyncFlag]):
+        """Syncs application commands.
+        ────
+        **Flags Present :**
+        `--cosmos` : When passed syncs globally
+        **Example :**
+        `.gsync [--cosmos]`"""
         if not flag:
             try:
                 await self.bot.tree.sync(guild = discord.Object(id = 889522892088410142))
                 await ctx.message.add_reaction("<:DuckThumbsUp:917007413259956254>")
             except Exception:
-                message =  await ctx.reply(f"```py\n{Exception}\n```")
+                message = await ctx.reply(f"```py\n{Exception}\n```")
                 await message.add_reaction("<a:LifeSucks:932255208044650596>")
         if flag:
             try:
                 await self.bot.tree.sync()
                 await ctx.message.add_reaction("<:DuckThumbsUp:917007413259956254>")
             except Exception:
-                message =  await ctx.reply(f"```py\n{Exception}\n```")
+                message = await ctx.reply(f"```py\n{Exception}\n```")
                 await message.add_reaction("<a:LifeSucks:932255208044650596>")
 
-async def setup(bot):
-    await bot.add_cog(Developer(bot))
+    @commands.group(
+        name = "blacklist",
+        brief = "Blacklist People",
+        aliases = ["bl"])
+    @commands.is_owner()
+    async def blacklist(self, ctx : GeraltContext):
+        """Group of commands to block people from using me."""
+        if ctx.invoked_subcommand is None:
+            await ctx.command_help()
+    
+    @blacklist.command(
+        name = "add",
+        brief = "Add them to the list")
+    async def blacklist_add(self, ctx : GeraltContext, user : typing.Union[discord.User, discord.Member], *, reason : str = None):
+        reason = reason or "Not Specified"
+        try:
+            await self.bot.add_to_blacklist(user, reason, ctx.message.jump_url)
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label = "Support", style = discord.ButtonStyle.link, url = "https://discord.gg/JXEu2AcV5Y", emoji = "<a:BotLurk:905749164355379241>"))
+            content = f"Dear **{user.mention}** <:SarahPray:920484222421045258> You have been blacklisted by **{ctx.author}**. Hence you are blocked from using my commands." \
+                      f" To appeal please contact **{ctx.author}** via my support server. The reason for which you have been blacklisted is given below :\n\n" \
+                      f">>> ─────\n{reason}\n─────"
+            try:
+                await user.send(content = content, view = view)
+            except Exception:
+                await ctx.send(content = content, view = view)
+            await ctx.add_nanotick()
+        except KeyError:
+            await ctx.reply(f"**{user}** has already been blacklisted.")
+            await ctx.add_nanocross()
+        except Exception:
+            await ctx.send(Exception)
+
+    @blacklist.command(
+        name = "remove",
+        brief = "Remove them from the list")
+    async def blacklist_remove(self, ctx : GeraltContext, user : typing.Union[discord.User, discord.Member]):
+        try:
+            await self.bot.remove_from_blacklist(user)
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label = "Support", style = discord.ButtonStyle.link, url = "https://discord.gg/JXEu2AcV5Y", emoji = "<a:BotLurk:905749164355379241>"))
+            content = f"Dear **{user.mention}** <:SarahPray:920484222421045258> You have been removed from blacklisting by **{ctx.author}**. You are now eligible to run all of my commands."         
+            try:
+                await user.send(content = content, view = view)
+            except Exception:
+                await ctx.send(content = content, view = view)
+            await ctx.add_nanotick()
+        except KeyError:
+            await ctx.reply(f"**{user}** has already been whitelisted.")
+            await ctx.add_nanocross()
+        except Exception:
+            await ctx.send(Exception)
+    
+    @blacklist.command(
+        name = "all",
+        brief = "Sends all blacklisted users.")
+    async def blacklisted_all(self, ctx : GeraltContext):
+        query = "SELECT user_id, reason, queried_at, jump_url FROM blacklist"
+        fetched_blacklisted_members = await self.bot.db.fetch(query)
+        blacklisted_members = []
+        serial_no = 1
+        for data in fetched_blacklisted_members:
+            user = await self.bot.fetch_user(data[0])
+            blacklisted_members.append(f"> [**{serial_no}).**]({data[3]}) ─ **{user}** (`{data[0]}`)\n> │ ` ─ ` Reason : \"{data[1]}\"\n> │ ` ─ ` Blacklisted : {self.bot.timestamp(data[2], style = 'R')}\n────\n")
+            serial_no += 1
+        if not fetched_blacklisted_members:
+            await ctx.reply("Seems like you haven't blacklisted anyone \U0001f440")
+        else:
+            if serial_no <= 2:
+                blacklisted_emb = discord.Embed(
+                    title = f"\U0001f4dc Blacklisted Users",
+                    description = f"".join(blacklisted_members),
+                    colour = self.bot.colour)
+                blacklisted_emb.timestamp = discord.utils.utcnow()
+                await ctx.reply(embed = blacklisted_emb, mention_author = False)
+            else:
+                embed_list = []
+                while blacklisted_members:
+                    blacklisted_emb = discord.Embed(
+                        title = f"\U0001f4dc Blacklisted Users",
+                        description = f"".join(blacklisted_members[:2]),
+                        colour = self.bot.colour)
+                    blacklisted_emb.timestamp = discord.utils.utcnow()
+                    blacklisted_members = blacklisted_members[2:]
+                    embed_list.append(blacklisted_emb)
+                await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)

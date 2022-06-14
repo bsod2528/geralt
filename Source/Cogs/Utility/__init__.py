@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .Utility import Utility
+from .utility import Utility
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))

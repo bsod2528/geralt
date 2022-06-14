@@ -6,16 +6,17 @@ import traceback
 from discord import app_commands
 from discord.ext import commands
 
-from bot import CONFIG
-import Source.Kernel.Views.Interface as Interface
+from ...kernel.subclasses.bot import CONFIG, Geralt
+from ...kernel.subclasses.context import GeraltContext
+from ...kernel.views.errorhandler import Traceback, CommandSyntax
 
 class ErrorHandler(commands.Cog):
     """Global Error Handling"""
-    def __init__(self, bot):
+    def __init__(self, bot : Geralt):
         self.bot = bot        
         
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx : GeraltContext, error):
 
         if hasattr(ctx.command, "on_error"):
             return
@@ -29,16 +30,16 @@ class ErrorHandler(commands.Cog):
             return
 
         if isinstance(error, commands.DisabledCommand):
-            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+            return await Traceback(self.bot, ctx, error).send()
     
         if  isinstance(error, commands.BotMissingPermissions):
-            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+            return await Traceback(self.bot, ctx, error).send()
         
         if isinstance(error, commands.MissingPermissions):
-            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+            return await Traceback(self.bot, ctx, error).send()
         
         if isinstance(error, commands.NoPrivateMessage):
-            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+            return await Traceback(self.bot, ctx, error).send()
 
         if isinstance(error, discord.errors.NotFound):
             return
@@ -47,16 +48,16 @@ class ErrorHandler(commands.Cog):
             return
         
         if isinstance(error, commands.MissingRequiredArgument):
-            return await Interface.CommandSyntax(self.bot, ctx, error).send(ctx)
+            return await CommandSyntax(self.bot, ctx, error).send()
         
         if isinstance(error, commands.MemberNotFound):
-            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+            return await Traceback(self.bot, ctx, error).send()
 
         if isinstance(error, commands.BadArgument):
-            return await Interface.CommandSyntax(self.bot, ctx, error).send(ctx)
+            return await CommandSyntax(self.bot, ctx, error).send()
            
         if isinstance(error, commands.errors.CommandOnCooldown):
-            return await Interface.Traceback(self.bot, ctx, error).send(ctx)
+            return await Traceback(self.bot, ctx, error).send()
         
         else:
             async with aiohttp.ClientSession() as session:
