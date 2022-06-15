@@ -50,7 +50,7 @@ class HelpView(discord.ui.View):
             colour = self.help.context.bot.colour)
         updates_emb.add_field(
             name = "Updates :",
-            value = f">>> **1).** <t:1655224433:R> ─ <a:Byee:915568796536815616> Added `{self.help.context.clean_prefix}afk`." \
+            value = f">>> **1).** <t:1655224433:R> ─ <a:Byee:915568796536815616> Added `{self.help.context.clean_prefix}afk`.\n" \
                     f"**2).** <t:1654180236:R> ─ <a:Owner:905750348457738291> Developers can now blacklist users from using the bot using `{self.help.context.clean_prefix}blacklist`. \n" \
                     f"**3).** <t:1653417000:R> ─ <a:WumpusHypesquad:905661121501990923> Added `[--size]` argument to `{self.help.context.clean_prefix}pop` \n" \
                     f"**4).** <t:1653244200:R> ─ <a:WumpusVibe:905457020575031358> `Click` and `Tag` commands have been hyrbidised. That is they have full support of the latest [**Hybrid Commands**](https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#discord.ext.commands.HybridCommand) and can be invoked with both `/tag` and `{self.help.context.clean_prefix}tag`\n" \
