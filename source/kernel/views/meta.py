@@ -7,7 +7,7 @@ import itertools
 from discord.ext import commands
 
 from ..subclasses.context import GeraltContext
-from ..utilities.crucial import total_lines as tl, misc
+from ..utilities.crucial import misc, total_lines as tl, misc
 
 COLOUR = discord.Colour.from_rgb(117, 128, 219)
 

@@ -1,6 +1,6 @@
 # Geralt : Da Bot of Rivia  
 
-<img src = "Misc\Witcher.jpg"> 
+<img src = "misc\witcher.jpg"> 
 
 ---
 ![Python](https://img.shields.io/badge/Python-316192?style=for-the-badge&logo=python&logoColor=white)

@@ -1,7 +1,5 @@
 .vscode
-Geralt-env
+geralt-env
 config.env
 __pycache__
-Lavalink/logs
-Source/Cogs/Sailsa
-Lavalink/application.yml
+source/cogs/sailsa
