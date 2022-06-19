@@ -15,6 +15,7 @@ from dotenv import dotenv_values
 from discord import app_commands
 from discord.ext import commands
 
+from .embed import BaseEmbed
 from ..views.meta import Info
 from .context import GeraltContext
 
@@ -42,7 +43,7 @@ TOKEN = CONFIG.get("TOKEN")
 DB_URL = CONFIG.get("DB_URL")
 
                 #BSOD#0067 [ME]      SID#1380 [Zeus432]
-DEVELOPER_IDS = [750979369001811982, 760823877034573864]
+DEVELOPER_IDS = [750979369001811982]#, 760823877034573864]
 
 colour.init()
 
@@ -67,19 +68,24 @@ class Geralt(commands.Bot):
             case_insensitive = True,
             strip_after_prefix = True)
 
-        self.afk : typing.Dict = {}
         self.colour = discord.Colour.from_rgb(117, 128, 219)
         self.mentions = discord.AllowedMentions.none()
-        self.timestamp = discord.utils.format_dt        
-        self.blacklist : typing.Dict = set()
-        self.owner_ids : typing.List = DEVELOPER_IDS
         self.no_prefix : bool = False
-        self.default_prefix = ".g"
+        self.timestamp = discord.utils.format_dt        
+        self.owner_ids : typing.List = DEVELOPER_IDS
         self.developer_mode : bool = False
+        self.default_prefix = ".g"
         self.add_persistent_views = False
         
-        self.prefixes = {} # Caching the prefixing so it doesn't query the DB each time a command is called.
-    
+        # Geralt's Cache
+        self.afk : typing.Dict = {}
+        self.prefixes : typing.Dict = {} 
+        self.blacklist : typing.Dict = set()
+        self.ticket_init : typing.Dict = {}
+        self.ticket_panel : typing.Dict = {}
+        self.ticket_kernel : typing.Dict = {}
+        self.ticket_message : typing.Dict = {}
+
     async def get_context(self, message : discord.Message, *, cls = GeraltContext) -> GeraltContext:
         return await super().get_context(message, cls = cls)
 
@@ -130,13 +136,16 @@ class Geralt(commands.Bot):
     async def on_ready(self):
         afk_deets = await self.db.fetch("SELECT * FROM afk")
         prefix_deets = await self.db.fetch("SELECT * FROM custom_prefix")
+        ticket_deets = await self.db.fetch("SELECT * FROM ticket_init")
+
         self.afk = {data["user_id"] : data["reason"] for data in afk_deets}
+        self.tickets = {data["guild_id"] : data["sent_message_id"] for data in ticket_deets}
         self.prefixes = {data["guild_id"] : data["guild_prefix"] for data in prefix_deets}
         
         if not self.add_persistent_views:
-            self.add_view(Info(commands.context, commands.Bot))
-            self.add_persistent_views = True    
-        
+            self.add_view(Info(self, GeraltContext))
+            self.add_persistent_views = True
+
         fetch_blacklisted_members = await self.db.fetch("SELECT user_id FROM blacklist")
         self.blacklist.add(f"{users}" for users in fetch_blacklisted_members)        
 
@@ -145,8 +154,8 @@ class Geralt(commands.Bot):
             await self.change_presence(
                 status = discord.Status.idle,
                 activity = discord.Activity(type = discord.ActivityType.listening, name = f".ghelp")) 
-            await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n" \
-                            f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
+            #await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n" \
+                            #f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
             print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Awakened {colour.Style.RESET_ALL}")
             await session.close()
 
@@ -154,20 +163,14 @@ class Geralt(commands.Bot):
         await self.wait_until_ready()
         afk_deets = await self.db.fetch("SELECT * FROM afk")
         
+        if message.author.id in self.blacklist:
+            return 
+
         if self.developer_mode is True:
             if message.author.id in self.owner_ids:
                 await self.change_presence(status = discord.Status.invisible)
                 return await self.process_commands(message)
             return
-
-        if message.content in [self.user.mention]:
-            current_prefix = await self.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", message.guild.id)
-            if not current_prefix:
-                current_prefix = ".g"
-            await message.reply(f"My prefix for **{message.guild}** : `{current_prefix}` <a:DuckPopcorn:917013065650806854>\nYou can also mention me and invoke commands too <:TokoOkay:898611996163985410>")
-
-        if message.author.id in self.blacklist:
-            return 
         
         if message.author.id in self.afk:
             for user in afk_deets:
@@ -185,6 +188,20 @@ class Geralt(commands.Bot):
                     current_time = discord.utils.utcnow() - time
                 await message.reply(f"<:Join:932976724235395072> **{pinged_user}** has been afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : {reason}\n<:Reply:930634822865547294>` ─ ` since : {humanize.naturaldelta(current_time)}")
 
+        if message.content in [self.user.mention]:
+            current_prefix = await self.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", message.guild.id)
+            if not current_prefix:
+                current_prefix = self.default_prefix
+            prefix_emb = BaseEmbed(
+                description = f"`{current_prefix}`\n`.g`\n{self.user.mention}",
+                colour = self.colour)
+            prefix_emb.set_footer(text = f"Run {current_prefix}help prefix.")
+            if message.guild.icon.url:
+                prefix_emb.set_author(name = message.guild, icon_url = message.guild.icon.url)
+            else:
+                prefix_emb.set_author(name = message.guild)
+            await message.reply(embed = prefix_emb, mention_author = False)
+            
         await self.process_commands(message)   
     
 Geralt = Geralt()

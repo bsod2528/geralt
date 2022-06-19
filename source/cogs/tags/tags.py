@@ -8,9 +8,10 @@ import asyncpg as PSQL
 from discord import app_commands
 from discord.ext import commands
 
-from ...kernel.views.tags import TagButton
+from ...kernel.views.tags import TagView
 from ...kernel.views.meta import Confirmation
 from ...kernel.views.paginator import Paginator
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.subclasses.context import GeraltContext
 
@@ -21,7 +22,7 @@ class TagFlags(commands.FlagConverter, prefix = "--", delimiter = " ", case_inse
 class Tags(commands.Cog):
     """Allows you to tag text for later retrieval."""
     def __init__(self, bot : Geralt):
-        self.bot = bot
+        self.bot : Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -66,24 +67,22 @@ class Tags(commands.Cog):
                 await ctx.reply(f"**{user}** ─ owns no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>")
         else:
             if serial_no <= 4:
-                tag_list_emb = discord.Embed(
+                tag_list_emb = BaseEmbed(
                     description = f"".join(tasks for tasks in tag_list),
                     colour = self.bot.colour)
                 tag_list_emb.set_author(name = f"{user}'s Tag List :")
                 tag_list_emb.set_thumbnail(url = user.display_avatar.url)
                 tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.", icon_url = ctx.author.display_avatar)
-                tag_list_emb.timestamp = discord.utils.utcnow()
                 await ctx.reply(embed = tag_list_emb, mention_author = False)
             else:
                 embed_list = []
                 while tag_list:
-                    tag_list_emb = discord.Embed(
+                    tag_list_emb = BaseEmbed(
                         description = "".join(tag_list[:3]),
                         colour = self.bot.colour)
                     tag_list_emb.set_author(name = f"{user}'s Tag List :")
                     tag_list_emb.set_thumbnail(url = user.display_avatar.url)
                     tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.", icon_url = ctx.author.display_avatar)
-                    tag_list_emb.timestamp = discord.utils.utcnow()
                     tag_list = tag_list[3:]
                     embed_list.append(tag_list_emb)     
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
@@ -101,24 +100,22 @@ class Tags(commands.Cog):
             await ctx.reply(f"**{user}** ─ There are no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` and you will get to know <:Okay:913796811737686086>")
         else:
             if serial_no <= 4:
-                tag_list_emb = discord.Embed(
+                tag_list_emb = BaseEmbed(
                     description = f"".join(tasks for tasks in tag_list),
                     colour = self.bot.colour)
                 tag_list_emb.set_author(name = f"{ctx.guild}'s Tag List :")
                 tag_list_emb.set_thumbnail(url = ctx.guild.icon.url)
                 tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.", icon_url = ctx.author.display_avatar)
-                tag_list_emb.timestamp = discord.utils.utcnow()
                 await ctx.reply(embed = tag_list_emb, mention_author = False)
             else:
                 embed_list = []
                 while tag_list:
-                    tag_list_emb = discord.Embed(
+                    tag_list_emb = BaseEmbed(
                         title = f"{ctx.guild}'s Tag List :",
                         description = "".join(tag_list[:3]),
                         colour = self.bot.colour)
                     tag_list_emb.set_thumbnail(url = ctx.guild.icon.url)
                     tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.", icon_url = ctx.author.display_avatar)
-                    tag_list_emb.timestamp = discord.utils.utcnow()
                     tag_list = tag_list[3:]
                     embed_list.append(tag_list_emb)     
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
@@ -131,7 +128,7 @@ class Tags(commands.Cog):
         jump_button = discord.ui.View()
         jump_button.add_item(discord.ui.Button(label = "Jump to Message", style = discord.ButtonStyle.link, url = tag_deets[5], emoji = "<a:ChainLink:936158619030941706>"))
             
-        tag_deets_emb = discord.Embed(
+        tag_deets_emb = BaseEmbed(
             title = f":scroll: {tag_owner}'s ─ Tag",
             url = tag_deets[5],
             description = f"""The following points showcase full details about the `{tag_name}` tag :
@@ -143,7 +140,6 @@ class Tags(commands.Cog):
 ────""",
             colour = self.bot.colour)
         tag_deets_emb.set_thumbnail(url = tag_owner.display_avatar.url)
-        tag_deets_emb.timestamp = discord.utils.utcnow()
         await ctx.reply(embed = tag_deets_emb, view = jump_button)
 
     async def tag_edit(self, ctx : GeraltContext, tag_id : int, *, edited_content : str):
@@ -197,7 +193,7 @@ class Tags(commands.Cog):
             await interaction.response.defer()
             await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ will not be deleted from your tag list <:NanoTick:925271358735257651>", view = ui)
         
-        Confirmation.response = await ctx.send(f"Are you sure you want to remove tag ─ \"**{tag_deets}**\" (`{id}`) from your list <a:IThink:933315875501641739>", view = Confirmation(ctx, yes, no))   
+        Confirmation.response = await ctx.reply(f"Are you sure you want to remove tag ─ \"**{tag_deets}**\" (`{id}`) from your list <a:IThink:933315875501641739>", view = Confirmation(ctx, yes, no), mention_author = False)   
 
     async def tag_transfer(self, ctx : GeraltContext, tag_id : int, user : discord.Member):
         tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", tag_id, ctx.guild.id)
@@ -253,7 +249,7 @@ class Tags(commands.Cog):
         with_app_command = False)
     async def tag_make(self, ctx : GeraltContext):
         """Make a tag."""
-        await TagButton(self.bot, ctx).send(ctx)
+        await TagView(self.bot, ctx).send()
 
     @tag.command(
         name = "raw",

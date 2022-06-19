@@ -2,14 +2,15 @@ import discord
 
 from discord.ext import commands
 
-from ...kernel.views.meta import Confirmation
 from ...kernel.subclasses.bot import Geralt
+from ...kernel.views.meta import Confirmation
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.context import GeraltContext
 
 class Moderation(commands.Cog):
     """Moderation Commands for easy moderation."""
     def __init__(self, bot : Geralt):
-        self.bot = bot
+        self.bot : Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -38,14 +39,13 @@ class Moderation(commands.Cog):
         self.Check_Hierarchy(ctx, user)
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             await user.kick(reason = f"{user} - {reason} by {ctx.author}")
-            kick_emb = discord.Embed(
+            kick_emb = BaseEmbed(
                 title = "Kick - Has Occured.",
                 description = f">>> {user.mention} has been **kicked** <a:Kicked:941667229609631765> !\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.timestamp(ctx.message.created_at, style = 'F')}",
                 colour = self.bot.colour)
             kick_emb.add_field(
                 name = "Reason :",
                 value = f"```prolog\n{reason}\n```")
-            kick_emb.timestamp = discord.utils.utcnow()
             kick_emb.set_thumbnail(url = user.display_avatar.url)
             for view in ui.children:
                 view.disabled = True            
@@ -68,14 +68,13 @@ class Moderation(commands.Cog):
         self.Check_Hierarchy(ctx, user)
         async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             await user.ban(reason = f"{user} - {reason} by {ctx.author}")
-            ban_emb = discord.Embed(
+            ban_emb = BaseEmbed(
                 title = "Ban - Has Occured.",
                 description = f">>> {user.mention} has been **banned** <a:Banned:941667204334764042> !\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.timestamp(ctx.message.created_at, style = 'F')}",
                 colour = self.bot.colour)
             ban_emb.add_field(
                 name = "Reason :",
                 value = f"```prolog\n{reason}\n```")
-            ban_emb.timestamp = discord.utils.utcnow()
             ban_emb.set_thumbnail(url = user.display_avatar.url)
             for view in ui.children:
                 view.disabled = True            
@@ -114,14 +113,13 @@ class Moderation(commands.Cog):
                 except Exception as exception:
                     await ctx.send(exception)
 
-                mute_emb = discord.Embed(
+                mute_emb = BaseEmbed(
                     title = f"<:CustomScroll2:933390953471955004> Mute Has Occured",
                     description = f">>> {user.mention} has been **muted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.timestamp(ctx.message.created_at, style = 'F')}",
                     colour = self.bot.colour)
                 mute_emb.add_field(
                     name = "Reason :",
                     value = f"```prolog\n{reason}\n```")
-                mute_emb.timestamp = discord.utils.utcnow()
                 mute_emb.set_thumbnail(url = user.display_avatar.url)
                 await user.send(embed = mute_emb)
                 await interaction.response.edit_message(content = f"\u2001", embed = mute_emb, view = ui)
@@ -156,14 +154,13 @@ class Moderation(commands.Cog):
             except Exception as exception:
                 await ctx.send(exception)
 
-            unmute_emb = discord.Embed(
+            unmute_emb = BaseEmbed(
                 title = f"<:CustomScroll2:933390953471955004> Unmute Has Occured",
                 description = f">>> {user.mention} has been **unmuted** <a:Mute:941667157278871612>!\n<:ReplyContinued:930634770004725821>** - ID :** `{user.id}`\n<:Reply:930634822865547294>** - On :** {self.bot.timestamp(ctx.message.created_at, style = 'F')}",
                 colour = self.bot.colour)
             unmute_emb.add_field(
                 name = f"Reason :",
                 value = f"```prolog\n{reason}\n```")
-            unmute_emb.timestamp = discord.utils.utcnow()
             unmute_emb.set_thumbnail(url = user.display_avatar.url)
             await user.send(embed = unmute_emb)
             await interaction.response.edit_message(content = f"\u2001", embed = unmute_emb, view = ui)
@@ -189,12 +186,11 @@ class Moderation(commands.Cog):
         await user.edit(nick = nick)
         new_nickname = nick
 
-        nick_emb = discord.Embed(
+        nick_emb = BaseEmbed(
             title = f"<:CustomScroll1:933391442427138048> {user}'s Nick Changed!",
             description = f">>> <:GeraltRightArrow:904740634982760459> {ctx.message.author.mention} has changed {user.mention} nickname :\n\n" \
                           f" <:ReplyContinued:930634770004725821> **- From :** `{previous_nickname}`\n" \
                           f" <:Reply:930634822865547294> **- To :** `{new_nickname}`",
             colour = self.bot.colour)
         nick_emb.set_thumbnail(url = user.display_avatar.url)
-        nick_emb.timestamp = discord.utils.utcnow()
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> {user.mention}'s nickname has been `changed` -\n>>> <:ReplyContinued:930634770004725821> - From : {previous_nickname}\n<:Reply:930634822865547294> - To : {new_nickname} \n**Event Occured On :** {self.bot.timestamp(discord.utils.utcnow(), style = 'F')} <a:IEat:940413722537644033>", allowed_mentions = self.bot.mentions)

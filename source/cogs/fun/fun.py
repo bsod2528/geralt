@@ -6,6 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from ...kernel.subclasses.bot import Geralt
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.utilities.crucial import fetch_webhook
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.views.fun import Pop, Nitro, ClickGame, PopSize, ClickSize, ClickLeaderboard
@@ -13,10 +14,10 @@ from ...kernel.views.fun import Pop, Nitro, ClickGame, PopSize, ClickSize, Click
 class Fun(commands.Cog):
     """Simple commands that induce Fun"""
     def __init__(self, bot : Geralt):
-        self.bot = bot
-        self.delete = {} # -------
-        self.pre_edit = {} #     |-- > Snipe command related dictionaries
-        self.post_edit = {} # --=)
+        self.bot : Geralt = bot
+        self.delete : typing.Dict = {} # -------
+        self.pre_edit : typing.Dict = {} #     |-- > Snipe command related dictionaries
+        self.post_edit : typing.Dict = {} # --=)
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -88,14 +89,13 @@ class Fun(commands.Cog):
         """Get the details of the recently deleted message"""
         try:    
             message, author, channel, time = self.delete[ctx.channel.id]    
-            delete_emb = discord.Embed(
+            delete_emb = BaseEmbed(
                 title = "Sniped Deleted Message",
                 description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.timestamp(time)}",
                 colour = self.bot.colour)
             delete_emb.add_field(
                 name = "Message Content",
                 value = f"```prolog\n{message}\n```")
-            delete_emb.timestamp = discord.utils.utcnow()
             await ctx.reply(embed = delete_emb, allowed_mentions = self.bot.mentions)
         except:
             await ctx.reply("No one has deleted. any messages as of now <a:HumanBro:905748764432662549>", allowed_mentions = self.bot.mentions)
@@ -112,7 +112,7 @@ class Fun(commands.Cog):
             post_message, author, channel, post_time = self.post_edit[ctx.channel.id]    
             view = discord.ui.View()
             view.add_item(discord.ui.Button(label = "Jump to Message", style = discord.ButtonStyle.link, url = url, emoji = "<a:ChainLink:936158619030941706>"))
-            edit_emb = discord.Embed(
+            edit_emb = BaseEmbed(
                 title = "Sniped Edited Message",
                 description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Sent At :** {self.bot.timestamp(pre_time)}",
                 colour = self.bot.colour)
@@ -133,11 +133,10 @@ class Fun(commands.Cog):
     async def nitro(self, ctx : GeraltContext, *, user : discord.Member = None):
         """Gift a user free nitro!"""
         try:
-            nitro_emb = discord.Embed(
+            nitro_emb = BaseEmbed(
                 title = "<a:Nitro:905661661191479326> Nitro Has Been Gifted!",
                 colour = 0x2F3136)
             nitro_emb.set_thumbnail(url = "https://i.imgur.com/w9aiD6F.png")
-            nitro_emb.timestamp = discord.utils.utcnow()    
 
             if user is None:
                 nitro_emb.description = f">>> {ctx.author.mention} has been gifted nitro classic by {ctx.guild.me.mention} <a:WumpusHypesquad:905661121501990923>.\n<:Reply:930634822865547294> **{ctx.author}** click on the button below to avail the nitro."

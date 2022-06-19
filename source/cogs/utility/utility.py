@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.paginator import Paginator
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.meta import PFP, Confirmation
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.utilities.flags import user_badges, user_perms
@@ -15,7 +16,7 @@ from ...kernel.utilities.flags import user_badges, user_perms
 class Utility(commands.Cog):
     """Essesntial commands for easy life on discord."""
     def __init__(self, bot : Geralt):
-        self.bot = bot
+        self.bot : Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -30,7 +31,7 @@ class Utility(commands.Cog):
         fetched_user = await ctx.bot.fetch_user(user.id)
         if fetched_user.banner is None:
             return await ctx.reply(f"**{user}** does not have a banner <a:Grimacing:914905757588283422>")
-        banner_emb = discord.Embed(
+        banner_emb = BaseEmbed(
             title = f"{user}'s Banner",
             colour = user.colour or user.accent_color or self.bot.colour)
         banner_emb.set_image(url = fetched_user.banner.url)
@@ -44,7 +45,7 @@ class Utility(commands.Cog):
     async def avatar(self, ctx : GeraltContext, *, user : discord.Member = None):
         """See the user's PFP in an enlarged manner."""
         user = user or ctx.author
-        await PFP(self.bot, ctx, user).send(ctx)
+        await PFP(self.bot, ctx, user).send()
 
     # Get user's information
     @commands.command(
@@ -70,7 +71,7 @@ class Utility(commands.Cog):
             activity = discord.utils.find(lambda act: isinstance(act, discord.CustomActivity), user.activities)
             activity_holder = f"`{discord.utils.remove_markdown(activity.name)}`" if activity and activity.name else f'`{user}` has no activity at the moment.'
 
-            general_emb = discord.Embed(
+            general_emb = BaseEmbed(
                 title = f":scroll: {user}'s Information",
                 colour = user.colour)
             general_emb.add_field(
@@ -85,9 +86,8 @@ class Utility(commands.Cog):
                         f"> │ ` ─ ` Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'D')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
                 inline = False)
             general_emb.set_thumbnail(url = avatar)
-            general_emb.timestamp = discord.utils.utcnow()
 
-            guild_emb = discord.Embed(
+            guild_emb = BaseEmbed(
                 title = f":scroll: {user} in {ctx.guild}",
                 colour = user.colour)
             guild_emb.add_field(
@@ -102,9 +102,8 @@ class Utility(commands.Cog):
                 value = f"> │ ` ─ ` {roles}\n────",
                 inline = False)
             guild_emb.set_thumbnail(url = avatar)
-            guild_emb.timestamp = discord.utils.utcnow()
 
-            misc_emb = discord.Embed(
+            misc_emb = BaseEmbed(
                 title = f":scroll: {user}'s - Misc. Information",
                 colour = user.colour)
             misc_emb.add_field(
@@ -120,14 +119,12 @@ class Utility(commands.Cog):
                 value = f"> │ ` ─ ` {activity_holder}",
                 inline = False)
             misc_emb.set_thumbnail(url = avatar)
-            misc_emb.timestamp = discord.utils.utcnow()
         
-            pfp_emb = discord.Embed(
+            pfp_emb = BaseEmbed(
                 title = f":scroll: {user}'s PFP",
                 description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) │ [**PNG Format**]({user.display_avatar.with_static_format('png')}) │ [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
                 colour = user.colour)
             pfp_emb.set_image(url = avatar)
-            pfp_emb.timestamp = discord.utils.utcnow()
 
             banner_emb = None
 
@@ -137,12 +134,11 @@ class Utility(commands.Cog):
                     await asyncio.sleep(0.1)
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
             else:
-                banner_emb = discord.Embed(
+                banner_emb = BaseEmbed(
                     title = f":scroll: {user}'s Banner",
                     description = f"[**Download Banner Here**]({fetched_user.banner.url})",
                     colour = user.colour)
                 banner_emb.set_image(url = fetched_user.banner.url)
-                banner_emb.timestamp = discord.utils.utcnow()
 
                 embed_list = [general_emb, guild_emb, misc_emb, pfp_emb, banner_emb]
                 async with ctx.channel.typing():
@@ -166,7 +162,7 @@ class Utility(commands.Cog):
                       ]
         fetched_guild = await ctx.bot.fetch_guild(ctx.guild.id)
 
-        general_emb = discord.Embed(
+        general_emb = BaseEmbed(
             title = f":scroll: {ctx.guild.name}'s Information",
             colour = self.bot.colour)
         general_emb.add_field(
@@ -182,9 +178,8 @@ class Utility(commands.Cog):
                     f"> │ ` ─ ` <:ISus:915817563307515924> Media Filteration : For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n────",
             inline = False)
         general_emb.set_thumbnail(url = ctx.guild.icon.url)
-        general_emb.timestamp = discord.utils.utcnow()
 
-        other_emb = discord.Embed(
+        other_emb = BaseEmbed(
             title = f":scroll: {ctx.guild.name}'s Other Information",
             colour = self.bot.colour)
         other_emb.add_field(
@@ -200,9 +195,8 @@ class Utility(commands.Cog):
                     f"> │ ` ─ ` <:BallManHmm:933398958263386222> Non - Animated : `{len([non_animated for non_animated in ctx.guild.emojis if not non_animated.animated])}` / `{ctx.guild.emoji_limit}`\n────",
             inline = False)
         other_emb.set_thumbnail(url = ctx.guild.icon.url)
-        other_emb.timestamp = discord.utils.utcnow()
 
-        user_emb = discord.Embed(
+        user_emb = BaseEmbed(
             title = f":scroll: {ctx.guild.name}'s Users Information",
             colour = self.bot.colour)
         user_emb.add_field(
@@ -219,14 +213,12 @@ class Utility(commands.Cog):
                     f"> │ ` ─ ` <:Offline:905757032521551892> Offline : `{user_status[3]}`\n────",
             inline = False)
         user_emb.set_thumbnail(url = ctx.guild.icon.url)
-        user_emb.timestamp = discord.utils.utcnow()
     
-        icon_emb = discord.Embed(
+        icon_emb = BaseEmbed(
             title = f":scroll: {ctx.guild.name}'s Icon",
             description = f"[**JPG Format**]({ctx.guild.icon.with_static_format('jpg')}) │ [**PNG Format**]({ctx.guild.icon.with_static_format('png')}) │ [**WEBP Format**]({ctx.guild.icon.with_static_format ('webp')})",
             colour = self.bot.colour)
         icon_emb.set_image(url = ctx.guild.icon.url)
-        icon_emb.timestamp = discord.utils.utcnow()
 
         banner_emb = None
 
@@ -236,12 +228,11 @@ class Utility(commands.Cog):
                 await asyncio.sleep(0.1)
             await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
         else:
-            banner_emb = discord.Embed(
+            banner_emb = BaseEmbed(
                 title = f":scroll: {ctx.guild.name}'s Banner",
                 description = f"[**Download Banner Here**]({fetched_guild.banner.url})",
                 colour = self.bot.colour)
             banner_emb.set_image(url = fetched_guild.banner.url)
-            banner_emb.timestamp = discord.utils.utcnow()
             
             embed_list = [general_emb, other_emb, user_emb, icon_emb, banner_emb]
             async with ctx.channel.typing():
@@ -277,7 +268,7 @@ class Utility(commands.Cog):
         aliases = ["show"])  
     async def todo_list(self, ctx : GeraltContext):
         """See your entire todo list."""
-        fetch_tasks = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1", ctx.author.id)
+        fetch_tasks = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id)
         task_list = []
         serial_no = 1
         for tasks in fetch_tasks:
@@ -288,25 +279,23 @@ class Utility(commands.Cog):
             await ctx.reply(f"You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <task>` <a:LifeSucks:932255208044650596>")
         else:
             if serial_no <= 3:
-                todo_list_emb = discord.Embed(
+                todo_list_emb = BaseEmbed(
                     title = f":scroll: {ctx.author}'s Todo List :",
                     description = f"".join(tasks for tasks in task_list),
                     colour = self.bot.colour)
                 todo_list_emb.set_thumbnail(url = ctx.author.display_avatar.url)
                 todo_list_emb.set_footer(text = f"Run {ctx.clean_prefix}todo for more sub - commands.")
-                todo_list_emb.timestamp = discord.utils.utcnow()
                 await ctx.reply(embed = todo_list_emb, mention_author = False)
             else:
                 # Huge thanks to Zeus432 [ Github ID ] for helping me enable the pagination :D
                 embed_list = []
                 while task_list:
-                    todo_list_embs = discord.Embed(
+                    todo_list_embs = BaseEmbed(
                         title = f":scroll: {ctx.author}'s Todo List :",
                         description = "".join(task_list[:3]),
                         colour = self.bot.colour)
                     todo_list_embs.set_thumbnail(url = ctx.author.display_avatar.url)
                     todo_list_embs.set_footer(text = f"Run {ctx.clean_prefix}todo for more sub - commands.")
-                    todo_list_embs.timestamp = discord.utils.utcnow()
                     task_list = task_list[3:]
                     embed_list.append(todo_list_embs)     
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
@@ -405,7 +394,7 @@ class Utility(commands.Cog):
             else:
                 return await ctx.reply(f"**{user}** is not listening to any song on **Spotify** right now.")
         else:
-            spotify_emb = discord.Embed(
+            spotify_emb = BaseEmbed(
                 title = f":scroll: {user}'s Spotify Status",
                 description = f"They are listening to [**{spotify.title}**]({spotify.track_url}) by - **{spotify.artist}**",
                 colour = self.bot.colour)

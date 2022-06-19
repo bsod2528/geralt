@@ -5,15 +5,16 @@ import discord
 from discord.ext import commands
 
 from ..subclasses.bot import Geralt
+from ..subclasses.embed import BaseEmbed
 from ..subclasses.context import GeraltContext
 
 # Nitro Command View
 class Nitro(discord.ui.View):
     def __init__(self, ctx : GeraltContext, user : discord.Member = None):
         super().__init__()
-        self.ctx = ctx
+        self.ctx : GeraltContext = ctx
 
-    @discord.ui.button(label = "Avail Nitro", style = discord.ButtonStyle.green, emoji = "<a:WumpusHypesquad:905661121501990923>")
+    @discord.ui.button(label = "Avail Nitro", style = discord.ButtonStyle.green, emoji = "<a:WumpusHypesquad:905661121501990923>", custom_id = "nitro")
     async def nitro(self, interaction : discord.Interaction, button : discord.ui.Button):
         button.disabled = True
         button.label = "Claimed"
@@ -53,7 +54,7 @@ class PopButton(discord.ui.Button):
 class Pop(discord.ui.View):
     def __init__(self, ctx : GeraltContext, *, size : typing.Optional[PopSize]):
         super().__init__(timeout = 90)
-        self.ctx = ctx
+        self.ctx : GeraltContext = ctx
         self.size = size
         self.message : typing.Optional[discord.Message] = None
     
@@ -62,9 +63,9 @@ class Pop(discord.ui.View):
             if self.size > 25:
                 raise commands.BadArgument("size passed in should be less than 25.")
             if not self.size:
-                self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list)))
+                self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list), custom_id = "pop"))
             else:
-                self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list)))
+                self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list), custom_id = "pop"))
         self.message = await self.ctx.send("\u200b", view = self)
     
     async def on_timeout(self) -> None:
@@ -79,8 +80,6 @@ class Pop(discord.ui.View):
             return True
         await interaction.response.send_message(content = f"{pain}", ephemeral = True)
 
-#---#
-
 # Simple Click Game - Idea by InterStella0 [ Github ID ]
 class ClickSize(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
     size : typing.Optional[int]
@@ -92,9 +91,10 @@ class ClickButton(discord.ui.Button):
         super().__init__(
             label = "Click",
             style = discord.ButtonStyle.grey,
-            emoji = random.choice(emoji_list))
-        self.bot = bot
-        self.ctx = ctx
+            emoji = random.choice(emoji_list),
+            custom_id = "click-click")
+        self.bot : Geralt = bot
+        self.ctx : GeraltContext = ctx
     
     async def callback(self, interaction : discord.Interaction):
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
@@ -104,12 +104,12 @@ class ClickButton(discord.ui.Button):
                     await interaction.response.defer()
                     guild_score_query = "INSERT INTO click_guild (guild_id, player_id, clicks, player_name)" \
                             "VALUES ($1, $2, 1, $3)" \
-                            "ON CONFLICT(guild_id, player_id)" \
+                            "ON CONFLICT (guild_id, player_id)" \
                             "DO UPDATE SET clicks = click_guild.clicks + 1, player_name = $3" 
                     await self.bot.db.execute(guild_score_query, interaction.guild_id, interaction.user.id, str(self.ctx.author))
                     global_score_query = "INSERT INTO click_global (player_id, clicks, player_name, player_pfp)" \
                             "VALUES ($1, 1, $2, $3)" \
-                            "ON CONFLICT(player_id)" \
+                            "ON CONFLICT (player_id)" \
                             "DO UPDATE SET clicks = click_global.clicks + 1, player_name = $2, player_pfp = $3"
                     await self.bot.db.execute(global_score_query, interaction.user.id, str(self.ctx.author), str(self.ctx.author.display_avatar))
                 except discord.errors.NotFound:
@@ -125,8 +125,8 @@ class ClickButton(discord.ui.Button):
 class ClickGame(discord.ui.View):
     def __init__(self, bot : Geralt, ctx : GeraltContext, *, size : typing.Optional[int]):
         super().__init__(timeout = 60)
-        self.bot = bot
-        self.ctx = ctx
+        self.bot : Geralt = bot
+        self.ctx : GeraltContext = ctx
         self.size = size
 
         for button in range(self.size):
@@ -137,7 +137,7 @@ class ClickGame(discord.ui.View):
             else:
                 self.add_item(ClickButton(self.bot, self.ctx))
     
-    @discord.ui.button(label = "Scores", style = discord.ButtonStyle.grey, emoji = "\U00002728", row = 2)
+    @discord.ui.button(label = "Scores", style = discord.ButtonStyle.grey, emoji = "\U00002728", row = 2, custom_id = "click-guild-score")
     async def on_click_guild_leaderboard(self, interaction : discord.Interaction, button : discord.ui.Button):
         try:
             guild_score_query = await self.bot.db.fetchval("SELECT (clicks) FROM click_guild WHERE guild_id = $1 AND player_id = $2", interaction.guild_id, self.ctx.author.id)
@@ -149,7 +149,7 @@ class ClickGame(discord.ui.View):
         except Exception as exception:
             await interaction.followup.send(content = f"```py\n{exception}\n```", ephemeral = True)
 
-    @discord.ui.button(label = "Help", style = discord.ButtonStyle.green, emoji = "<:DuckThumbsUp:917007413259956254>", row = 2)
+    @discord.ui.button(label = "Help", style = discord.ButtonStyle.green, emoji = "<:DuckThumbsUp:917007413259956254>", row = 2, custom_id = "click-help")
     async def on_click_help(self, interaction : discord.Interaction, button : discord.ui.Button):
         await interaction.response.defer()
         help_content = f"{interaction.user.mention}\n\n────\n> │ ` ─ ` Click on the \"Click\" button to attain points. You have a 60 second time limit. Try to score much as possible.\n> │ ` ─ ` Go up the leaderboard by playing en number of times. Enjoy!\n────\nhttps://imgur.com/a/S0LyjuB"
@@ -167,10 +167,10 @@ class ClickGame(discord.ui.View):
 class ClickLeaderboard(discord.ui.View):
     def __init__(self, bot : Geralt, ctx : GeraltContext):
         super().__init__(timeout = 60)
-        self.bot = bot
-        self.ctx = ctx
+        self.bot : Geralt = bot
+        self.ctx : GeraltContext = ctx
 
-    @discord.ui.button(label = "Global Leaderboard", style = discord.ButtonStyle.grey, emoji = "<a:RooSitComfortPatAnotherRoo:916125535015419954>")
+    @discord.ui.button(label = "Global Leaderboard", style = discord.ButtonStyle.grey, emoji = "<a:RooSitComfortPatAnotherRoo:916125535015419954>", custom_id = "click-global-score")
     async def click_global_leaderboard(self, interaction : discord.Interaction, button : discord.ui.Button):
         try:
             await interaction.response.defer()
@@ -178,17 +178,16 @@ class ClickLeaderboard(discord.ui.View):
             serial_no = 1
             leaderboard = []
             for data in global_leaderboard_query:
-                leaderboard.append(f"> **{serial_no})** [**{data['player_name']}**]({data['player_pfp']}) \u200b : `{data['clicks']}`\n")
+                leaderboard.append(f"> **{serial_no})** [{data['player_name']}]({data['player_pfp']}) \u200b : `{data['clicks']}`\n")
                 serial_no += 1
 
             while leaderboard:  
-                global_leaderboard_emb = discord.Embed(
+                global_leaderboard_emb = BaseEmbed(
                     description = f"The following showcases the top 10 scores for `{self.ctx.clean_prefix}click`",
                     colour = self.bot.colour)
                 global_leaderboard_emb.add_field(
                     name = "Top 10 Global Scores",
                     value = f"".join(leaderboard[:10]))
-                global_leaderboard_emb.timestamp = discord.utils.utcnow()
                 global_leaderboard_emb.set_thumbnail(url = "https://discords.com/_next/image?url=https%3A%2F%2Fcdn.discordapp.com%2Femojis%2F929249429486178334.gif%3Fv%3D1&w=64&q=75")
                 global_leaderboard_emb.set_author(name = "Global Click Scores")
                 global_leaderboard_emb.set_footer(text = f"Run {self.ctx.clean_prefix}click for more sub ─ commands.")
@@ -209,18 +208,17 @@ class ClickLeaderboard(discord.ui.View):
             return await self.ctx.reply(f"No one from **{self.ctx.guild}** has played `{self.ctx.clean_prefix}click` game <a:Noo:915422306896072744>. Feel honoured and be the first one !")
         else:
             while leaderboard:
-                leaderboard_emb = discord.Embed(
+                leaderboard_emb = BaseEmbed(
                     title = f"Click Scores for {self.ctx.guild} :",
                     description = f"The following showcases the top 10 scores for `{self.ctx.clean_prefix}click`",
                     colour = self.bot.colour)
                 leaderboard_emb.add_field(
                     name = "Top 10 Scores",
                     value = "".join(leaderboard[:10]))
-                leaderboard_emb.timestamp = discord.utils.utcnow()
                 leaderboard_emb.set_thumbnail(url = self.ctx.guild.icon.url)
                 leaderboard_emb.set_footer(text = f"Run {self.ctx.clean_prefix}help click for more sub ─ commands.")
                 leaderboard = leaderboard[10:]
-        self.message = await self.ctx.reply(embed = leaderboard_emb, view = self)
+        self.message = await self.ctx.reply(embed = leaderboard_emb, view = self, mention_author = False)
         return self.message
 
     async def on_timeout(self) -> None:

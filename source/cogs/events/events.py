@@ -4,12 +4,13 @@ import colorama as colour
 
 from discord.ext import commands
 
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.subclasses.context import GeraltContext
 
 class Events(commands.Cog):
     def __init__(self, bot : Geralt):
-        self.bot = bot
+        self.bot : Geralt = bot
         
     colour.init()
 
@@ -39,7 +40,7 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
         """Sends a Webhook upon joining a guild""" 
-        join_emb = discord.Embed(
+        join_emb = BaseEmbed(
             title = f":scroll: I Joined {guild.name}",
             colour = self.bot.colour)
         join_emb.add_field(
@@ -52,7 +53,6 @@ class Events(commands.Cog):
             value = f"> ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.timestamp(guild.created_at)} \n" \
                     f"> ` ─ ` <a:WumpusVibe:905457020575031358> I Joined : {self.bot.timestamp(discord.utils.utcnow())}",
             inline = False)                
-        join_emb.timestamp = discord.utils.utcnow()
         join_emb.set_thumbnail(url = guild.icon.url)
         async with aiohttp.ClientSession() as session:
             join_log_webhook = discord.Webhook.partial(id = CONFIG.get("JOIN_LOG_ID"), token = CONFIG.get("JOIN_LOG_TOKEN"), session = session)
@@ -63,7 +63,7 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         """Sends a Webhook upon being removed from a guild"""    
-        leave_emb = discord.Embed(
+        leave_emb = BaseEmbed(
             title = f":scroll: I Left {guild.name}",
             colour = discord.Colour.from_rgb(255, 97, 142))
         leave_emb.add_field(
@@ -76,7 +76,6 @@ class Events(commands.Cog):
             value = f"> ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.timestamp(guild.created_at)} \n" \
                     f"> ` ─ ` <a:PAIN:939876989655994488> I Left : {self.bot.timestamp(discord.utils.utcnow())}",
             inline = False)                
-        leave_emb.timestamp = discord.utils.utcnow()
         leave_emb.set_thumbnail(url = guild.icon.url)
         async with aiohttp.ClientSession() as session:
             leave_log_webhook = discord.Webhook.partial(id = CONFIG.get("LEAVE_LOG_ID"), token = CONFIG.get("LEAVE_LOG_TOKEN"), session = session)

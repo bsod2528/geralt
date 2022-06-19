@@ -5,6 +5,8 @@ from discord.ext import commands
 from discord.utils import MISSING
 from typing import Optional, Sequence, Union, Any
 
+from .embed import BaseEmbed
+
 class GeraltContext(commands.Context):
     async def command_help(self) -> commands.HelpCommand.send_group_help:
         return await self.send_help(self.command)
@@ -22,7 +24,7 @@ class GeraltContext(commands.Context):
             return
 
     async def send(
-        self, content: Optional[str] = None, *, tts: bool = False, embed: Optional[discord.Embed] = None, embeds: Optional[Sequence[discord.Embed]] = None, file: Optional[discord.File] = None, files: Optional[Sequence[discord.File]] = None, stickers: Optional[Sequence[Union[discord.GuildSticker, discord.StickerItem]]] = None, 
+        self, content: Optional[str] = None, *, tts: bool = False, embed: Optional[BaseEmbed] = None, embeds: Optional[Sequence[BaseEmbed]] = None, file: Optional[discord.File] = None, files: Optional[Sequence[discord.File]] = None, stickers: Optional[Sequence[Union[discord.GuildSticker, discord.StickerItem]]] = None, 
         delete_after: Optional[float] = None, nonce: Optional[Union[str, int]] = None, allowed_mentions: Optional[discord.AllowedMentions] = None, reference: Optional[Union[discord.Message, discord.MessageReference, discord.PartialMessage]] = None, mention_author: Optional[bool] = None, view: Optional[discord.ui.View] = None, suppress_embeds: bool = False, ephemeral: bool = False) -> discord.Message:
         
         if self.interaction is None or self.interaction.is_expired():

@@ -12,6 +12,7 @@ from types import NoneType
 from discord.ext import commands
 
 from ...kernel.views.paginator import Paginator
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.meta import Leave, Confirmation
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.utilities.crucial import Plural, TabulateData
@@ -74,9 +75,13 @@ class Developer(commands.Cog):
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = "Okay then, I shall go to eternal sleep", view = ui, allowed_mentions = self.bot.mentions)
+            await self.bot.change_presence(
+                status = discord.Status.do_not_disturb,
+                activity = discord.Activity(type = discord.ActivityType.playing, name = f"Let me Die in Peace")) 
+            await asyncio.sleep(5)
             async with aiohttp.ClientSession() as session:
                 death_webhook = discord.Webhook.partial(id = CONFIG.get("NOTIF_ID"), token = CONFIG.get("NOTIF_TOKEN"), session = session)
-                await death_webhook.send(content = f"<:GeraltRightArrow:904740634982760459> Going to die right at {self.bot.timestamp(discord.utils.utcnow(), style = 'F')} Byee <a:Byee:915568796536815616>\n```prolog\nNo. of Users ─ {len(list(self.bot.get_all_members()))}\nNo. of Guilds ─ {len(self.bot.guilds)}\nDying at ─ {time.strftime('%c', time.gmtime())}```───\n|| Break Point ||")
+                await death_webhook.send(content = f"<:GeraltRightArrow:904740634982760459> Going to die right at {self.bot.timestamp(discord.utils.utcnow(), style = 'F')} Byee <a:Byee:915568796536815616>\n───\n|| Break Point ||")
                 await session.close()
             await self.bot.close()
 
@@ -269,18 +274,16 @@ class Developer(commands.Cog):
         for tags in tag_fetch:
             tag_list.append(f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : \"**{tags['author_name']}**\" (`{tags['author_id']}`)\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.timestamp(tags['created_on'], style = 'R')}\n────\n")
             serial_no += 1
-        else:
-            embed_list = []
-            while tag_list:
-                tag_list_emb = discord.Embed(
-                    title = f"Global Tag List :",
-                    description = "".join(tag_list[:5]),
-                    colour = self.bot.colour)
-                tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
-                tag_list_emb.timestamp = discord.utils.utcnow()
-                tag_list = tag_list[5:]
-                embed_list.append(tag_list_emb)     
-            await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
+        embed_list = []
+        while tag_list:
+            tag_list_emb = BaseEmbed(
+                title = f"Global Tag List :",
+                description = "".join(tag_list[:5]),
+                colour = self.bot.colour)
+            tag_list_emb.set_footer(text = f"Run {ctx.clean_prefix}tag for more sub ─ commands.")
+            tag_list = tag_list[5:]
+            embed_list.append(tag_list_emb)     
+        await Paginator.Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
 
     @commands.command(
         name = "guildfetch",
@@ -290,7 +293,7 @@ class Developer(commands.Cog):
     async def guild_fetch(self, ctx : GeraltContext, *, guild : discord.Guild):
         """Get entire details about the guild."""        
         fetched_guild = await self.bot.fetch_guild(guild.id)
-        fetched_guild_emb = discord.Embed(
+        fetched_guild_emb = BaseEmbed(
             title = f":scroll: {guild.name}'s Information",
             colour = self.bot.colour)
         fetched_guild_emb.add_field(
@@ -313,7 +316,6 @@ class Developer(commands.Cog):
                     f"> **Total :** `{guild.member_count}` \n",
             inline = False)
         fetched_guild_emb.set_thumbnail(url = guild.icon.url)
-        fetched_guild_emb.timestamp = discord.utils.utcnow()
 
         if fetched_guild.banner is None:
             async with ctx.channel.typing():
@@ -456,7 +458,7 @@ class Developer(commands.Cog):
             await ctx.reply("Seems like you haven't blacklisted anyone \U0001f440")
         else:
             if serial_no <= 2:
-                blacklisted_emb = discord.Embed(
+                blacklisted_emb = BaseEmbed(
                     title = f"\U0001f4dc Blacklisted Users",
                     description = f"".join(blacklisted_members),
                     colour = self.bot.colour)
@@ -465,11 +467,10 @@ class Developer(commands.Cog):
             else:
                 embed_list = []
                 while blacklisted_members:
-                    blacklisted_emb = discord.Embed(
+                    blacklisted_emb = BaseEmbed(
                         title = f"\U0001f4dc Blacklisted Users",
                         description = f"".join(blacklisted_members[:2]),
                         colour = self.bot.colour)
-                    blacklisted_emb.timestamp = discord.utils.utcnow()
                     blacklisted_members = blacklisted_members[2:]
                     embed_list.append(blacklisted_emb)
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)

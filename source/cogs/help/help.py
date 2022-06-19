@@ -5,6 +5,7 @@ from discord.ext.commands import HelpCommand
 
 from ...kernel.views.help import HelpView
 from ...kernel.subclasses.bot import Geralt
+from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.context import GeraltContext
         
 class GeraltHelp(commands.HelpCommand):
@@ -17,7 +18,7 @@ class GeraltHelp(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         self.context : GeraltContext
         cog_list = []
-        help_emb = discord.Embed(
+        help_emb = BaseEmbed(
             title = f"\U00002728 {self.context.author}'s Help",
             description = f"────\nHi! I am [**Geralt**](https://github.com/BSOD2528/Geralt) and open source Discord Bot made for fun.\n────",
             colour = self.context.bot.colour)
@@ -33,16 +34,14 @@ class GeraltHelp(commands.HelpCommand):
                     name = f"{emote} {cog.qualified_name}", 
                     value = f"<:Join:932976724235395072> `{self.context.clean_prefix}help {cog.qualified_name}`",
                     inline = True)
-                help_emb.timestamp = discord.utils.utcnow()
                 help_emb.set_thumbnail(url = self.context.me.display_avatar)
                 help_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
-        
         await self.context.reply(embed = help_emb, view = HelpView(mapping, self, cog_list), mention_author = False)
 
     async def send_cog_help(self, cog : commands.Cog):
         self.context : GeraltContext
         emote = getattr(cog, "emote", None)
-        cog_emb = discord.Embed(
+        cog_emb = BaseEmbed(
             title = f"{cog.qualified_name} Commands",
             description = f"{emote} {cog.description}" if cog and cog.description else "...",
             colour = self.context.bot.colour)
@@ -53,7 +52,6 @@ class GeraltHelp(commands.HelpCommand):
                 name = f"<:Join:932976724235395072> {commands.qualified_name}",
                 value = f"> ` ─ ` {commands.short_doc}" or "Yet to be documented",
                 inline = False)
-            cog_emb.timestamp = discord.utils.utcnow()
             cog_emb.set_thumbnail(url = self.context.me.display_avatar)
             cog_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
             if self.context.author.id in self.context.bot.owner_ids:
@@ -77,10 +75,9 @@ class GeraltHelp(commands.HelpCommand):
             alias = "`Nil`"
         self.context : GeraltContext
 
-        command_emb = discord.Embed(
+        command_emb = BaseEmbed(
             title = f"{command} Help",
             colour = self.context.bot.colour)
-        command_emb.timestamp = discord.utils.utcnow()
         command_emb.set_footer(text = self.command_footer(), icon_url = self.context.author.display_avatar)
 
         if self.context.author.is_on_mobile():
@@ -106,13 +103,12 @@ class GeraltHelp(commands.HelpCommand):
             alias = "`Nil`"
         self.context : GeraltContext
 
-        group_emb = discord.Embed(
+        group_emb = BaseEmbed(
             title = f"{group} Help",
             colour = self.context.bot.colour)
         group_emb.add_field(
             name = "Subcommands Present :",
             value = f"\n".join(group_commands))
-        group_emb.timestamp = discord.utils.utcnow()
         group_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
 
         if self.context.author.is_on_mobile():
@@ -127,17 +123,16 @@ class GeraltHelp(commands.HelpCommand):
             await self.context.reply(embed = group_emb, mention_author = False)
     
     async def send_error_message(self, error: str, /) -> None:
-        error_emb = discord.Embed(
+        error_emb = BaseEmbed(
             description = error,
             colour = discord.Colour.from_rgb(231,77,60))
-        error_emb.timestamp = discord.utils.utcnow()
         error_emb.set_author(name = f"Errored by {self.context.author}")
         await self.context.reply(embed = error_emb, mention_author = False)
 
 class Help(commands.Cog):
     """Help Command"""
     def __init__(self, bot : Geralt):
-        self.bot = bot
+        self.bot : Geralt = bot
         self._original_help_command = bot.help_command
         help_command = GeraltHelp()
         help_command.cog = self
