@@ -1,10 +1,14 @@
-# Geralt : Da Bot of Rivia  
+# Geralt - Da Bot of Rivia  
 
-<img src = "misc\witcher.jpg"> 
+<img src = "misc\banner.png"> 
 
 ---
-![Python](https://img.shields.io/badge/Python-316192?style=for-the-badge&logo=python&logoColor=white)
-![Python](https://img.shields.io/badge/-PostgreSQL-0D1117?style=for-the-badge&logo=github&labelColor=0D1117)
+<a href = "https://www.python.org/downloads/">
+    <img src = "https://img.shields.io/badge/Python-316192?style=for-the-badge&logo=python&logoColor=white" alt = "Python 3.10.5">
+    </a>
+<a href = "https://www.postgresql.org/">
+    <img src = "https://img.shields.io/badge/-PostgreSQL-0D1117?style=for-the-badge&logo=github&labelColor=0D1117" alt = "PostgreSQL 14.1">
+    </a>
 
 ## Brief 
 
