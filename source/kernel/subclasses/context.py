@@ -8,6 +8,12 @@ from typing import Optional, Sequence, Union, Any
 from .embed import BaseEmbed
 
 class GeraltContext(commands.Context):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+    def __repr__(self) -> str:
+        return "<Bot>"
+
     async def command_help(self) -> commands.HelpCommand.send_group_help:
         return await self.send_help(self.command)
     

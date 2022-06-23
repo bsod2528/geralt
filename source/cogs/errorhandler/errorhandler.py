@@ -13,11 +13,11 @@ from ...kernel.views.errorhandler import Traceback, CommandSyntax
 
 class ErrorHandler(commands.Cog):
     """Global Error Handling"""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
         
     @commands.Cog.listener()
-    async def on_command_error(self, ctx : GeraltContext, error):
+    async def on_command_error(self, ctx: GeraltContext, error: Exception):
 
         if hasattr(ctx.command, "on_error"):
             return
@@ -81,13 +81,10 @@ class ErrorHandler(commands.Cog):
                         await send_error.send(embed = error_emb)
                         await send_error.send("||Break Point||")
                     except(discord.HTTPException, discord.Forbidden):
-                        await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "Traceback.py"))
+                        await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "traceback.py"))
                         await send_error.send("||Break Point||")
                 else:
-                    await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "Traceback.py"))
+                    await send_error.send(embed = error_emb, file = discord.File(io.StringIO(error_str), filename = "traceback.py"))
                     await send_error.send("||Break Point||")
                     return 
                 await session.close()
-
-async def setup(bot):
-    await bot.add_cog(ErrorHandler(bot))

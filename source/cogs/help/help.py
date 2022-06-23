@@ -16,8 +16,8 @@ class GeraltHelp(commands.HelpCommand):
         return f"Run {self.context.clean_prefix}help [command] for info on a command."
 
     async def send_bot_help(self, mapping):
-        self.context : GeraltContext
         cog_list = []
+        self.context: GeraltContext
         help_emb = BaseEmbed(
             title = f"\U00002728 {self.context.author}'s Help",
             description = f"────\nHi! I am [**Geralt**](https://github.com/BSOD2528/Geralt) and open source Discord Bot made for fun.\n────",
@@ -38,8 +38,8 @@ class GeraltHelp(commands.HelpCommand):
                 help_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
         await self.context.reply(embed = help_emb, view = HelpView(mapping, self, cog_list), mention_author = False)
 
-    async def send_cog_help(self, cog : commands.Cog):
-        self.context : GeraltContext
+    async def send_cog_help(self, cog: commands.Cog):
+        self.context: GeraltContext
         emote = getattr(cog, "emote", None)
         cog_emb = BaseEmbed(
             title = f"{cog.qualified_name} Commands",
@@ -64,7 +64,7 @@ class GeraltHelp(commands.HelpCommand):
         except:
             return
 
-    async def send_command_help(self, command : commands.Command):
+    async def send_command_help(self, command: commands.Command):
         try:
             await command.can_run(self.context)
         except:
@@ -73,7 +73,7 @@ class GeraltHelp(commands.HelpCommand):
             alias = " | ".join(f"`{alias}`" for alias in command.aliases)
         else:
             alias = "`Nil`"
-        self.context : GeraltContext
+        self.context: GeraltContext
 
         command_emb = BaseEmbed(
             title = f"{command} Help",
@@ -91,7 +91,7 @@ class GeraltHelp(commands.HelpCommand):
                                       f" ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}"
             await self.context.reply(embed = command_emb, mention_author = False)
     
-    async def send_group_help(self, group : commands.Group):
+    async def send_group_help(self, group: commands.Group):
         try:
             await group.can_run(self.context)
         except:
@@ -101,7 +101,7 @@ class GeraltHelp(commands.HelpCommand):
             alias = " | ".join(f"`{alias}`" for alias in group.aliases)
         else:
             alias = "`Nil`"
-        self.context : GeraltContext
+        self.context: GeraltContext
 
         group_emb = BaseEmbed(
             title = f"{group} Help",
@@ -126,13 +126,13 @@ class GeraltHelp(commands.HelpCommand):
         error_emb = BaseEmbed(
             description = error,
             colour = discord.Colour.from_rgb(231,77,60))
-        error_emb.set_author(name = f"Errored by {self.context.author}")
+        error_emb.set_author(name = f"Errored by {self.context.author}", icon_url = self.context.author.display_avatar.url)
         await self.context.reply(embed = error_emb, mention_author = False)
 
 class Help(commands.Cog):
     """Help Command"""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
         self._original_help_command = bot.help_command
         help_command = GeraltHelp()
         help_command.cog = self

@@ -1,19 +1,20 @@
+import contextlib
 import io
 import typing
 import discord
+import asyncpg
 import aiohttp
 import traceback
-import asyncpg as PSQL
 
 from ..subclasses.embed import BaseEmbed
 from ..subclasses.bot import Geralt, CONFIG
 from ..subclasses.context import GeraltContext
 
 class SetupTicketPanel(discord.ui.Modal, title = "Setup Your Panel"):
-    def __init__(self, bot : Geralt, ctx : GeraltContext, channel : discord.TextChannel):
+    def __init__(self, bot: Geralt, ctx: GeraltContext, channel: discord.TextChannel):
         super().__init__(custom_id = "panel-setup-modal")
-        self.bot : Geralt = bot
-        self.ctx : GeraltContext = ctx
+        self.bot: Geralt = bot
+        self.ctx: GeraltContext = ctx
         self.channel = channel
 
     category_id = discord.ui.TextInput(
@@ -27,7 +28,7 @@ class SetupTicketPanel(discord.ui.Modal, title = "Setup Your Panel"):
         required = True,
         placeholder = "Description of the embed for the ticket system.") 
         
-    async def on_submit(self, interaction : discord.Interaction) -> None:            
+    async def on_submit(self, interaction: discord.Interaction) -> None:            
         ticket_emb = BaseEmbed(
             description = self.ticket_emb_description.value,
             color = self.bot.colour)
@@ -39,14 +40,15 @@ class SetupTicketPanel(discord.ui.Modal, title = "Setup Your Panel"):
                     "ON CONFLICT (id, guild_id) " \
                     "DO UPDATE SET category_id = $1, panel_description = $5"
             sent_panel_message = await self.channel.send(embed = ticket_emb, view = CallTicket(self.bot, self.ctx))
+            self.bot.ticket_init[self.ctx.guild.id] = [self.category_id.value.strip(), self.channel.id, sent_panel_message.id, sent_panel_message.jump_url, self.ticket_emb_description.value.strip()]
             await self.bot.db.execute(query, self.ctx.guild.id, self.category_id.value.strip(), sent_panel_message.id, self.channel.id, sent_panel_message.jump_url, self.ticket_emb_description.value.strip())
             id = await self.bot.db.fetchval("SELECT id FROM ticket_init WHERE category_id = $1 and sent_message_id = $2", self.category_id.value.strip(), sent_panel_message.id)
             await interaction.response.send_message(content = f"Global ID ─ for ticket system for **{self.ctx.guild}** guild is `{id}`", ephemeral = True)
-        except PSQL.UniqueViolationError:
+        except asyncpg.UniqueViolationError:
             content = f"`{self.category_id.value.strip()}` is a value of a category which is already being utilised for taking care of server members tickets." 
             return await interaction.response.send_message(content = content, ephemeral = True)
                                                                 
-    async def on_error(self, interaction : discord.Interaction, error : Exception) -> None:
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
         async with aiohttp.ClientSession() as session:
             modal_webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
             data = "".join(traceback.format_exception(type(error), error, error.__traceback__))
@@ -58,10 +60,10 @@ class SetupTicketPanel(discord.ui.Modal, title = "Setup Your Panel"):
             await session.close()
 
 class SetupTicketMessage(discord.ui.Modal, title = "Setup Ticket Message"):
-    def __init__(self, bot : Geralt, ctx : GeraltContext):
+    def __init__(self, bot: Geralt, ctx: GeraltContext):
         super().__init__(custom_id = "message-setup-modal")
-        self.bot : Geralt = bot
-        self.ctx : GeraltContext = ctx
+        self.bot: Geralt = bot
+        self.ctx: GeraltContext = ctx
     
     message_description = discord.ui.TextInput(
         label = "Message Description",
@@ -69,11 +71,11 @@ class SetupTicketMessage(discord.ui.Modal, title = "Setup Ticket Message"):
         style = discord.TextStyle.paragraph,
         placeholder = "Enter the description of the message.")
 
-    async def on_submit(self, interaction : discord.Interaction) -> None:
+    async def on_submit(self, interaction: discord.Interaction) -> None:
         query = "UPDATE ticket_init SET message_description = $1 WHERE guild_id = $2"
         await self.bot.db.execute(query, self.message_description.value.strip(), self.ctx.guild.id)
 
-    async def on_error(self, interaction : discord.Interaction, error : Exception) -> None:
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
         async with aiohttp.ClientSession() as session:
             modal_webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
             data = "".join(traceback.format_exception(type(error), error, error.__traceback__))
@@ -85,37 +87,39 @@ class SetupTicketMessage(discord.ui.Modal, title = "Setup Ticket Message"):
             await session.close()
 
 class TicketSetup(discord.ui.View):
-    def __init__(self, bot : Geralt, ctx : GeraltContext, channel : discord.TextChannel):
+    def __init__(self, bot: Geralt, ctx: GeraltContext, channel: discord.TextChannel):
         super().__init__(timeout = 180)
-        self.bot : Geralt = bot
-        self.ctx : GeraltContext = ctx
+        self.bot: Geralt = bot
+        self.ctx: GeraltContext = ctx
         self.channel = channel
         self.remove_item(self.send_message_setup)
 
-    @discord.ui.button(label = "Panel Setup", style = discord.ButtonStyle.grey, emoji = "<:DiscordStaff:905668211163406387>", custom_id = "ticket-panel-modal-invoke")
-    async def send_panel_setup(self, interaction : discord.Interaction, button : discord.ui.Button):
+    @discord.ui.button(label = "Panel Setup", style = discord.ButtonStyle.grey, emoji = "<:DiscordStaff:905668211163406387>")
+    async def send_panel_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(SetupTicketPanel(self.bot, self.ctx, self.channel))
         self.remove_item(self.send_help)
         self.remove_item(self.delete)
         self.add_item(self.send_message_setup)
         self.add_item(self.send_help)
         self.add_item(self.delete)
-        await interaction.message.edit(view = self)
+        with contextlib.suppress(discord.errors):
+            await interaction.message.edit(view = self)
 
-    @discord.ui.button(label = "Ticket Message Setup", style = discord.ButtonStyle.grey, emoji = "<:AppWindow:987319960059674635>", custom_id = "ticket-message-modal-invoke")
-    async def send_message_setup(self, interaction : discord.Interaction, button : discord.ui.Button):
+    @discord.ui.button(label = "Ticket Message Setup", style = discord.ButtonStyle.grey, emoji = "<:AppWindow:987319960059674635>")
+    async def send_message_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(SetupTicketMessage(self.bot, self.ctx))
         self.send_panel_setup.disabled = True
-        await interaction.message.edit(view = self)
+        with contextlib.suppress(discord.errors):
+            await interaction.message.edit(view = self)
 
-    @discord.ui.button(label = "Help", style = discord.ButtonStyle.green, emoji = "<a:CoffeeSip:907110027951742996>", custom_id = "ticket-help")
-    async def send_help(self, interaction : discord.Interaction, buttom : discord.ui.Button):
+    @discord.ui.button(label = "Help", style = discord.ButtonStyle.green, emoji = "<a:CoffeeSip:907110027951742996>")
+    async def send_help(self, interaction: discord.Interaction, buttom: discord.ui.Button):
         content = "For `Panel Setup` two arguments have to be filled. They are `Category ID` and `Embed Description`\n> ` ─ ` Category ID : ID of the category in which you want the tickets to be opened up.\n> ` ─ ` Embed Description : What you want to be displayed on the embed of the main system.\n────\n" \
                   "For `Ticket Message Setup` one argument has to be filled. It is `Message Description`\n> ` ─ ` Message Description : What message you want the user to see upon them going to their ticket channel."
         await interaction.response.send_message(content = content, ephemeral = True)
 
-    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "ticket-delete")
-    async def delete(self, interaction : discord.Interaction, button : discord.ui.Button):
+    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>")
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 
     async def send(self):
@@ -133,7 +137,7 @@ class TicketSetup(discord.ui.View):
         except discord.errors.NotFound:
             pass
 
-    async def interaction_check(self, interaction : discord.Interaction) -> bool:
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user != self.ctx.author:
             return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
@@ -141,17 +145,21 @@ class TicketSetup(discord.ui.View):
             return True
 
 class CallTicket(discord.ui.View):
-    def __init__(self, bot : Geralt, ctx : GeraltContext):
+    def __init__(self, bot: Geralt, ctx: GeraltContext):
         super().__init__(timeout = None)
-        self.bot : Geralt = bot
-        self.ctx : GeraltContext = ctx
+        self.bot: Geralt = bot
+        self.ctx: GeraltContext = ctx
         
     @discord.ui.button(label = "Open a ticket", style = discord.ButtonStyle.grey, emoji = "<:Ticket:987172295762149446>", custom_id = "ticket-call-button")
-    async def call_ticket(self, interaction : discord.Interaction, button : discord.ui.Button):    
+    async def call_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):    
         try:
             fetch_ticket_deets = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", interaction.guild.id)
-            category = [data["category_id"] for data in fetch_ticket_deets]
-            message_description = [data["message_description"] for data in fetch_ticket_deets]
+            try:
+                category = self.bot.ticket_init[interaction.guild.id][0]
+                message_description = [data["message_description"] for data in fetch_ticket_deets]
+            except KeyError:
+                category = [data["category_id"] for data in fetch_ticket_deets]
+                message_description = [data["message_description"] for data in fetch_ticket_deets]
         
             channel_overwrites : typing.Dict = {
                 interaction.guild.default_role : discord.PermissionOverwrite(read_messages = False, send_messages = False),
@@ -162,11 +170,12 @@ class CallTicket(discord.ui.View):
                     name = f"{interaction.user} Ticket", 
                     reason = f"As {interaction.user} opened a ticket", 
                     overwrites = channel_overwrites,
-                    category = discord.Object(id = "".join(map(str,category))))
+                    category = discord.Object(id = "".join(map(str, category))))
                 await self.bot.db.execute(f"INSERT INTO ticket_kernel (guild_id, invoker_id, invoked_at) VALUES ($1, $2, $3)", interaction.guild.id, interaction.user.id, interaction.created_at)
                 ticket_id = await self.bot.db.fetchval("SELECT ticket_id FROM ticket_kernel WHERE guild_id = $1 AND invoked_at = $2", interaction.guild.id, interaction.created_at)
-            except discord.HTTPException:
-                return await interaction.response.send_message(content = f"Dear {interaction.user}. There has been an API ratelimit. Please try again in few minutes", ephemeral = True)
+                self.bot.ticket_kernel[interaction.guild.id] = [ticket_id, interaction.user.id, interaction.created_at]
+            except discord.HTTPException as exception:
+                return await interaction.response.send_message(content = f"```py\n{exception}\n```", ephemeral = True)
 
             user_channel_emb = BaseEmbed(
                 description = "".join(message_description),

@@ -1,9 +1,9 @@
 import io
 import dotenv
 import discord
+import asyncpg
 import aiohttp
 import traceback
-import asyncpg as PSQL
 
 from dotenv import dotenv_values
 
@@ -16,16 +16,16 @@ CONFIG = dotenv_values("config.env")
 
 # Views for Tags
 class TagView(discord.ui.View):
-    def __init__(self, bot : Geralt, ctx : GeraltContext):
+    def __init__(self, bot: Geralt, ctx: GeraltContext):
         super().__init__(timeout = 100)
-        self.bot : Geralt = bot
-        self.ctx : GeraltContext = ctx
+        self.bot: Geralt = bot
+        self.ctx: GeraltContext = ctx
 
     class CreateTagModal(discord.ui.Modal, title = "Create a Tag !"):
-        def __init__(self, bot : Geralt, ctx : GeraltContext):
+        def __init__(self, bot: Geralt, ctx: GeraltContext):
             super().__init__(custom_id = "tag-create-modal")
-            self.bot : Geralt = bot
-            self.ctx : GeraltContext = ctx
+            self.bot: Geralt = bot
+            self.ctx: GeraltContext = ctx
 
         tag_name = discord.ui.TextInput(
             label = "Name",
@@ -38,7 +38,7 @@ class TagView(discord.ui.View):
             required = True, 
             placeholder = "Enter the content of the tag.")
     
-        async def on_submit(self, interaction : discord.Interaction) -> None:
+        async def on_submit(self, interaction: discord.Interaction) -> None:
             try:
                 blacklisted_words = ["make", "raw", "info", "transfer", "delete", "edit", "list", "all"]
                 if self.tag_name.value.strip() in blacklisted_words:
@@ -56,7 +56,7 @@ class TagView(discord.ui.View):
                             self.ctx = ctx
 
                         @discord.ui.button(label = "Content", style = discord.ButtonStyle.grey, emoji = "<:NanoTick:925271358735257651>")
-                        async def on_tag_make_content_view(self, interaction : discord.Interaction, button : discord.ui.Button):
+                        async def on_tag_make_content_view(self, interaction: discord.Interaction, button: discord.ui.Button):
                             try:
                                 content = await self.bot.db.fetchval("SELECT content FROM tags WHERE guild_id = $1 AND id = $2 AND author_id = $3", self.ctx.guild.id, id, self.ctx.author.id)
                                 await interaction.response.send_message(content = f"\"{content}\"", ephemeral = True)
@@ -65,12 +65,12 @@ class TagView(discord.ui.View):
 
                     await interaction.response.send_message(content = f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n>>> ────\n` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n` ─ ` Created On : {self.bot.timestamp(interaction.created_at, style = 'f')}\n────", ephemeral = False, view = TagContent(self.bot, self.ctx))
             
-            except PSQL.UniqueViolationError:
+            except asyncpg.UniqueViolationError:
                 return await interaction.response.send_message(content = f"`{self.tag_name.value}` ─ is a tag which is already present. Please try again with another with another name", ephemeral = True)
             except Exception as exception:
                 return await interaction.response.send_message(content = f"```py\n{exception}\n```", ephemeral = True)
         
-        async def on_error(self, interaction : discord.Interaction, error : Exception) -> None:
+        async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
             async with aiohttp.ClientSession() as session:
                 modal_webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
                 data = "".join(traceback.format_exception(type(error), error, error.__traceback__))
@@ -82,7 +82,7 @@ class TagView(discord.ui.View):
                 await session.close()
 
     @discord.ui.button(label = "Create Tag", style = discord.ButtonStyle.grey, emoji = "<a:PandaNote:961260552435413052>", custom_id = "tag-invoke-create-modal")
-    async def create_tag(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def create_tag(self, interaction: discord.Interaction, button: discord.ui.Button):
         pain = f"{interaction.user.mention} ─ This view can't be handled by you at the moment <:Bonked:934033408106057738>, it is meant for {self.ctx.author.mention}\nInvoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user == self.ctx.author:
             button.disabled = True
@@ -92,18 +92,18 @@ class TagView(discord.ui.View):
             await interaction.response.send_message(content = f"{pain}", ephemeral = True)        
         
     @discord.ui.button(label = "Help", style = discord.ButtonStyle.grey, emoji = "<a:ReiPet:965800035054931998>", custom_id = "tag-help")
-    async def create_tag_help(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def create_tag_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         
         class TagMakeArgHelpButton(discord.ui.View):
             
             @discord.ui.button(label = "Arguments Taken", style = discord.ButtonStyle.green, emoji = "<a:PandaHappy:915131837158936596>", custom_id = "tag-args-allowed")
-            async def arg_button(self, interaction : discord.Interaction, button : discord.ui.button):
+            async def arg_button(self, interaction: discord.Interaction, button: discord.ui.button):
                 await interaction.response.send_message(content = f"{interaction.user.mention}\n\n>>> ────\n<:GeraltRightArrow:904740634982760459> The following list shows what arguments can be inputted inside the tag :\n │ ` ─ ` Text : Just regular test lol <a:RooSitComfortPatAnotherRoo:916125535015419954>\n │ ` ─ ` Emotes : Emote IDs have to be sent for **custom emotes**. [**Click here to know how to get the custom emote ID**](<https://docs.parent.gg/how-to-obtain-emoji-ids/>). For **default emotes** just do `:<emote>:`\n │ ` ─ ` Codeblocks : A code snippet can be sent by using \`\`\`<language>new line<code>\`\`\` \n │ ` ─ ` Multimedia [ Image & Videos ] : Files which have been sent in discord can be used. Ensure to right click on `video/image` and copy the **link** and paste it.\n────", ephemeral = True)
 
         await interaction.response.send_message(content = f"{interaction.user.mention}\n\n────\n**Click on the `Arguments Taken` Button for a list of arguments allowed.**\n\nA modal will pop open for you. The following points give a small gist :\n> │ ` ─ ` \"Name\" : Where you're supposed to enter the name of the tag you would like to create.\n> │ ` ─ ` \"Content\" : Where you enter the content for that tag which will be sent upon invoked.\n────\nhttps://i.imgur.com/yAp0dWy.gif", ephemeral = True, view = TagMakeArgHelpButton())
 
     @discord.ui.button(label = "Exit", style = discord.ButtonStyle.red, emoji = "<a:Byee:915568796536815616>", custom_id = "tag-delete")
-    async def exit_tag_creation(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def exit_tag_creation(self, interaction: discord.Interaction, button: discord.ui.Button):
         pain = f"{interaction.user.mention} ─ This view can't be handled by you at the moment <:Bonked:934033408106057738>, it is meant for {self.ctx.author.mention}\nInvoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user == self.ctx.author:
             await interaction.response.defer()
@@ -112,7 +112,7 @@ class TagView(discord.ui.View):
             await interaction.response.send_message(content = f"{pain}", ephemeral = True)        
 
     async def send(self):
-        self.message = await self.ctx.reply(content = f"**{self.ctx.author}** ─ please utilise the button below to create a new `tag` <a:IWait:948253556190904371>", view = self, mention_author = False)
+        self.message = await self.ctx.reply(content = f"**{self.ctx.author}** ─ please utilise the button below to create a new `tag` <a:IWait:948253556190904371>", view = self, mention_author = False, ephemeral = False)
         return self.message
         
     async def on_timeout(self) -> None:

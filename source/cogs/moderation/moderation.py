@@ -9,15 +9,15 @@ from ...kernel.subclasses.context import GeraltContext
 
 class Moderation(commands.Cog):
     """Moderation Commands for easy moderation."""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Mod", id = 904765450066473031, animated = False)   
 
     @staticmethod
-    def Check_Hierarchy(ctx : commands.context, user : discord.Member):
+    def check_hierarchy(ctx: commands.context, user: discord.Member):
         if isinstance(user, discord.Member):
             if user == ctx.guild.owner:
                 raise commands.BadArgument(f"Oh come on, they're the owner.\n")
@@ -34,10 +34,10 @@ class Moderation(commands.Cog):
         brief = "Kicks User")
     @commands.guild_only()
     @commands.has_guild_permissions(kick_members = True)
-    async def kick(self, ctx : GeraltContext, user : discord.Member, *, reason : str = "Not Provided"):
+    async def kick(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
         """Teach them a lesson by kicking them out."""
-        self.Check_Hierarchy(ctx, user)
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        self.check_hierarchy(ctx, user)
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             await user.kick(reason = f"{user} - {reason} by {ctx.author}")
             kick_emb = BaseEmbed(
                 title = "Kick - Has Occured.",
@@ -51,7 +51,7 @@ class Moderation(commands.Cog):
                 view.disabled = True            
             await interaction.response.edit_message(content = f"\u2001", embed = kick_emb, view = ui)
         
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.edit_message(content = f"**{user.mention}** will not be kicked.", allowed_mentions = self.bot.mentions, view = ui)
@@ -63,10 +63,10 @@ class Moderation(commands.Cog):
         brief = "Bans User")
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members = True)
-    async def ban(self, ctx : GeraltContext, user : discord.Member, *, reason : str = "Not Provided"):
+    async def ban(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
         """Teach them a lesson by kicking them out."""
-        self.Check_Hierarchy(ctx, user)
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        self.check_hierarchy(ctx, user)
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             await user.ban(reason = f"{user} - {reason} by {ctx.author}")
             ban_emb = BaseEmbed(
                 title = "Ban - Has Occured.",
@@ -80,7 +80,7 @@ class Moderation(commands.Cog):
                 view.disabled = True            
             await interaction.response.edit_message(content = f"\u2001", embed = ban_emb, view = ui)
         
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.edit_message(content = f"**{user.mention}** will not be banned.", allowed_mentions = self.bot.mentions, view = ui)
@@ -92,14 +92,14 @@ class Moderation(commands.Cog):
         brief = "Mutes User")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles = True)
-    async def mute(self, ctx : GeraltContext, user : discord.Member, *, reason : str = "Not Provided"):
+    async def mute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
         """Mute toxic users"""
-        self.Check_Hierarchy(ctx, user)
+        self.check_hierarchy(ctx, user)
         role = discord.utils.get(ctx.guild.roles, name = "Muted")
         if role in user.roles:
                 await ctx.send(f"**{user}** already has the role and is currently muted <a:LifeSucks:932255208044650596>")                
         else:        
-            async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+            async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
                 if not role:
                     create_role = await ctx.guild.create_role(name = "Muted", permissions = discord.Permissions(66560), reason = "Mute command needs Muted role", colour = discord.Colour.from_rgb(255, 100, 100))
                     for channel in ctx.guild.channels:
@@ -124,7 +124,7 @@ class Moderation(commands.Cog):
                 await user.send(embed = mute_emb)
                 await interaction.response.edit_message(content = f"\u2001", embed = mute_emb, view = ui)
 
-            async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+            async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
                 for view in ui.children:
                     view.disabled = True
                 await interaction.response.edit_message(content = f"**{user.mention}** will not be muted.", allowed_mentions = self.bot.mentions, view = ui)
@@ -136,11 +136,11 @@ class Moderation(commands.Cog):
         brief = "Unmutes User")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_roles = True)
-    async def unmute(self, ctx : GeraltContext, user : discord.Member, *, reason : str = "Not Provided"):
+    async def unmute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
         """Unmute users"""
-        self.Check_Hierarchy(ctx, user)
+        self.check_hierarchy(ctx, user)
         role = discord.utils.get(ctx.guild.roles, name = "Muted")
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             if not role:
                 create_role = await ctx.guild.create_role(name = "Muted", permissions = discord.Permissions(66560), reason = "Mute command needs Muted role", colour = discord.Colour.from_rgb(255, 100, 100))
                 for channel in ctx.guild.channels:
@@ -165,7 +165,7 @@ class Moderation(commands.Cog):
             await user.send(embed = unmute_emb)
             await interaction.response.edit_message(content = f"\u2001", embed = unmute_emb, view = ui)
 
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.edit_message(content = f"**{user.mention}** will not be unmuted.", allowed_mentions = self.bot.mentions, view = ui)
@@ -178,9 +178,9 @@ class Moderation(commands.Cog):
         aliases = ["nick"])
     @commands.guild_only()
     @commands.has_guild_permissions(manage_nicknames = True)
-    async def nick(self, ctx : GeraltContext, user : discord.Member, *, nick : str):
+    async def nick(self, ctx: GeraltContext, user: discord.Member, *, nick: str):
         """Change the Nickname of a member"""
-        self.Check_Hierarchy(ctx, user)
+        self.check_hierarchy(ctx, user)
         
         previous_nickname = user.display_name
         await user.edit(nick = nick)

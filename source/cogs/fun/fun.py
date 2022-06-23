@@ -13,11 +13,11 @@ from ...kernel.views.fun import Pop, Nitro, ClickGame, PopSize, ClickSize, Click
 
 class Fun(commands.Cog):
     """Simple commands that induce Fun"""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
-        self.delete : typing.Dict = {} # -------
-        self.pre_edit : typing.Dict = {} #     |-- > Snipe command related dictionaries
-        self.post_edit : typing.Dict = {} # --=)
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
+        self.delete: typing.Dict = {} # -------
+        self.pre_edit: typing.Dict = {} #     |-- > Snipe command related dictionaries
+        self.post_edit: typing.Dict = {} # --=)
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -25,11 +25,11 @@ class Fun(commands.Cog):
 
     # Listeners for "snipe" command
     @commands.Cog.listener()
-    async def on_message_delete(self, message : discord.Message):
+    async def on_message_delete(self, message: discord.Message):
         self.delete[message.channel.id] = (message.content, message.author, message.channel.id, message.created_at)
 
     @commands.Cog.listener()
-    async def on_message_edit(self, pre_edit : discord.Message, post_edit : discord.Message):
+    async def on_message_edit(self, pre_edit: discord.Message, post_edit: discord.Message):
         self.pre_edit[pre_edit.channel.id] = (pre_edit.jump_url, pre_edit.content, pre_edit.author, pre_edit.channel.id, pre_edit.created_at)
         self.post_edit[post_edit.channel.id] = (post_edit.content, post_edit.author, post_edit.channel.id, post_edit.edited_at)
 
@@ -41,9 +41,9 @@ class Fun(commands.Cog):
     @app_commands.guild_only()
     @app_commands.describe(user = "Select a user to mimic")    
     @app_commands.describe(message = "Type out the message you want to send.")
-    @commands.has_guild_permissions(manage_webhooks = True)
+    @commands.bot_has_guild_permissions(manage_webhooks = True)
     @commands.guild_only()
-    async def echo(self, ctx : GeraltContext, user : discord.Member, *, message : str):
+    async def echo(self, ctx: GeraltContext, user: discord.Member, *, message: str):
         """Send a webhook message as the user you mentioned"""
         try:
             if ctx.interaction:
@@ -75,7 +75,7 @@ class Fun(commands.Cog):
         name = "snipe",
         aliases = ["s"])
     @commands.guild_only()
-    async def snipe(self, ctx : GeraltContext):
+    async def snipe(self, ctx: GeraltContext):
         """Get edited / deleted messages"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -85,14 +85,13 @@ class Fun(commands.Cog):
         name = "delete",
         brief = "Snipe Deleted Messages",
         aliases = ["del", "d"])
-    async def snipe_delete(self, ctx : GeraltContext):
+    async def snipe_delete(self, ctx: GeraltContext):
         """Get the details of the recently deleted message"""
         try:    
             message, author, channel, time = self.delete[ctx.channel.id]    
             delete_emb = BaseEmbed(
                 title = "Sniped Deleted Message",
-                description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.timestamp(time)}",
-                colour = self.bot.colour)
+                description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.timestamp(time)}")
             delete_emb.add_field(
                 name = "Message Content",
                 value = f"```prolog\n{message}\n```")
@@ -105,7 +104,7 @@ class Fun(commands.Cog):
         name = "edit",
         brief = "Snipe Edited Messages",
         aliases = ["ed", "e"])
-    async def snipe_edit(self, ctx : GeraltContext):
+    async def snipe_edit(self, ctx: GeraltContext):
         """Get the details of the recently edited message"""
         try:    
             url, message, author, channel, pre_time = self.pre_edit[ctx.channel.id]    
@@ -114,8 +113,7 @@ class Fun(commands.Cog):
             view.add_item(discord.ui.Button(label = "Jump to Message", style = discord.ButtonStyle.link, url = url, emoji = "<a:ChainLink:936158619030941706>"))
             edit_emb = BaseEmbed(
                 title = "Sniped Edited Message",
-                description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Sent At :** {self.bot.timestamp(pre_time)}",
-                colour = self.bot.colour)
+                description = f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Sent At :** {self.bot.timestamp(pre_time)}")
             edit_emb.add_field(
                 name = "Before Edit",
                 value = f"```prolog\n{message}\n```")
@@ -130,7 +128,7 @@ class Fun(commands.Cog):
     @commands.command(
         name = "nitro",
         brief = "Gift Nitro")
-    async def nitro(self, ctx : GeraltContext, *, user : discord.Member = None):
+    async def nitro(self, ctx: GeraltContext, *, user: discord.Member = None):
         """Gift a user free nitro!"""
         try:
             nitro_emb = BaseEmbed(
@@ -151,7 +149,7 @@ class Fun(commands.Cog):
     @commands.command(
         name = "pop",
         brief = "Pop Buttons!")
-    async def pop(self, ctx : GeraltContext, *, flag : typing.Optional[PopSize]):
+    async def pop(self, ctx: GeraltContext, *, flag: typing.Optional[PopSize]):
         """Fidget with the buttons by popping them!
         ────
         **Flags Present :**
@@ -169,7 +167,7 @@ class Fun(commands.Cog):
         brief = "Click and Win",
         aliases = ["cl", "clock"])
     @commands.guild_only()
-    async def click(self, ctx : GeraltContext):
+    async def click(self, ctx: GeraltContext):
         """Enjoy a nice satisfying game by clicking on the button!"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
@@ -177,7 +175,7 @@ class Fun(commands.Cog):
     @click.command(
         name = "start",
         brief = "Start a game of click")
-    async def click_start(self, ctx : GeraltContext, *, flag : typing.Optional[ClickSize]):
+    async def click_start(self, ctx: GeraltContext, *, flag: typing.Optional[ClickSize]):
         """Start a game of click.
         ────
         **Flags Present :**

@@ -16,13 +16,13 @@ from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.subclasses.context import GeraltContext
 
 class TagFlags(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
-    tag : int
-    guild : int
+    tag: int
+    guild: int
 
 class Tags(commands.Cog):
     """Allows you to tag text for later retrieval."""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -31,7 +31,7 @@ class Tags(commands.Cog):
     # Huge thanks to Zeus432 [ Github ID ] for helping me enable the pagination :D
     # Huge thanks to `rtk-rnjn` [ Github ID ] for helping me invoke the tag w/o a separate command
 
-    async def tag_call(self, ctx : GeraltContext, tag_name):
+    async def tag_call(self, ctx: GeraltContext, tag_name: str):
         """Call a tag"""
         tag_deets = await self.bot.db.fetchval("SELECT (content) FROM tags WHERE name = $1 AND guild_id = $2", tag_name, ctx.guild.id)
         if not tag_deets:
@@ -40,7 +40,7 @@ class Tags(commands.Cog):
             await ctx.send(tag_deets, reference = ctx.message.reference if ctx.message.reference else None)
             await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
 
-    async def tag_raw(self, ctx : GeraltContext, *, tag_name : str = None):
+    async def tag_raw(self, ctx: GeraltContext, *, tag_name: str = None):
         tag_data = await self.bot.db.fetchval("SELECT (content) FROM tags WHERE name = $1 AND guild_id = $2", tag_name, ctx.guild.id)
         await self.bot.db.execute("UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3", tag_name, ctx.author.id, ctx.guild.id)
         if tag_name is None:
@@ -51,7 +51,7 @@ class Tags(commands.Cog):
             await ctx.reply(discord.utils.escape_markdown(tag_data))
 
 
-    async def tag_list(self, ctx : GeraltContext, *, user : typing.Optional[typing.Union[discord.User, discord.Member]]):
+    async def tag_list(self, ctx: GeraltContext, *, user: typing.Optional[typing.Union[discord.User, discord.Member]]):
         user = user or ctx.author 
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE author_id = $1 AND guild_id = $2 ORDER BY name", user.id, ctx.guild.id)
         tag_list = []
@@ -87,7 +87,7 @@ class Tags(commands.Cog):
                     embed_list.append(tag_list_emb)     
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
 
-    async def tag_all(self, ctx : GeraltContext):
+    async def tag_all(self, ctx: GeraltContext):
         user = ctx.author
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags WHERE guild_id = $1 ORDER BY name", ctx.guild.id)
         tag_list = []
@@ -120,7 +120,7 @@ class Tags(commands.Cog):
                     embed_list.append(tag_list_emb)     
                 await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
     
-    async def tag_info(self, ctx : GeraltContext, *, tag_name : commands.clean_content):
+    async def tag_info(self, ctx: GeraltContext, *, tag_name: commands.clean_content):
         tag_deets = await self.bot.db.fetchval("SELECT (id, author_id, content, uses, created_on, jump_url) FROM tags WHERE name = $1 AND guild_id = $2", tag_name, ctx.guild.id)
         if not tag_deets:
             return await ctx.reply(f"`{tag_name}` ─ is a tag either which is not present in this guild or not in my database.")
@@ -142,7 +142,7 @@ class Tags(commands.Cog):
         tag_deets_emb.set_thumbnail(url = tag_owner.display_avatar.url)
         await ctx.reply(embed = tag_deets_emb, view = jump_button)
 
-    async def tag_edit(self, ctx : GeraltContext, tag_id : int, *, edited_content : str):
+    async def tag_edit(self, ctx: GeraltContext, tag_id: int, *, edited_content: str):
         if tag_id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3", tag_id, ctx.author.id, ctx.guild.id):
             await ctx.reply(f"**{ctx.author}** ─ this is a tag which you either don't own or is not in the database.")
             await ctx.add_nanocross()
@@ -154,10 +154,10 @@ class Tags(commands.Cog):
             class ContentButton(discord.ui.View):
 
                 @discord.ui.button(label = "Edited Content", style = discord.ButtonStyle.grey, emoji = "<a:ZizzyHappy:915131835443474492>")
-                async def content_button(self, interaction : discord.Interaction, button : discord.ui.button):
+                async def content_button(self, interaction: discord.Interaction, button: discord.ui.button):
                     await interaction.response.send_message(content = f"Content edited by {ctx.author.mention} :\n\n>>> ────\n{tag_deets[1]}\n────", ephemeral = True)
                     
-                async def on_error(self, interaction : discord.Interaction, error : Exception) -> None:
+                async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
                     async with aiohttp.ClientSession() as session:
                         content_webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
                     data = "".join(traceback.format_exception(type(error), error, error.__traceback__))
@@ -172,9 +172,9 @@ class Tags(commands.Cog):
             await ctx.reply(f"Successfully edited Tag Name : `{tag_deets[0]}` (`{tag_id}`) ", view = ContentButton())
             await ctx.add_nanotick()
 
-    async def tag_remove(self, ctx : GeraltContext, id : int):
+    async def tag_remove(self, ctx: GeraltContext, id: int):
         tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", id, ctx.guild.id)
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             if id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2", id, ctx.author.id):
@@ -187,7 +187,7 @@ class Tags(commands.Cog):
                 await ui.response.edit(content = f"\"**{tag_deets}**\" (`{id}`) ─ has been successfully deleted from your tag list <:NanoTick:925271358735257651>", view = ui)
                 await ctx.add_nanotick()
 
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
@@ -195,11 +195,11 @@ class Tags(commands.Cog):
         
         Confirmation.response = await ctx.reply(f"Are you sure you want to remove tag ─ \"**{tag_deets}**\" (`{id}`) from your list <a:IThink:933315875501641739>", view = Confirmation(ctx, yes, no), mention_author = False)   
 
-    async def tag_transfer(self, ctx : GeraltContext, tag_id : int, user : discord.Member):
+    async def tag_transfer(self, ctx: GeraltContext, tag_id: int, user: discord.Member):
         tag_deets = await self.bot.db.fetchval("SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2", tag_id, ctx.guild.id)
         if user is None:
             return await ctx.send(f"Please mention a user to transfer the ownership of the tag.")
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             if id != await self.bot.db.fetchval("SELECT * FROM tags WHERE id = $1 AND author_id = $2", tag_id, ctx.author.id):
@@ -210,7 +210,7 @@ class Tags(commands.Cog):
                 await self.bot.db.execute("UPDATE tags SET author_id = $1, author_name = $2, author_id = $3 WHERE id = $4 AND guild_id = $5", user.id, user.name, user.id, tag_id, ctx.guild.id)
                 await ui.response.edit(content = f"\"**{tag_deets}**\" (`{tag_id}`) ─ has been successfully transferred to {user.mention} <:NanoTick:925271358735257651>", view = ui, allowed_mentions = self.bot.mentions)
 
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
@@ -218,12 +218,12 @@ class Tags(commands.Cog):
 
             Confirmation.response = await ctx.reply(f"Are you sure you want to \"transfer\" tag ─ \"**{tag_deets}**\" (`{tag_id}`) to {user.mention} <:SIDGoesHmmMan:967421008137056276>", view = Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)    
 
-    async def autocomplete(self, interaction : discord.Interaction, current : str) -> typing.List[app_commands.Choice[str]]:
+    async def autocomplete(self, interaction: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         tag_deets = await self.bot.db.fetch("SELECT (name) FROM tags WHERE guild_id = $1", interaction.guild_id)
         names = [f"{deets[0]}" for deets in tag_deets]
         return [app_commands.Choice(name = names, value = names) for names in names if current.lower() in names]
 
-    async def edit_or_transfer_autocomplete(self, interaction : discord.Interaction, current : int) -> typing.List[app_commands.Choice[int]]:
+    async def edit_or_transfer_autocomplete(self, interaction: discord.Interaction, current: int) -> typing.List[app_commands.Choice[int]]:
         tag_deets = await self.bot.db.fetch("SELECT (id) FROM tags WHERE guild_id = $1 AND author_id = $2 ORDER BY id DESC", interaction.guild_id, interaction.user.id)
         ids = [deets[0] for deets in tag_deets]
         return [app_commands.Choice(name = ids, value = ids) for ids in ids]
@@ -235,7 +235,7 @@ class Tags(commands.Cog):
         with_app_command = True)
     @commands.guild_only()
     @app_commands.guild_only()
-    async def tag(self, ctx : GeraltContext, *, tag_name : str = None):
+    async def tag(self, ctx: GeraltContext, *, tag_name: str = None):
         """Make me to say something upon being invoking a trigger"""
         if not tag_name:
             return await ctx.command_help()
@@ -247,7 +247,7 @@ class Tags(commands.Cog):
         brief = "Make a tag",
         aliases = ["add"],
         with_app_command = False)
-    async def tag_make(self, ctx : GeraltContext):
+    async def tag_make(self, ctx: GeraltContext):
         """Make a tag."""
         await TagView(self.bot, ctx).send()
 
@@ -259,7 +259,7 @@ class Tags(commands.Cog):
     @app_commands.describe(tag_name = "Choose a tag to view in raw format")
     @app_commands.rename(tag_name = "name")
     @app_commands.autocomplete(tag_name = autocomplete)
-    async def _raw(self, ctx : GeraltContext, *, tag_name : str):
+    async def _raw(self, ctx: GeraltContext, *, tag_name: str):
         """See the tag without any markdown present."""
         await self.tag_raw(ctx, tag_name = tag_name)
     
@@ -269,7 +269,7 @@ class Tags(commands.Cog):
         aliases = ["l"],
         with_app_command = True)    
     @app_commands.describe(user = "Get a list of tags present by the user you mentioned.")
-    async def _list(self, ctx : GeraltContext, *, user : typing.Optional[typing.Union[discord.User, discord.Member]]):
+    async def _list(self, ctx: GeraltContext, *, user: typing.Optional[typing.Union[discord.User, discord.Member]]):
         """Get a list of all tags owned by a user in this guild.
         ────
         If `user` is not passed in, you will receive a list of your tags."""
@@ -278,7 +278,7 @@ class Tags(commands.Cog):
     @tag.command(
         name = "all",
         brief = "Send guild's tags list")
-    async def _all(self, ctx : GeraltContext):
+    async def _all(self, ctx: GeraltContext):
         """Get a list of all tags present in this guild."""
         await self.tag_all(ctx)
     
@@ -289,7 +289,7 @@ class Tags(commands.Cog):
     @app_commands.autocomplete(tag_name = autocomplete)
     @app_commands.describe(tag_name = "Get information on a tag.")
     @app_commands.rename(tag_name = "name")
-    async def _info(self, ctx : GeraltContext, *, tag_name : str):
+    async def _info(self, ctx: GeraltContext, *, tag_name: str):
         """Get entire details of a tag in this guild."""
         await self.tag_info(ctx, tag_name = tag_name)
 
@@ -302,7 +302,7 @@ class Tags(commands.Cog):
     @app_commands.describe(edited_content = "New content that you want to display upon the tag being called.")
     @app_commands.rename(edited_content = "content")
     @app_commands.rename(tag_id = "id")
-    async def _edit(self, ctx : GeraltContext, tag_id : int, *, edited_content : str):
+    async def _edit(self, ctx: GeraltContext, tag_id: int, *, edited_content: str):
         """Edit a tags content which you own in this guild."""
         await self.tag_edit(ctx, tag_id = tag_id, edited_content = edited_content)
 
@@ -313,7 +313,7 @@ class Tags(commands.Cog):
         with_app_command = True)
     @app_commands.describe(tag_id = "Provide the tag id of which you want to delete.")
     @app_commands.rename(tag_id = "id")
-    async def _remove(self, ctx : GeraltContext, tag_id : int):
+    async def _remove(self, ctx: GeraltContext, tag_id: int):
         """Delete a tag you own in this guild."""
         await self.tag_remove(ctx, id = tag_id)
     
@@ -325,14 +325,14 @@ class Tags(commands.Cog):
     @app_commands.describe(tag_id = "Provide the ID of the tag you want to transfer to.")
     @app_commands.describe(user = "Mention the user you want to transfer the tag to ")
     @app_commands.rename(tag_id = "id")
-    async def _transfer(self, ctx : GeraltContext, tag_id : int, *, user : discord.Member):
+    async def _transfer(self, ctx: GeraltContext, tag_id: int, *, user: discord.Member):
         """Transfer a tag you own to another user in this guild."""
         await self.tag_transfer(ctx, tag_id = tag_id, user = user)
     
     @tag.command(
         name = "import",
         with_app_command = False)
-    async def tag_import(self, ctx : GeraltContext, *, flag : typing.Optional[TagFlags]):
+    async def tag_import(self, ctx: GeraltContext, *, flag: typing.Optional[TagFlags]):
         """Import tags from other guilds.
         ────
         **Flags Present :**
@@ -352,7 +352,7 @@ class Tags(commands.Cog):
                 class ImportedContent(discord.ui.View):
                     
                     @discord.ui.button(label = "Content", style = discord.ButtonStyle.grey, emoji = "<a:Verify:905748402871095336>")
-                    async def imported_tag_content(self, interaction : discord.Interaction, button : discord.ui.Button):
+                    async def imported_tag_content(self, interaction: discord.Interaction, button: discord.ui.Button):
                         await interaction.response.send_message(content = f"{tag_deets[1]}", ephemeral = True)
 
                 await ctx.reply(f"Successfully transferred :\n\n> Tag Name : \"`{tag_deets[0]}`\"\n> Tag ID : `{id}`", view = ImportedContent())

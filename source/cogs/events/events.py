@@ -1,6 +1,5 @@
 import aiohttp
 import discord
-import colorama as colour
 
 from discord.ext import commands
 
@@ -9,13 +8,11 @@ from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.subclasses.context import GeraltContext
 
 class Events(commands.Cog):
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
-        
-    colour.init()
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
 
     @commands.Cog.listener()
-    async def on_message_edit(self, before : discord.Message, after : discord.Message):
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
         """Invokes command [if needed] on editing a message"""
         if after.content == before.content:
             return  
@@ -23,7 +20,7 @@ class Events(commands.Cog):
             return await self.bot.process_commands(after)
     
     @commands.Cog.listener()
-    async def on_command_completion(self, ctx : GeraltContext):
+    async def on_command_completion(self, ctx: GeraltContext):
         command_name = ctx.command.root_parent
         if not command_name:
             command_name = ctx.command or ctx.invoked_subcommand
@@ -38,7 +35,7 @@ class Events(commands.Cog):
                 await self.bot.db.execute(query, str(command_name), ctx.guild.id, ctx.message.created_at)
 
     @commands.Cog.listener()
-    async def on_guild_join(self, guild):
+    async def on_guild_join(self, guild: discord.Guild):
         """Sends a Webhook upon joining a guild""" 
         join_emb = BaseEmbed(
             title = f":scroll: I Joined {guild.name}",
@@ -53,7 +50,6 @@ class Events(commands.Cog):
             value = f"> ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.timestamp(guild.created_at)} \n" \
                     f"> ` ─ ` <a:WumpusVibe:905457020575031358> I Joined : {self.bot.timestamp(discord.utils.utcnow())}",
             inline = False)                
-        join_emb.set_thumbnail(url = guild.icon.url)
         async with aiohttp.ClientSession() as session:
             join_log_webhook = discord.Webhook.partial(id = CONFIG.get("JOIN_LOG_ID"), token = CONFIG.get("JOIN_LOG_TOKEN"), session = session)
             await join_log_webhook.send(embed = join_emb)
@@ -61,7 +57,7 @@ class Events(commands.Cog):
             await session.close()
     
     @commands.Cog.listener()
-    async def on_guild_remove(self, guild):
+    async def on_guild_remove(self, guild: discord.Guild):
         """Sends a Webhook upon being removed from a guild"""    
         leave_emb = BaseEmbed(
             title = f":scroll: I Left {guild.name}",
@@ -76,7 +72,6 @@ class Events(commands.Cog):
             value = f"> ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.timestamp(guild.created_at)} \n" \
                     f"> ` ─ ` <a:PAIN:939876989655994488> I Left : {self.bot.timestamp(discord.utils.utcnow())}",
             inline = False)                
-        leave_emb.set_thumbnail(url = guild.icon.url)
         async with aiohttp.ClientSession() as session:
             leave_log_webhook = discord.Webhook.partial(id = CONFIG.get("LEAVE_LOG_ID"), token = CONFIG.get("LEAVE_LOG_TOKEN"), session = session)
             await leave_log_webhook.send(embed = leave_emb)

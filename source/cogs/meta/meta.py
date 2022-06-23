@@ -1,4 +1,5 @@
 import io
+import os
 import time
 import json
 import typing
@@ -6,6 +7,7 @@ import urllib
 import aiohttp
 import discord
 import asyncio
+import inspect
 import humanize
 
 from discord.ext import commands
@@ -13,24 +15,25 @@ from discord.ext import commands
 from ...kernel.views.paginator import Paginator
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.meta import Info, Confirmation
+from ...kernel.utilities.crucial import total_lines
 from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.subclasses.context import GeraltContext
 
 class Meta(commands.Cog):
     """Commands which don't fall under any of the cogs"""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Meta", id = 905748764432662549, animated = True)   
 
-    @commands.cooldown(2, 5, commands.BucketType.user)
+    @commands.cooldown(2, 10, commands.BucketType.user)
     @commands.command(
         name = "ping",
         brief = "You ping Me",
         aliases = ["pong"])
-    async def ping(self, ctx : GeraltContext):
+    async def ping(self, ctx: GeraltContext):
         """Get proper latency timings of the bot."""
 
         # Latency for typing
@@ -65,11 +68,12 @@ class Meta(commands.Cog):
             await ctx.reply(embed = ping_emb, mention_author = False)
 
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of implementing buttons for System Usage [ PSUTIl ] and Latest Commits on Github :)
+    @commands.cooldown(2, 10, commands.BucketType.user)
     @commands.command(
         name = "info",
         brief = "Get info on me",
         aliases = ["about"])
-    async def info(self, ctx : GeraltContext):
+    async def info(self, ctx: GeraltContext):
         """Receive full information regarding me."""
         info_emb = BaseEmbed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
@@ -94,8 +98,8 @@ class Meta(commands.Cog):
         brief = "Report Something",
         aliases = ["r"])
     @commands.guild_only()
-    @commands.cooldown(10, 1, commands.BucketType.user)
-    async def report(self, ctx : GeraltContext):
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def report(self, ctx: GeraltContext):
         """Send a message to the Developer regarding a bug or a request."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -103,7 +107,7 @@ class Meta(commands.Cog):
     @report.command(
         name = "bug",
         brief = "Report a bug")
-    async def bug(self, ctx : GeraltContext, *, bug : str):
+    async def bug(self, ctx: GeraltContext, *, bug: str):
         """Send a bug to the dev if you find any."""
         bug_info = f"- Reported By   :   {ctx.author} / {ctx.author.id}\n" \
                    f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -116,7 +120,7 @@ class Meta(commands.Cog):
             name = "Below Holds the Bug",
             value = f"```css\n[ {bug} ]\n```")
         
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                     view.disabled = True
             try:
@@ -133,7 +137,7 @@ class Meta(commands.Cog):
                 await ui.response.edit(content = "Successfully sent your `Bug Report` to the Developer <:RavenPray:914410353155244073>", view = ui, allowed_mentions = self.bot.mentions)
             ui.stop()
         
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                     view.disabled = True
             await interaction.response.defer()
@@ -144,7 +148,7 @@ class Meta(commands.Cog):
         name = "feedback",
         brief = "Send your feeback",
         aliases = ["fb"])
-    async def feedback(self, ctx : GeraltContext, *, feedback : str):
+    async def feedback(self, ctx: GeraltContext, *, feedback: str):
         """Send a feedback to the dev if you find any."""
         fb_info = f"- Sent By       :   {ctx.author} / {ctx.author.id}\n" \
                   f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -157,7 +161,7 @@ class Meta(commands.Cog):
             name = "Below Holds the Feedback",
             value = f"```css\n{feedback}\n```")
         
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                     view.disabled = True
             try:
@@ -174,7 +178,7 @@ class Meta(commands.Cog):
                 await ui.response.edit(content = f"Successfully sent your `Feedback` to the Developer <:RavenPray:914410353155244073>", view = ui, allowed_mentions = self.bot.mentions)
             ui.stop()
         
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                     view.disabled = True
             await interaction.response.defer()
@@ -185,7 +189,7 @@ class Meta(commands.Cog):
         name = "json",
         brief = "Sends JSON Data",
         aliases = ["raw"])
-    async def json(self, ctx : GeraltContext, message : typing.Optional[discord.Message]):
+    async def json(self, ctx: GeraltContext, message: typing.Optional[discord.Message]):
         """Get the JSON Data for a message."""
         message : discord.Message = getattr(ctx.message.reference, "resolved", message)
         if not message:
@@ -202,7 +206,7 @@ class Meta(commands.Cog):
         name = "uptime",
         brief = "Returns Uptime",
         aliases = ["ut"])
-    async def uptime(self, ctx : GeraltContext):
+    async def uptime(self, ctx: GeraltContext):
         """Sends my uptime -- how long I've been online for"""
         time = discord.utils.utcnow() - self.bot.uptime
         async with ctx.typing():
@@ -214,7 +218,7 @@ class Meta(commands.Cog):
         name = "google",
         brief = "Search Google",
         aliases = ["g", "web"])
-    async def web(self, ctx : GeraltContext, *, query : str):
+    async def web(self, ctx: GeraltContext, *, query: str):
         """Search Google for anything"""
         cx = CONFIG.get("ENGINE")
         api_key = CONFIG.get("SEARCH")
@@ -254,7 +258,7 @@ class Meta(commands.Cog):
         name = "invite",
         brief = "Get Invite Link",
         aliases = ["inv"])
-    async def invite(self, ctx : GeraltContext):
+    async def invite(self, ctx: GeraltContext):
         invite_emb = BaseEmbed(
             colour = self.bot.colour)
         invite_emb.add_field(
@@ -271,20 +275,85 @@ class Meta(commands.Cog):
         brief = "Get command usage",
         aliases = ["cu"])
     @commands.guild_only()
-    async def usage(self, ctx : GeraltContext):
+    async def usage(self, ctx: GeraltContext):
         """Get a list of how many commands have been used here"""
-        fetch_usage = await self.bot.db.fetch("SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id)
-        cmd_usage = [f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(data['invoked_at'], style = 'R')}\n────\n" for data in fetch_usage]
+        try:
+            cmd_usage = [f"> │ ` - ` \"**{self.bot.meta[ctx.guild.id][0]}**\" : `{self.bot.meta[ctx.guild.id][2]}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(self.bot.meta[ctx.guild.id][1], style = 'R')}\n────\n"]
+        except KeyError:
+            fetch_usage = await self.bot.db.fetch("SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id)
+            cmd_usage = [f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(data['invoked_at'], style = 'R')}\n────\n" for data in fetch_usage]
         if not cmd_usage:
             return await ctx.reply(f"No one has invoked any command in \"**{ctx.guild}**\" still. Be the first one \N{HANDSHAKE}")
+        
         embed_list = []
         while cmd_usage:
             cmd_usage_emb = BaseEmbed(
                 title = f"Commands Used in {ctx.guild}",
-                description = "".join(cmd_usage[:4]),
+                description = "".join(cmd_usage[:5]),
                 colour = self.bot.colour)
             cmd_usage_emb.set_footer(text = "Shows from most used to least used commands")
             cmd_usage_emb.set_thumbnail(url = ctx.guild.icon.url)
-            cmd_usage = cmd_usage[4:]
+            cmd_usage = cmd_usage[5:]
             embed_list.append(cmd_usage_emb)
         await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
+
+    @commands.command(
+        name = "source",
+        brief = "Returns Source",
+        aliases = ["src"])
+    async def passs(self, ctx: GeraltContext, *, command: str = None):
+        """Returns source for a command"""
+        view = discord.ui.View()
+        branch = "stellar-v2"
+        repo_url = "https://github.com/BSOD2528/Geralt"
+        repository = await self.bot.git.get_repo("BSOD2528", "Geralt")
+
+        source_emb = BaseEmbed(
+            title = f"Github - {repository.full_name}",
+            description = f"Take away the entire repo\n────\n<:Join:932976724235395072> {repository.description}",
+            url = repository.html_url,
+            colour = self.bot.colour)
+        source_emb.add_field(
+            name = "Total Lines",
+            value = f"<:Reply:930634822865547294> `{await total_lines('source', '.py'):,}`")
+        source_emb.add_field(
+            name = "Stars",
+            value = f"<:Reply:930634822865547294> `{repository.stargazers_count}`")
+        source_emb.add_field(
+            name = "Language",
+            value = f"<:Reply:930634822865547294> `{repository.language}`")
+        source_emb.set_thumbnail(url = ctx.me.display_avatar.url)
+        source_emb.set_footer(text = f"Invoked by {ctx.author}", icon_url = ctx.author.display_avatar.url)
+        source_emb.set_author(name = f"\U00002728 Made with love by BSOD2528", icon_url = repository.owner.avatar_url, url = repository.owner.html_url)
+        
+        if command is None:
+            view.add_item(discord.ui.Button(label = f"Source for the entire repo!", style = discord.ButtonStyle.link, emoji = "<a:Owner:905750348457738291>", url = repository.html_url))
+            return await ctx.reply(embed = source_emb, mention_author = False, view = view)
+        
+        obj = self.bot.get_command(command.replace(".", " "))
+
+        if command == "help":
+            src = type(self.bot.help_command)
+            module = src.__module__
+            file = inspect.getsourcefile(src)
+        else:
+            if obj is None:
+                source_emb.description = f"Could not find command: `{command}`\n────\n<:Join:932976724235395072> {repository.description}"
+                view.add_item(discord.ui.Button(label = f"Source for the entire repo!", style = discord.ButtonStyle.link, emoji = "<a:Owner:905750348457738291>", url = repository.html_url))
+                return await ctx.reply(embed = source_emb, mention_author = False, view = view)
+
+            src = obj.callback.__code__
+            module = obj.callback.__module__
+            file = src.co_filename
+
+        lines, line_beginning = inspect.getsourcelines(src)
+        if not module.startswith("discord") or command == "help":
+            path = os.path.relpath(file).replace("\\", "/")
+        else:
+            path = module.replace(".", "/") + ".py"
+        
+        url = f"{repo_url}/blob/{branch}/{path}#L{line_beginning}-L{line_beginning + len(lines) - 1}"
+
+        source_emb.description = f"Here is the source for [`{command}`]({url})\n────\nEnsure to comply with [**GNU AGPL v3**](https://github.com/BSOD2528/Geralt/blob/stellar-v2/LICENSE) License"
+        view.add_item(discord.ui.Button(label = f"Source for \"{command}\"", style = discord.ButtonStyle.link, emoji = "<a:Owner:905750348457738291>", url = url))
+        await ctx.reply(embed = source_emb, mention_author = False, view = view)

@@ -1,6 +1,6 @@
 import discord
 import asyncio
-import asyncpg as PSQL
+import asyncpg
 
 from discord.ext import commands
 
@@ -22,16 +22,16 @@ class Guild(commands.Cog):
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Guild", id = 917013065650806854, animated = True)   
 
-    async def fetch_prefix(self, message : discord.Message):
+    async def fetch_prefix(self, message: discord.Message):
         return tuple([prefix["guild_prefix"] for prefix in await self.bot.db.fetch("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", message.guild.id)]) or self.bot.default_prefix
 
-    async def dont_archive_and_delete(self, ctx : GeraltContext, ticket_id : int):
+    async def dont_archive_and_delete(self, ctx: GeraltContext, ticket_id: int):
         await self.bot.db.execute("DELETE FROM ticket_kernel WHERE ticket_id = $1 AND guild_id = $2", ticket_id, ctx.guild.id)
         await ctx.add_nanotick()
         await asyncio.sleep(5)
         await ctx.channel.delete()
 
-    async def archive_and_dont_delete(self, ctx : GeraltContext, ticket_id : int):
+    async def archive_and_dont_delete(self, ctx: GeraltContext, ticket_id: int):
         await ctx.channel.edit(name = f"{ctx.channel.name} archived")
 
     @commands.group(
@@ -41,9 +41,12 @@ class Guild(commands.Cog):
     @commands.guild_only()
     @commands.has_guild_permissions(administrator = True)
     @commands.has_guild_permissions(manage_channels = True)
-    async def prefix(self, ctx : GeraltContext):
+    async def prefix(self, ctx: GeraltContext):
         if ctx.invoked_subcommand is None:
-            current_prefix = await self.bot.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", ctx.guild.id)
+            try:
+                current_prefix = self.bot.prefixes[ctx.guild.id]
+            except KeyError:
+                current_prefix = await self.bot.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", ctx.guild.id)
             if not current_prefix:
                 current_prefix = self.bot.default_prefix
             prefix_emb = BaseEmbed(
@@ -60,19 +63,21 @@ class Guild(commands.Cog):
         name = "set",
         brief = "Set Guild Prefix",
         aliases = ["s"])
-    async def prefix_set(self, ctx : GeraltContext, *, prefix : str = None):
+    async def prefix_set(self, ctx: GeraltContext, *, prefix: str = None):
         """Add custom prefixes. However, the default one will not work."""
         try:
             if prefix == "--":
-                await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
+                return await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
             elif prefix is None:
-                await ctx.reply("You do realise you have to enter a `new prefix` for that to become the prefix for this guild?")
+                return await ctx.reply("You do realise you have to enter a `new prefix` for that to become the prefix for this guild?")
+            elif len(prefix) > 15:
+                return await ctx.reply("Your definitely going to ace that essay writing competition")
             else:
                 await self.bot.db.execute("INSERT INTO custom_prefix (guild_prefix, guild_id, guild_name) VALUES ($1, $2, $3)", prefix, ctx.guild.id, ctx.guild.name)
                 self.bot.prefixes[ctx.guild.id] = await self.fetch_prefix(ctx.message)
                 await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** will here after be `{prefix}` <:SarahLaugh:907109900952420373>")
         
-        except PSQL.UniqueViolationError:
+        except asyncpg.UniqueViolationError:
             await self.bot.db.execute("UPDATE custom_prefix SET guild_prefix = $1 WHERE guild_id = $2 AND guild_name = $3", prefix, ctx.guild.id, ctx.guild.name)
             await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** has been updated `{prefix}` <a:DuckPopcorn:917013065650806854>")
             self.bot.prefixes[ctx.guild.id] = await self.fetch_prefix(ctx.message)
@@ -81,7 +86,7 @@ class Guild(commands.Cog):
         name = "reset",
         brief = "Resets to default",
         aliases = ["r"])
-    async def prefix_reset(self, ctx : GeraltContext):
+    async def prefix_reset(self, ctx: GeraltContext):
         await self.bot.db.execute("DELETE FROM custom_prefix WHERE guild_id = $1 AND guild_name = $2", ctx.guild.id, ctx.guild.name)
         await ctx.reply(f"Reset prefix back to `{self.bot.default_prefix}` ")
         self.bot.prefixes[ctx.guild.id] = self.bot.default_prefix
@@ -90,7 +95,7 @@ class Guild(commands.Cog):
         name = "ticket",
         brief = "Ticket - Tool for you server.",
         aliases = ["tt", "tools"])
-    @commands.is_owner()
+    @commands.guild_only()
     @commands.has_guild_permissions(administrator = True)
     @commands.has_guild_permissions(manage_channels = True)
     @commands.bot_has_guild_permissions(manage_channels = True)
@@ -104,7 +109,7 @@ class Guild(commands.Cog):
     @ticket.command(
         name = "setup",
         brief = "Set-up ticket system.")
-    async def ticket_setup(self, ctx : GeraltContext, *, channel : discord.TextChannel = None):
+    async def ticket_setup(self, ctx: GeraltContext, *, channel: discord.TextChannel = None):
         """Setup ticket system in your server.
         ────
         **Args :** `channel` ─ `#channel` / `send the id` / `type the name`
@@ -116,18 +121,18 @@ class Guild(commands.Cog):
     @ticket.command(
         name = "close",
         brief = "Close a ticket.")
-    async def ticket_close(self, ctx : GeraltContext, ticket_id : int = None):
+    async def ticket_close(self, ctx: GeraltContext, ticket_id: int = None):
         """Close a ticket."""
         if not ticket_id:
            return await ctx.reply(f"Please pass in the ticket_id to close it.")
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.Button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(content = "Archiving this ticket.", view = ui, allowed_mentions = self.bot.mentions)
             await self.archive_and_dont_delete(ctx, ticket_id)
             await ui.response.edit(content = "Archived", view = ui, allowed_mentions = self.bot.mentions)
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.Button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
@@ -138,12 +143,17 @@ class Guild(commands.Cog):
     @ticket.command(
         name = "status",
         brief = "Status of ticket system.")
-    async def ticket_status(self, ctx : GeraltContext):
+    async def ticket_status(self, ctx: GeraltContext):
         """Returns the ticket system status for this guild."""
-        fetch_deets = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
-        system_status = [f"> │ ` ─ ` System ID : `{data['id']}`\n> │ ` ─ ` Category ID : `{data['category_id']}`\n> │ ` ─ ` Panel Message ID : [**{data['sent_message_id']}**]({data['jump_url']})" for data in fetch_deets]
-        if not fetch_deets:
-            return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket`.")
+        try:
+            system_status = [f"> │ ` ─ ` System ID : `{self.bot.ticket_init[ctx.guild.id][6]}`\n> │ ` ─ ` Category ID : `{self.bot.ticket_init[ctx.guild.id][0]}`\n> │ ` ─ ` Panel Message ID : [**{self.bot.ticket_init[ctx.guild.id][2]}**]({self.bot.ticket_init[ctx.guild.id][3]})"]
+            if not system_status:
+                return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket`.")
+        except KeyError:
+            fetch_deets = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
+            system_status = [f"> │ ` ─ ` System ID : `{data['id']}`\n> │ ` ─ ` Category ID : `{data['category_id']}`\n> │ ` ─ ` Panel Message ID : [**{data['sent_message_id']}**]({data['jump_url']})" for data in fetch_deets]
+            if not fetch_deets:
+                return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket`.")
 
         status_emb = BaseEmbed(
             title = f"{ctx.guild}'s Ticket System Status",
@@ -156,15 +166,21 @@ class Guild(commands.Cog):
         name = "dismantle",
         brief = "Dismantles Ticket System.",
         aliases = ["delete", "remove", "clear"])
-    async def ticket_dismantle(self, ctx : GeraltContext):
+    async def ticket_dismantle(self, ctx: GeraltContext):
         """Disables the ticket system in your guild if present."""        
         try:
-            data = await self.bot.db.fetchval("SELECT (sent_channel_id, sent_message_id) FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
-            await self.bot.http.delete_message(data[0] , data[1])
-            query_one = "DELETE FROM ticket_init WHERE guild_id = $1 "
-            query_two = "DELETE FROM ticket_kernel WHERE guild_id = $1"
-            await self.bot.db.execute(query_one, ctx.guild.id)
-            await self.bot.db.execute(query_two, ctx.guild.id)
+            try:
+                await self.bot.http.delete_message(self.bot.ticket_init[ctx.guild.id][1] , self.bot.ticket_init[ctx.guild.id][2])
+            except KeyError:
+                data = await self.bot.db.fetchval("SELECT (sent_channel_id, sent_message_id) FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
+                await self.bot.http.delete_message(data[0] , data[1])
+            try:
+                query_one = "DELETE FROM ticket_init WHERE guild_id = $1 "
+                query_two = "DELETE FROM ticket_kernel WHERE guild_id = $1"
+                await self.bot.db.execute(query_one, ctx.guild.id)
+                await self.bot.db.execute(query_two, ctx.guild.id)
+            except asyncpg.errors as error:
+                return await ctx.send(f"```py\n{error}\n```")
             await ctx.reply(f"Successfully dismantled the `ticket system` from **{ctx.guild}**")
             await ctx.add_nanotick()
         except discord.errors.NotFound:

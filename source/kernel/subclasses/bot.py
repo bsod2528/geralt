@@ -11,6 +11,7 @@ import humanize
 import traceback
 import colorama as colour
 
+from aiogithub import GitHub
 from dotenv import dotenv_values
 from discord import app_commands
 from discord.ext import commands
@@ -18,6 +19,8 @@ from discord.ext import commands
 from .embed import BaseEmbed
 from ..views.meta import Info
 from .context import GeraltContext
+
+import source.kernel.utilities.override_jsk
 
 COGS_EXTENSIONS : typing.List = [    
     "jishaku",
@@ -43,7 +46,7 @@ TOKEN = CONFIG.get("TOKEN")
 DB_URL = CONFIG.get("DB_URL")
 
                 #BSOD#0067 [ME]      SID#1380 [Zeus432]
-DEVELOPER_IDS = [750979369001811982]#, 760823877034573864]
+DEVELOPER_IDS = [750979369001811982, 760823877034573864]
 
 colour.init()
 
@@ -68,28 +71,32 @@ class Geralt(commands.Bot):
             case_insensitive = True,
             strip_after_prefix = True)
 
-        self.colour = discord.Colour.from_rgb(117, 128, 219)
+        self.git = None
+        self.colour = discord.Colour.from_rgb(170, 179, 253)
         self.mentions = discord.AllowedMentions.none()
-        self.no_prefix : bool = False
+        self.no_prefix: bool = True
         self.timestamp = discord.utils.format_dt        
-        self.owner_ids : typing.List = DEVELOPER_IDS
-        self.developer_mode : bool = False
+        self.owner_ids: typing.List = DEVELOPER_IDS
+        self.github_token: str = CONFIG.get("GITHUB_TOKEN")
+        self.developer_mode: bool = False
         self.default_prefix = ".g"
         self.add_persistent_views = False
-        
+
         # Geralt's Cache
-        self.afk : typing.Dict = {}
-        self.prefixes : typing.Dict = {} 
-        self.blacklist : typing.Dict = set()
-        self.ticket_init : typing.Dict = {}
-        self.ticket_panel : typing.Dict = {}
-        self.ticket_kernel : typing.Dict = {}
-        self.ticket_message : typing.Dict = {}
+        self.afk: typing.Dict = {}
+        self.meta: typing.Dict = {}
+        self.prefixes: typing.Dict = {} 
+        self.blacklist: typing.Dict = set()
+        self.ticket_init: typing.Dict = {}
+        self.ticket_kernel: typing.Dict = {}
+
+    def __repr__(self) -> str:
+        return "<Bot>"
 
     async def get_context(self, message : discord.Message, *, cls = GeraltContext) -> GeraltContext:
         return await super().get_context(message, cls = cls)
 
-    async def on_error(self, event_method : str, *args : typing.Any, **kwargs : typing.Any) -> None:
+    async def on_error(self, event_method: str, *args: typing.Any, **kwargs: typing.Any) -> None:
         traceback_string = "".join(traceback.format_exception(*(einfo := sys.exc_info())))
         async with aiohttp.ClientSession() as session:  
             webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
@@ -97,7 +104,7 @@ class Geralt(commands.Bot):
             await webhook.send("|| Break Point ||")
         await session.close()
 
-    async def add_to_blacklist(self, user : discord.User, reason : str, url : str):
+    async def add_to_blacklist(self, user: discord.User, reason: str, url: str):
         query = "INSERT INTO blacklist VALUES ($1, $2, $3, $4)"
         if user.id in self.owner_ids:
             raise commands.BadArgument("They are one of the owners \U0001f480")
@@ -105,15 +112,18 @@ class Geralt(commands.Bot):
             await self.db.execute(query, user.id, reason, discord.utils.utcnow(), url)
             self.blacklist.add(user.id)
     
-    async def remove_from_blacklist(self, user : discord.User):
+    async def remove_from_blacklist(self, user: discord.User):
         query = "DELETE FROM blacklist WHERE user_id = $1"
         await self.db.execute(query, user.id)
         self.blacklist.remove(user.id)
 
-    async def get_prefix(self, message : discord.Message):
+    async def get_prefix(self, message: discord.Message):
         guild_id = getattr(message.guild, "id", message.author.id)
         if (prefix := self.prefixes.get(guild_id)) is None:
-            data = await self.db.fetchrow("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", guild_id)
+            try:
+                data = self.prefixes[message.guild.id]
+            except KeyError:
+                data = await self.db.fetchrow("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", guild_id)
             prefix = self.default_prefix if data is None else data["guild_prefix"]
         if self.no_prefix is True and message.author.id in self.owner_ids:
             return [prefix, self.user.mention, ""]
@@ -122,6 +132,7 @@ class Geralt(commands.Bot):
     async def setup_hook(self) -> None:
         print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Loading all Extensions.{colour.Style.RESET_ALL}")
         self.tree.copy_global_to(guild = discord.Object(id = CONFIG.get("BSODsThings")))
+        self.git = GitHub(self.github_token)
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)
@@ -135,12 +146,16 @@ class Geralt(commands.Bot):
 
     async def on_ready(self):
         afk_deets = await self.db.fetch("SELECT * FROM afk")
+        meta_deets = await self.db.fetch("SELECT * FROM meta")
         prefix_deets = await self.db.fetch("SELECT * FROM custom_prefix")
-        ticket_deets = await self.db.fetch("SELECT * FROM ticket_init")
+        ticket_init_deets = await self.db.fetch("SELECT * FROM ticket_init")
+        ticket_kernel_deets = await self.db.fetch("SELECT * FROM ticket_kernel")
 
-        self.afk = {data["user_id"] : data["reason"] for data in afk_deets}
-        self.tickets = {data["guild_id"] : data["sent_message_id"] for data in ticket_deets}
-        self.prefixes = {data["guild_id"] : data["guild_prefix"] for data in prefix_deets}
+        self.afk = {data["user_id"]: data["reason"] for data in afk_deets}
+        self.meta = {data["guild_id"]: [data["command_name"], data["invoked_at"], data["uses"]] for data in meta_deets}
+        self.prefixes = {data["guild_id"]: data["guild_prefix"] for data in prefix_deets}
+        self.ticket_kernel = {data["guild_id"]: [data["ticket_id"], data["invoker_id"], data["invoked_at"]] for data in ticket_kernel_deets}
+        self.ticket_init = {data["guild_id"]: [data["category_id"], data["sent_channel_id"], data["sent_message_id"], data["jump_url"], data["panel_description"], data["message_description"], data["id"]] for data in ticket_init_deets}
         
         if not self.add_persistent_views:
             self.add_view(Info(self, GeraltContext))
@@ -154,12 +169,12 @@ class Geralt(commands.Bot):
             await self.change_presence(
                 status = discord.Status.idle,
                 activity = discord.Activity(type = discord.ActivityType.listening, name = f".ghelp")) 
-            #await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n" \
-                            #f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
+            await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n" \
+                            f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
             print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Awakened {colour.Style.RESET_ALL}")
             await session.close()
 
-    async def on_message(self, message : discord.Message):
+    async def on_message(self, message: discord.Message):
         await self.wait_until_ready()
         afk_deets = await self.db.fetch("SELECT * FROM afk")
         

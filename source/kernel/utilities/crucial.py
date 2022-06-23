@@ -73,8 +73,8 @@ class TabulateData:
             self.add_rows(row)
 
     def render(self):
-        sep = "─".join("─"* w for w in self._widths)
-        sep = f"│─{sep}─│"
+        sep = "+".join("─"* w for w in self._widths)
+        sep = f"+{sep}+"
         
         to_draw = [sep]
 

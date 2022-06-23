@@ -15,8 +15,8 @@ from ...kernel.utilities.flags import user_badges, user_perms
 
 class Utility(commands.Cog):
     """Essesntial commands for easy life on discord."""
-    def __init__(self, bot : Geralt):
-        self.bot : Geralt = bot
+    def __init__(self, bot: Geralt):
+        self.bot: Geralt = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -25,7 +25,7 @@ class Utility(commands.Cog):
     @commands.command(
         name = "banner",
         brief = "View a persons banner")
-    async def banner(self, ctx : GeraltContext, *, user : discord.Member = None):
+    async def banner(self, ctx: GeraltContext, *, user: discord.Member = None):
         """See the user's Banner in an enlarged manner."""
         user = user or ctx.author
         fetched_user = await ctx.bot.fetch_user(user.id)
@@ -42,7 +42,7 @@ class Utility(commands.Cog):
         name = "avatar",
         brief = "View a persons PFP",
         aliases = ["pfp", "pp", "dp", "av"])
-    async def avatar(self, ctx : GeraltContext, *, user : discord.Member = None):
+    async def avatar(self, ctx: GeraltContext, *, user: discord.Member = None):
         """See the user's PFP in an enlarged manner."""
         user = user or ctx.author
         await PFP(self.bot, ctx, user).send()
@@ -53,7 +53,7 @@ class Utility(commands.Cog):
         brief = "Get user information",
         aliases = ["user", "ui"])
     @commands.guild_only()
-    async def userinfo(self, ctx : GeraltContext, *, user : discord.Member = None):
+    async def userinfo(self, ctx: GeraltContext, *, user: discord.Member = None):
         """Get entire details about a user."""
         try:
             user = user or ctx.author
@@ -152,7 +152,7 @@ class Utility(commands.Cog):
         brief = "Get guild information",
         aliases = ["si", "gi"])
     @commands.guild_only()
-    async def server_info(self, ctx : GeraltContext):
+    async def server_info(self, ctx: GeraltContext):
         """Get entire details about the guild."""
         user_status = [
                         len(list(filter(lambda u : str(u.status) == "online", ctx.guild.members))),
@@ -243,7 +243,7 @@ class Utility(commands.Cog):
         name = "todo",
         brief = "List User's Todo List.",
         aliases = ["td"])
-    async def todo(self, ctx : GeraltContext):
+    async def todo(self, ctx: GeraltContext):
         """Sends Todo sub - commands"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -251,7 +251,7 @@ class Utility(commands.Cog):
     @todo.command(
         name = "add",
         brief = "Add item to your list.")
-    async def todo_add(self, ctx : GeraltContext, *, task : str):
+    async def todo_add(self, ctx: GeraltContext, *, task: str):
         """Add tasks to your todo list."""
         if len(task) > 200:
             return await ctx.reply(f"Please make sure that the `task` is below 200 characters.")
@@ -266,7 +266,7 @@ class Utility(commands.Cog):
         name = "list",
         brief = "See your todo list.",
         aliases = ["show"])  
-    async def todo_list(self, ctx : GeraltContext):
+    async def todo_list(self, ctx: GeraltContext):
         """See your entire todo list."""
         fetch_tasks = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id)
         task_list = []
@@ -303,7 +303,7 @@ class Utility(commands.Cog):
     @todo.command(
         name = "edit",
         brief = "Edit task")    
-    async def todo_edit(self, ctx : GeraltContext, task_id : int, *, edited : str):
+    async def todo_edit(self, ctx: GeraltContext, task_id: int, *, edited: str):
         """Edit a particular task."""
         if len(edited) > 200:
             return await ctx.reply(f"Please make sure that the `edited content` is below 200 characters.")
@@ -317,10 +317,10 @@ class Utility(commands.Cog):
         name = "remove",
         brief = "Removes Task",
         aliases = ["finished", "done"])
-    async def todo_remove(self, ctx : GeraltContext, *, task_id : int):
+    async def todo_remove(self, ctx: GeraltContext, *, task_id: int):
         """Remove a particular task."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             if interaction.user != ctx.author:
                 return await interaction.response.send_message(content = f"{pain}", ephemeral = True)
             for view in ui.children:

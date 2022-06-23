@@ -7,16 +7,15 @@ from ..subclasses.context import GeraltContext
 
 # Error - Handler View
 class Traceback(discord.ui.View):
-    def __init__(self, bot : Geralt, ctx : GeraltContext, error):
+    def __init__(self, bot : Geralt, ctx: GeraltContext, error):
         super().__init__(timeout = 60)
-        self.bot : Geralt = bot
-        self.ctx : GeraltContext = ctx
+        self.bot: Geralt = bot
+        self.ctx: GeraltContext = ctx
         self.error = error
 
-    @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>", custom_id = "traceback-traceback")
-    async def traceback(self, interaction : discord.Interaction, button : discord.ui.Button):
+    @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.grey, emoji = "<:WinTerminal:898609124982554635>", custom_id = "traceback-traceback")
+    async def traceback(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
-        button.style = discord.ButtonStyle.green
         error = getattr(self.error, "original", self.error)
         error_emb = BaseEmbed(
             title = f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
@@ -25,10 +24,9 @@ class Traceback(discord.ui.View):
         await interaction.message.edit(view = self)
         await interaction.response.send_message(embed = error_emb, ephemeral = True)    
     
-    @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>", custom_id = "traceback-command-help")
-    async def cmd_help(self, interaction : discord.Interaction, button : discord.ui.Button):
+    @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.grey, emoji = "<a:Trash:906004182463569961>", custom_id = "traceback-command-help")
+    async def cmd_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
-        button.style = discord.ButtonStyle.green
         command_help = BaseEmbed(
             title = f"<:GeraltRightArrow:904740634982760459> Command Help : {self.ctx.command}",
             description = f"> {self.ctx.command.help}",
@@ -38,7 +36,7 @@ class Traceback(discord.ui.View):
         await interaction.response.send_message(embed = command_help, ephemeral = True)
     
     @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "traceback-delete")
-    async def delete(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 
     async def send(self):
@@ -59,7 +57,7 @@ class Traceback(discord.ui.View):
         except discord.errors.NotFound:
             pass
 
-    async def interaction_check(self, interaction : discord.Interaction) -> bool:
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user == self.ctx.author:
             return True
@@ -67,14 +65,14 @@ class Traceback(discord.ui.View):
 
 # Error - Handler View for commands.BadArgumemt
 class CommandSyntax(discord.ui.View):
-    def __init__(self, bot : Geralt, ctx : GeraltContext, error):
+    def __init__(self, bot: Geralt, ctx: GeraltContext, error):
         super().__init__(timeout = 60)
         self.bot = bot
         self.ctx = ctx
         self.error = error
 
     @discord.ui.button(label = "Syntax", style = discord.ButtonStyle.blurple, emoji = "<a:CoffeeSip:907110027951742996>", custom_id = "commandsyntax-syntax")
-    async def cmd_syntax(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def cmd_syntax(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.style = discord.ButtonStyle.green
         try:
@@ -92,7 +90,7 @@ class CommandSyntax(discord.ui.View):
             await interaction.response.send_message(content = f"This command does not have any argument missing. Rather a wrong argument was passed. Run `{self.ctx.clean_prefix}help {self.ctx.command}`", ephemeral = True)    
 
     @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>", custom_id = "commandsyntax-command-help")
-    async def cmd_help(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def cmd_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.style = discord.ButtonStyle.green
         command_help = BaseEmbed(
@@ -107,7 +105,7 @@ class CommandSyntax(discord.ui.View):
             await interaction.response.send_message(content = exception, ephemeral = True)    
 
     @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>", custom_id = "commandsyntax-traceback")
-    async def traceback(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def traceback(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.style = discord.ButtonStyle.green
         error = getattr(self.error, "original", self.error)
@@ -122,7 +120,7 @@ class CommandSyntax(discord.ui.View):
             await interaction.response.send_message(content = exception, ephemeral = True)    
     
     @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "commandsyntax-delete")
-    async def delete(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 
     async def send(self):

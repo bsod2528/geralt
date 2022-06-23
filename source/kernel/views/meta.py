@@ -29,15 +29,15 @@ def Latest_Commit(MAX : int = 5):
 # Sub - Class for " Bot Info " command.
 # A huge shoutout and thanks to Zeus432 [ Github User ID ] for the amazing idea of adding these buttons :D
 class Info(discord.ui.View):
-    def __init__(self, bot, ctx : GeraltContext):
+    def __init__(self, bot, ctx: GeraltContext):
         super().__init__(timeout = None)
         self.bot = bot
-        self.ctx : GeraltContext = ctx
+        self.ctx: GeraltContext = ctx
         self.add_item(discord.ui.Button(label = "Dashboard", emoji = "<:AkkoComfy:907104936368685106>", url = "https://bsod2528.github.io/Posts/Geralt"))
 
     # Misc. Stats like No. of lines, functions and classes.
     @discord.ui.button(label = "Misc.", style = discord.ButtonStyle.blurple, emoji = "<a:WumpusVibe:905457020575031358>", custom_id = "info-code-stats")
-    async def stats(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def stats(self, interaction: discord.Interaction, button: discord.ui.Button):
         stats_emb = BaseEmbed(
             title = "<:VerifiedDev:905668791831265290> Miscellaneous Statistics :",
             colour = COLOUR)
@@ -56,7 +56,7 @@ class Info(discord.ui.View):
         
     # Shows System Usage at the current moment.
     @discord.ui.button(label = "System Info", style = discord.ButtonStyle.blurple, emoji = "<a:Info:905750331789561856>", custom_id = "info-sys-usage")
-    async def sys_usage(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def sys_usage(self, interaction: discord.Interaction, button: discord.ui.Button):
         core_count = psutil.cpu_count()
         cpu_usage = psutil.cpu_percent()
         mem_per = psutil.virtual_memory().percent
@@ -81,7 +81,7 @@ class Info(discord.ui.View):
     
     # Get latest Github commits
     @discord.ui.button(label = "Github Commits", style = discord.ButtonStyle.blurple, emoji = "<a:WumpusHypesquad:905661121501990923>", custom_id = "info-repo-commits")
-    async def commits(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def commits(self, interaction: discord.Interaction, button: discord.ui.Button):
         commit_emb = BaseEmbed(
             title = "<:WinGIT:898591166864441345> My Latest Changes :",
             description = f"**[Github](<https://github.com/BSOD2528/Geralt>)** repository if you want to check things out <:verykewl:916903265541689445> \n\n>>> {Latest_Commit(MAX = 5)}",
@@ -91,18 +91,18 @@ class Info(discord.ui.View):
 
 # Sub - Class for Confirmation based commands which utilises buttons.
 class Confirmation(discord.ui.View):
-    def __init__(self, ctx : GeraltContext, yes, no):
+    def __init__(self, ctx: GeraltContext, yes, no):
         super().__init__(timeout = None)
-        self.no : typing.Any = no
-        self.ctx : GeraltContext = ctx
-        self.yes : typing.Any = yes
+        self.no: typing.Any = no
+        self.ctx: GeraltContext = ctx
+        self.yes: typing.Any = yes
 
     @discord.ui.button(label = "Yes", style = discord.ButtonStyle.blurple, emoji = "<:WinCheck:898572324490604605>", custom_id = "confirmation-yes")
-    async def confirmed(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def confirmed(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.yes(self, interaction, button)
     
     @discord.ui.button(label = "No", style = discord.ButtonStyle.danger, emoji = "<:WinUncheck:898572376147623956>", custom_id = "confirmation-no")
-    async def cancelled(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def cancelled(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.no(self, interaction, button)   
     
     async def interaction_check(self, interaction : discord.Interaction) -> bool:
@@ -113,28 +113,28 @@ class Confirmation(discord.ui.View):
   
 #Sub - Classes for User PFP
 class PFP(discord.ui.View):
-    def __init__(self, bot, ctx : GeraltContext, user : discord.User):
+    def __init__(self, bot, ctx: GeraltContext, user: discord.User):
         super().__init__(timeout = 60)
         self.bot = bot
-        self.ctx : GeraltContext = ctx
+        self.ctx: GeraltContext = ctx
         self.user = user
 
     @discord.ui.button(label = "JPG", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>", custom_id = "pfp-jpg")
-    async def jpg(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def jpg(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = self.user 
         button.disabled = True
         await interaction.message.edit(view = self)
         await interaction.response.send_message(f"Download it as a [**JPG**](<{user.display_avatar.with_static_format('jpg')}>)", ephemeral = True)
     
     @discord.ui.button(label = "PNG", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>", custom_id = "pfp-png")
-    async def png(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def png(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = self.user
         button.disabled = True
         await interaction.message.edit(view = self)
         await interaction.response.send_message(f"Download it as a [**PNG**](<{user.display_avatar.with_static_format('png')}>)", ephemeral = True)
     
     @discord.ui.button(label = "WEBP", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>", custom_id = "pfp-webp")
-    async def webp(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def webp(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = self.user
         button.disabled = True
         await interaction.message.edit(view = self)
@@ -162,23 +162,23 @@ class PFP(discord.ui.View):
 
 # Views for leaving the guild
 class Leave(discord.ui.View):
-    def __init__(self, ctx : GeraltContext, guild : discord.Guild):
+    def __init__(self, ctx: GeraltContext, guild: discord.Guild):
         super().__init__()
         self.ctx = ctx
         self.guild = guild
     
     @discord.ui.button(label = "Leave Guild", style = discord.ButtonStyle.grey, emoji = "<a:Byee:915568796536815616>", custom_id = "leave-guild-leave")
-    async def leave_guild(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def leave_guild(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.guild.leave()
         button.disabled = True
         await interaction.message.edit(view = self)
         await interaction.response.send_message(content = "Done <a:Comfort:918844984621428787>", ephemeral = True)
     
     @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "leave-delete")
-    async def delete_message(self, interaction : discord.Interaction, button : discord.ui.Button):
+    async def delete_message(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 
-    async def interaction_check(self, interaction : discord.Interaction) -> bool:
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment <:SarahPray:920484222421045258>"
         if interaction.user == self.ctx.author:
             return True

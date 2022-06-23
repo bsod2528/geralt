@@ -19,48 +19,34 @@ from ...kernel.utilities.crucial import Plural, TabulateData
 from ...kernel.subclasses.bot import CONFIG, COGS_EXTENSIONS, Geralt
 
 class SyncFlag(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
-    cosmic : str = NoneType
+    cosmic: str = NoneType
 
 class Developer(commands.Cog):
     """Developer Commands [ Bot owners only ]"""
-    def __init__(self, bot : Geralt):
+    def __init__(self, bot: Geralt):
         self.bot = bot
     
     @property
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Dev", id = 905750348457738291, animated = True)   
     
-    def cleanup_code(self, content):
+    def cleanup_code(self, content: str):
         """Automatically removes code blocks from the code."""
-        if content.startswith('```') and content.endswith('```'):
-            return '\n'.join(content.split('\n')[1:-1])
-        return content.strip('` \n')
+        if content.startswith("```") and content.endswith("```"):
+            return "\n".join(content.split("\n")[1:-1])
+        return content.strip("` \n")
 
-    @commands.group(
+    @commands.command(
         name = "no-prefix",
         brief = "Sets prefix to \" \"",
         aliases = ["np"])
     @commands.is_owner()
-    async def no_prefix(self, ctx : GeraltContext):
-        if ctx.invoked_subcommand is None:
+    async def no_prefix(self, ctx: GeraltContext):
+        if self.bot.no_prefix is False:
             self.bot.no_prefix = True
-            await ctx.add_nanotick()
-    
-    @no_prefix.command(
-        name = "enable",
-        brief = "Enables No Prefix",
-        aliases = ["e"])
-    async def no_prefix_enable(self, ctx : GeraltContext):
-        self.bot.no_prefix = True
-        await ctx.add_nanotick()
-    
-    @no_prefix.command(
-        name = "disable",
-        brief = "Disables No Prefix",
-        aliases = ["d"])
-    async def no_prefix_disable(self, ctx : GeraltContext):
+            return await ctx.add_nanotick()
         self.bot.no_prefix = False
-        await ctx.add_nanotick()
+        await ctx.add_nanocross()
 
     # Shuts the bot down in a friendly manner.
     @commands.command(
@@ -68,24 +54,25 @@ class Developer(commands.Cog):
         brief = "Eternal Sleep",
         aliases = ["snap"])
     @commands.is_owner()
-    async def die(self, ctx : GeraltContext):
+    async def die(self, ctx: GeraltContext):
         """Sends the bot to eternal sleep"""
-        async def yes(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
-            await ui.response.edit(content = "Okay then, I shall go to eternal sleep", view = ui, allowed_mentions = self.bot.mentions)
+            await ui.response.edit(content = "Let me die in peace", view = ui, allowed_mentions = self.bot.mentions)
             await self.bot.change_presence(
                 status = discord.Status.do_not_disturb,
                 activity = discord.Activity(type = discord.ActivityType.playing, name = f"Let me Die in Peace")) 
             await asyncio.sleep(5)
+            await ui.response.edit(content = "Dead!", view = ui, allowed_mentions = self.bot.mentions)
             async with aiohttp.ClientSession() as session:
                 death_webhook = discord.Webhook.partial(id = CONFIG.get("NOTIF_ID"), token = CONFIG.get("NOTIF_TOKEN"), session = session)
                 await death_webhook.send(content = f"<:GeraltRightArrow:904740634982760459> Going to die right at {self.bot.timestamp(discord.utils.utcnow(), style = 'F')} Byee <a:Byee:915568796536815616>\n───\n|| Break Point ||")
                 await session.close()
             await self.bot.close()
 
-        async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
@@ -98,7 +85,7 @@ class Developer(commands.Cog):
         name = "dm", 
         brief = "dm them")
     @commands.is_owner()
-    async def dm(self, ctx : GeraltContext, user : discord.User, *, message : str):
+    async def dm(self, ctx: GeraltContext, user: discord.User, *, message: str):
         """DM a particular user."""
         try:
             view = discord.ui.View()
@@ -110,11 +97,11 @@ class Developer(commands.Cog):
 
     # Evaluate command for running both asynchronous and sychronous programs.
     @commands.command(
-        name    =   "eval",
-        brief   =   "Run Code",
-        aliases =   ["e"])
+        name = "eval",
+        brief = "Run Code",
+        aliases = ["e"])
     @commands.is_owner()
-    async def eval(self, ctx : GeraltContext, *, body : str):
+    async def eval(self, ctx: GeraltContext, *, body: str):
         """Running both asynchronous and sychronous programs"""
         environment = {
             "ctx" : ctx,
@@ -163,7 +150,7 @@ class Developer(commands.Cog):
         brief = "Loads Cog",
         aliases = ["l"])
     @commands.is_owner()
-    async def load(self, ctx : GeraltContext, *, cog : str):
+    async def load(self, ctx: GeraltContext, *, cog: str):
         """Loads the Extension mentioned."""
         try:
             await self.bot.load_extension(f"source.cogs.{cog}")
@@ -181,7 +168,7 @@ class Developer(commands.Cog):
         brief = "Unloads Cog",
         aliases = ["ul"])
     @commands.is_owner()
-    async def unload(self, ctx : GeraltContext, *, cog : str):
+    async def unload(self, ctx: GeraltContext, *, cog: str):
         """Unloads the Extension mentioned."""
         try:
             await self.bot.unload_extension(f"source.cogs.{cog}")
@@ -199,7 +186,7 @@ class Developer(commands.Cog):
         brief = "Reloads Cog",
         aliases = ["rl"])
     @commands.is_owner()
-    async def reload(self, ctx : GeraltContext, *, cog : str = None):
+    async def reload(self, ctx: GeraltContext, *, cog: str = None):
         """Reloads the Extension mentioned."""
         if cog is None:
             try:
@@ -227,7 +214,7 @@ class Developer(commands.Cog):
         brief = "Simple Dev Stuff",
         aliases = ["devmode"])
     @commands.is_owner()
-    async def dev(self, ctx : GeraltContext):
+    async def dev(self, ctx: GeraltContext):
         """Simple commands for dev to do"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -236,7 +223,7 @@ class Developer(commands.Cog):
         name  = "total-guilds",
         aliases = ["tg"],
         brief = "Sends Guild List")
-    async def total_guilds(self, ctx : GeraltContext):
+    async def total_guilds(self, ctx: GeraltContext):
         """Sends the entire guild list."""
         await ctx.reply(f"Currently in `{len(self.bot.guilds)}` Guilds.", allowed_mentions = self.bot.mentions)
         await ctx.send(f" ".join([f"> │ ` ─ ` \"{g.name}\" : {g.owner.mention} (`{g.id}`)\n" for g in self.bot.guilds]) + "", allowed_mentions = self.bot.mentions)
@@ -244,7 +231,7 @@ class Developer(commands.Cog):
     @dev.command(
         name = "on",
         brief = "Sets Developer Mode On")
-    async def on(self, ctx : GeraltContext):
+    async def on(self, ctx: GeraltContext):
         """Sets Developer Mode On"""
         self.bot.developer_mode = True
         await self.bot.change_presence(
@@ -254,7 +241,7 @@ class Developer(commands.Cog):
     @dev.command(
         name = "off",
         brief = "Sets Developer Mode Off")
-    async def off(self, ctx : GeraltContext):
+    async def off(self, ctx: GeraltContext):
         """Sets Developer Mode Off"""
         self.bot.developer_mode = False
         await self.bot.change_presence(
@@ -266,7 +253,7 @@ class Developer(commands.Cog):
         name = "alltags",
         brief = "Sends all tags",
         aliases = ["at"])
-    async def all_tags(self, ctx : GeraltContext):
+    async def all_tags(self, ctx: GeraltContext):
         """Sends tags from all guilds"""
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags ORDER BY id")
         tag_list = []
@@ -290,7 +277,7 @@ class Developer(commands.Cog):
         brief = "Get guild information",
         aliases = ["fg"])
     @commands.is_owner()
-    async def guild_fetch(self, ctx : GeraltContext, *, guild : discord.Guild):
+    async def guild_fetch(self, ctx: GeraltContext, *, guild: discord.Guild):
         """Get entire details about the guild."""        
         fetched_guild = await self.bot.fetch_guild(guild.id)
         fetched_guild_emb = BaseEmbed(
@@ -332,7 +319,7 @@ class Developer(commands.Cog):
         name = "sql",
         brief = "Query DB")
     @commands.is_owner()
-    async def sql(self, ctx : GeraltContext, *, query : str):
+    async def sql(self, ctx: GeraltContext, *, query: str):
         """Run SQL Queries"""
         query = self.cleanup_code(query)
         
@@ -367,7 +354,7 @@ class Developer(commands.Cog):
         name = "sync",
         brief = "Sync App Commands")
     @commands.is_owner()
-    async def cmd_sync(self, ctx : GeraltContext, *, flag : typing.Optional[SyncFlag]):
+    async def cmd_sync(self, ctx: GeraltContext, *, flag: typing.Optional[SyncFlag]):
         """Syncs application commands.
         ────
         **Flags Present :**
@@ -394,7 +381,7 @@ class Developer(commands.Cog):
         brief = "Blacklist People",
         aliases = ["bl"])
     @commands.is_owner()
-    async def blacklist(self, ctx : GeraltContext):
+    async def blacklist(self, ctx: GeraltContext):
         """Group of commands to block people from using me."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -402,7 +389,7 @@ class Developer(commands.Cog):
     @blacklist.command(
         name = "add",
         brief = "Add them to the list")
-    async def blacklist_add(self, ctx : GeraltContext, user : typing.Union[discord.User, discord.Member], *, reason : str = None):
+    async def blacklist_add(self, ctx: GeraltContext, user: typing.Union[discord.User, discord.Member], *, reason: str = None):
         reason = reason or "Not Specified"
         try:
             await self.bot.add_to_blacklist(user, reason, ctx.message.jump_url)
@@ -425,7 +412,7 @@ class Developer(commands.Cog):
     @blacklist.command(
         name = "remove",
         brief = "Remove them from the list")
-    async def blacklist_remove(self, ctx : GeraltContext, user : typing.Union[discord.User, discord.Member]):
+    async def blacklist_remove(self, ctx: GeraltContext, user: typing.Union[discord.User, discord.Member]):
         try:
             await self.bot.remove_from_blacklist(user)
             view = discord.ui.View()
@@ -434,7 +421,7 @@ class Developer(commands.Cog):
             try:
                 await user.send(content = content, view = view)
             except Exception:
-                await ctx.send(content = content, view = view)
+                pass
             await ctx.add_nanotick()
         except KeyError:
             await ctx.reply(f"**{user}** has already been whitelisted.")
@@ -445,7 +432,7 @@ class Developer(commands.Cog):
     @blacklist.command(
         name = "all",
         brief = "Sends all blacklisted users.")
-    async def blacklisted_all(self, ctx : GeraltContext):
+    async def blacklisted_all(self, ctx: GeraltContext):
         query = "SELECT user_id, reason, queried_at, jump_url FROM blacklist"
         fetched_blacklisted_members = await self.bot.db.fetch(query)
         blacklisted_members = []
@@ -462,7 +449,6 @@ class Developer(commands.Cog):
                     title = f"\U0001f4dc Blacklisted Users",
                     description = f"".join(blacklisted_members),
                     colour = self.bot.colour)
-                blacklisted_emb.timestamp = discord.utils.utcnow()
                 await ctx.reply(embed = blacklisted_emb, mention_author = False)
             else:
                 embed_list = []
