@@ -38,12 +38,13 @@ class Fun(commands.Cog):
         name = "as", 
         brief = "Send a Webhook",
         with_app_command = True)
+    @commands.guild_only()
     @app_commands.guild_only()
+    @commands.cooldown(3, 5, commands.BucketType.user)
     @app_commands.describe(user = "Select a user to mimic")    
     @app_commands.describe(message = "Type out the message you want to send.")
     @commands.bot_has_guild_permissions(manage_webhooks = True)
-    @commands.guild_only()
-    async def echo(self, ctx: GeraltContext, user: discord.Member, *, message: str):
+    async def echo(self, ctx: GeraltContext, user: discord.Member, *, message: str) -> typing.Optional[discord.Message]:
         """Send a webhook message as the user you mentioned"""
         try:
             if ctx.interaction:
@@ -74,8 +75,9 @@ class Fun(commands.Cog):
     @commands.group(
         name = "snipe",
         aliases = ["s"])
+    @commands.cooldown(3, 5, commands.BucketType.user)
     @commands.guild_only()
-    async def snipe(self, ctx: GeraltContext):
+    async def snipe(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Get edited / deleted messages"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -85,7 +87,8 @@ class Fun(commands.Cog):
         name = "delete",
         brief = "Snipe Deleted Messages",
         aliases = ["del", "d"])
-    async def snipe_delete(self, ctx: GeraltContext):
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    async def snipe_delete(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Get the details of the recently deleted message"""
         try:    
             message, author, channel, time = self.delete[ctx.channel.id]    
@@ -104,7 +107,8 @@ class Fun(commands.Cog):
         name = "edit",
         brief = "Snipe Edited Messages",
         aliases = ["ed", "e"])
-    async def snipe_edit(self, ctx: GeraltContext):
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    async def snipe_edit(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Get the details of the recently edited message"""
         try:    
             url, message, author, channel, pre_time = self.pre_edit[ctx.channel.id]    
@@ -128,7 +132,8 @@ class Fun(commands.Cog):
     @commands.command(
         name = "nitro",
         brief = "Gift Nitro")
-    async def nitro(self, ctx: GeraltContext, *, user: discord.Member = None):
+    @commands.cooldown(3, 3, commands.BucketType.user)
+    async def nitro(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
         """Gift a user free nitro!"""
         try:
             nitro_emb = BaseEmbed(
@@ -149,13 +154,15 @@ class Fun(commands.Cog):
     @commands.command(
         name = "pop",
         brief = "Pop Buttons!")
-    async def pop(self, ctx: GeraltContext, *, flag: typing.Optional[PopSize]):
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    async def pop(self, ctx: GeraltContext, *, flag: typing.Optional[PopSize]) -> typing.Optional[discord.Message]:
         """Fidget with the buttons by popping them!
         ────
         **Flags Present :**
         `--size` : Sends that many number of buttons to pop.
         **Example :**
-        `.gpop [--size 10]`"""
+        `.gpop [--size 10]` Max size is `25` \U0001f44d
+        ────"""
         if not flag:
             await Pop(ctx, size = 1).send()
         if flag:
@@ -167,7 +174,8 @@ class Fun(commands.Cog):
         brief = "Click and Win",
         aliases = ["cl", "clock"])
     @commands.guild_only()
-    async def click(self, ctx: GeraltContext):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def click(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Enjoy a nice satisfying game by clicking on the button!"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
@@ -175,13 +183,15 @@ class Fun(commands.Cog):
     @click.command(
         name = "start",
         brief = "Start a game of click")
-    async def click_start(self, ctx: GeraltContext, *, flag: typing.Optional[ClickSize]):
+    @commands.cooldown(2, 10, commands.BucketType.user)
+    async def click_start(self, ctx: GeraltContext, *, flag: typing.Optional[ClickSize]) -> typing.Optional[discord.Message]:
         """Start a game of click.
         ────
         **Flags Present :**
         `--size` : Sends that many number of buttons to click.
         **Example :**
-        `.gclick start [--size 10]`"""
+        `.gclick start [--size 10]` Max size is `10` \U0001f44d
+        ────"""
         if not flag:
             await ClickGame(self.bot, ctx, size = 1).send(ctx)
         if flag:
@@ -191,5 +201,6 @@ class Fun(commands.Cog):
         name = "leaderboard",
         brief = "Check your rank",
         aliases = ["lb", "rank"])
-    async def click_score(self, ctx : GeraltContext):
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    async def click_score(self, ctx : GeraltContext) -> typing.Optional[discord.Message]:
         await ClickLeaderboard(self.bot, ctx).send()

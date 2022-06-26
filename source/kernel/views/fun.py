@@ -14,7 +14,7 @@ class Nitro(discord.ui.View):
         super().__init__()
         self.ctx: GeraltContext = ctx
 
-    @discord.ui.button(label = "Avail Nitro", style = discord.ButtonStyle.green, emoji = "<a:WumpusHypesquad:905661121501990923>", custom_id = "nitro")
+    @discord.ui.button(label = "Avail Nitro", style = discord.ButtonStyle.green, emoji = "<a:WumpusHypesquad:905661121501990923>")
     async def nitro(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.label = "Claimed"
@@ -59,14 +59,17 @@ class Pop(discord.ui.View):
         self.message: typing.Optional[discord.Message] = None
     
     async def send(self):
-        for button in range(self.size):
-            if self.size > 25:
-                raise commands.BadArgument("size passed in should be less than 25.")
-            if not self.size:
-                self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list), custom_id = "pop"))
-            else:
-                self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list), custom_id = "pop"))
-        self.message = await self.ctx.send("\u200b", view = self)
+        try:
+            for button in range(self.size):
+                if self.size > 25:
+                    raise commands.BadArgument("size passed in should be less than 25.")
+                if not self.size:
+                    self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list)))
+                else:
+                    self.add_item(PopButton(label = "Pop", style = discord.ButtonStyle.grey, emoji = random.choice(emoji_list)))
+            self.message = await self.ctx.send("\u200b", view = self)
+        except TypeError:
+            return
     
     async def on_timeout(self) -> None:
         for view in self.children:
@@ -91,8 +94,7 @@ class ClickButton(discord.ui.Button):
         super().__init__(
             label = "Click",
             style = discord.ButtonStyle.grey,
-            emoji = random.choice(emoji_list),
-            custom_id = "click-click")
+            emoji = random.choice(emoji_list))
         self.bot: Geralt = bot
         self.ctx: GeraltContext = ctx
     
@@ -137,7 +139,7 @@ class ClickGame(discord.ui.View):
             else:
                 self.add_item(ClickButton(self.bot, self.ctx))
     
-    @discord.ui.button(label = "Scores", style = discord.ButtonStyle.grey, emoji = "\U00002728", row = 2, custom_id = "click-guild-score")
+    @discord.ui.button(label = "Scores", style = discord.ButtonStyle.grey, emoji = "\U00002728", row = 2)
     async def on_click_guild_leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             guild_score_query = await self.bot.db.fetchval("SELECT (clicks) FROM click_guild WHERE guild_id = $1 AND player_id = $2", interaction.guild_id, self.ctx.author.id)
@@ -149,7 +151,7 @@ class ClickGame(discord.ui.View):
         except Exception as exception:
             await interaction.followup.send(content = f"```py\n{exception}\n```", ephemeral = True)
 
-    @discord.ui.button(label = "Help", style = discord.ButtonStyle.green, emoji = "<:DuckThumbsUp:917007413259956254>", row = 2, custom_id = "click-help")
+    @discord.ui.button(label = "Help", style = discord.ButtonStyle.green, emoji = "<:DuckThumbsUp:917007413259956254>", row = 2)
     async def on_click_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         help_content = f"{interaction.user.mention}\n\n────\n> │ ` ─ ` Click on the \"Click\" button to attain points. You have a 60 second time limit. Try to score much as possible.\n> │ ` ─ ` Go up the leaderboard by playing en number of times. Enjoy!\n────\nhttps://imgur.com/a/S0LyjuB"
@@ -170,7 +172,7 @@ class ClickLeaderboard(discord.ui.View):
         self.bot: Geralt = bot
         self.ctx: GeraltContext = ctx
 
-    @discord.ui.button(label = "Global Leaderboard", style = discord.ButtonStyle.grey, emoji = "<a:RooSitComfortPatAnotherRoo:916125535015419954>", custom_id = "click-global-score")
+    @discord.ui.button(label = "Global Leaderboard", style = discord.ButtonStyle.grey, emoji = "<a:RooSitComfortPatAnotherRoo:916125535015419954>")
     async def click_global_leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             await interaction.response.defer()

@@ -97,11 +97,11 @@ class Confirmation(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.yes: typing.Any = yes
 
-    @discord.ui.button(label = "Yes", style = discord.ButtonStyle.blurple, emoji = "<:WinCheck:898572324490604605>", custom_id = "confirmation-yes")
+    @discord.ui.button(label = "Yes", style = discord.ButtonStyle.blurple, emoji = "<:WinCheck:898572324490604605>")
     async def confirmed(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.yes(self, interaction, button)
     
-    @discord.ui.button(label = "No", style = discord.ButtonStyle.danger, emoji = "<:WinUncheck:898572376147623956>", custom_id = "confirmation-no")
+    @discord.ui.button(label = "No", style = discord.ButtonStyle.danger, emoji = "<:WinUncheck:898572376147623956>")
     async def cancelled(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.no(self, interaction, button)   
     
@@ -119,21 +119,21 @@ class PFP(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.user = user
 
-    @discord.ui.button(label = "JPG", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>", custom_id = "pfp-jpg")
+    @discord.ui.button(label = "JPG", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>")
     async def jpg(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = self.user 
         button.disabled = True
         await interaction.message.edit(view = self)
         await interaction.response.send_message(f"Download it as a [**JPG**](<{user.display_avatar.with_static_format('jpg')}>)", ephemeral = True)
     
-    @discord.ui.button(label = "PNG", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>", custom_id = "pfp-png")
+    @discord.ui.button(label = "PNG", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>")
     async def png(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = self.user
         button.disabled = True
         await interaction.message.edit(view = self)
         await interaction.response.send_message(f"Download it as a [**PNG**](<{user.display_avatar.with_static_format('png')}>)", ephemeral = True)
     
-    @discord.ui.button(label = "WEBP", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>", custom_id = "pfp-webp")
+    @discord.ui.button(label = "WEBP", style = discord.ButtonStyle.gray, emoji = "<:ImageIcon:933966387477630996>")
     async def webp(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = self.user
         button.disabled = True
@@ -167,14 +167,14 @@ class Leave(discord.ui.View):
         self.ctx = ctx
         self.guild = guild
     
-    @discord.ui.button(label = "Leave Guild", style = discord.ButtonStyle.grey, emoji = "<a:Byee:915568796536815616>", custom_id = "leave-guild-leave")
+    @discord.ui.button(label = "Leave Guild", style = discord.ButtonStyle.grey, emoji = "<a:Byee:915568796536815616>")
     async def leave_guild(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.guild.leave()
         button.disabled = True
         await interaction.message.edit(view = self)
         await interaction.response.send_message(content = "Done <a:Comfort:918844984621428787>", ephemeral = True)
     
-    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "leave-delete")
+    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>")
     async def delete_message(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 

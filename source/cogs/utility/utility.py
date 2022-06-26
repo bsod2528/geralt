@@ -1,8 +1,8 @@
 import typing
 import asyncio
+import asyncpg
 import discord
 import humanize
-import asyncpg as PSQL
 
 from discord.ext import commands
 
@@ -25,7 +25,7 @@ class Utility(commands.Cog):
     @commands.command(
         name = "banner",
         brief = "View a persons banner")
-    async def banner(self, ctx: GeraltContext, *, user: discord.Member = None):
+    async def banner(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
         """See the user's Banner in an enlarged manner."""
         user = user or ctx.author
         fetched_user = await ctx.bot.fetch_user(user.id)
@@ -42,7 +42,7 @@ class Utility(commands.Cog):
         name = "avatar",
         brief = "View a persons PFP",
         aliases = ["pfp", "pp", "dp", "av"])
-    async def avatar(self, ctx: GeraltContext, *, user: discord.Member = None):
+    async def avatar(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
         """See the user's PFP in an enlarged manner."""
         user = user or ctx.author
         await PFP(self.bot, ctx, user).send()
@@ -53,7 +53,7 @@ class Utility(commands.Cog):
         brief = "Get user information",
         aliases = ["user", "ui"])
     @commands.guild_only()
-    async def userinfo(self, ctx: GeraltContext, *, user: discord.Member = None):
+    async def userinfo(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
         """Get entire details about a user."""
         try:
             user = user or ctx.author
@@ -76,14 +76,15 @@ class Utility(commands.Cog):
                 colour = user.colour)
             general_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> General Info :",
-                value = f"> │ ` ─ ` Name : {user.mention} \n" \
-                        f"> │ ` ─ ` Nickname : {(user.nick) or 'No nickname set'} \n" \
-                        f"> │ ` ─ ` Discriminator : `#{user.discriminator}` \n"
-                        f"> │ ` ─ ` Identification No. : `{user.id}` \n────")
+                value = f"> <:ReplyContinued:930634770004725821> Name : {user.mention} \n" \
+                        f"> <:ReplyContinued:930634770004725821> Nickname : {(user.nick) or 'No nickname set'} \n" \
+                        f"> <:ReplyContinued:930634770004725821> Discriminator : `#{user.discriminator}` \n"
+                        f"> <:Reply:930634822865547294> Identification No. : `{user.id}` \n────")
             general_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> Account Info :",
-                value = f"> │ ` ─ ` Created on : {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n" \
-                        f"> │ ` ─ ` Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'D')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
+                value = f"> <:ReplyContinued:930634770004725821> Join Position : `#{sorted(ctx.guild.members, key = lambda u: u.joined_at or discord.utils.utcnow()).index(user) + 1}`\n "\
+                        f"> <:ReplyContinued:930634770004725821> Created on : {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n" \
+                        f"> <:Reply:930634822865547294> Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'D')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
                 inline = False)
             general_emb.set_thumbnail(url = avatar)
 
@@ -92,14 +93,14 @@ class Utility(commands.Cog):
                 colour = user.colour)
             guild_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> Permissions Present :",
-                value = f"> │ ` ─ ` {perms_}\n────")
+                value = f"> <:Reply:930634822865547294> {perms_}\n────")
             guild_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> Top Most Role :",
-                value = f"> │ ` ─ ` {user.top_role.mention}\n────",
+                value = f"> <:Reply:930634822865547294> {user.top_role.mention}\n────",
                 inline = False)
             guild_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> All Roles Present :",
-                value = f"> │ ` ─ ` {roles}\n────",
+                value = f"> <:Reply:930634822865547294> {roles}\n────",
                 inline = False)
             guild_emb.set_thumbnail(url = avatar)
 
@@ -108,15 +109,15 @@ class Utility(commands.Cog):
                 colour = user.colour)
             misc_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> Badges Present :",
-                value = f"> │ ` ─ ` {user_badges(user = user, fetch_user = fetched_user) if user_badges(user = user, fetch_user = fetched_user) else 'No Badges Present'}")
+                value = f"> <:Reply:930634822865547294> {user_badges(user = user, fetch_user = fetched_user) if user_badges(user = user, fetch_user = fetched_user) else 'No Badges Present'}")
             misc_emb.add_field(
                 name = "<:GeraltRightArrow:904740634982760459> Accent Colours :",
-                value = f"> │ ` ─ ` Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
-                        f"> │ ` ─ ` Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
+                value = f"> <:ReplyContinued:930634770004725821>  Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
+                        f"> <:Reply:930634822865547294> Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
                 inline = False)  
             misc_emb.add_field(
                 name = "Activity :",
-                value = f"> │ ` ─ ` {activity_holder}",
+                value = f"> <:Reply:930634822865547294> {activity_holder}",
                 inline = False)
             misc_emb.set_thumbnail(url = avatar)
         
@@ -152,7 +153,7 @@ class Utility(commands.Cog):
         brief = "Get guild information",
         aliases = ["si", "gi"])
     @commands.guild_only()
-    async def server_info(self, ctx: GeraltContext):
+    async def server_info(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Get entire details about the guild."""
         user_status = [
                         len(list(filter(lambda u : str(u.status) == "online", ctx.guild.members))),
@@ -243,7 +244,8 @@ class Utility(commands.Cog):
         name = "todo",
         brief = "List User's Todo List.",
         aliases = ["td"])
-    async def todo(self, ctx: GeraltContext):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def todo(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Sends Todo sub - commands"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -251,7 +253,8 @@ class Utility(commands.Cog):
     @todo.command(
         name = "add",
         brief = "Add item to your list.")
-    async def todo_add(self, ctx: GeraltContext, *, task: str):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def todo_add(self, ctx: GeraltContext, *, task: str) -> typing.Optional[discord.Message]: 
         """Add tasks to your todo list."""
         if len(task) > 200:
             return await ctx.reply(f"Please make sure that the `task` is below 200 characters.")
@@ -265,8 +268,9 @@ class Utility(commands.Cog):
     @todo.command(
         name = "list",
         brief = "See your todo list.",
-        aliases = ["show"])  
-    async def todo_list(self, ctx: GeraltContext):
+        aliases = ["show"])
+    @commands.cooldown(2, 5, commands.BucketType.user)  
+    async def todo_list(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """See your entire todo list."""
         fetch_tasks = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id)
         task_list = []
@@ -303,7 +307,8 @@ class Utility(commands.Cog):
     @todo.command(
         name = "edit",
         brief = "Edit task")    
-    async def todo_edit(self, ctx: GeraltContext, task_id: int, *, edited: str):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def todo_edit(self, ctx: GeraltContext, task_id: int, *, edited: str) -> typing.Optional[discord.Message]:
         """Edit a particular task."""
         if len(edited) > 200:
             return await ctx.reply(f"Please make sure that the `edited content` is below 200 characters.")
@@ -317,7 +322,8 @@ class Utility(commands.Cog):
         name = "remove",
         brief = "Removes Task",
         aliases = ["finished", "done"])
-    async def todo_remove(self, ctx: GeraltContext, *, task_id: int):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def todo_remove(self, ctx: GeraltContext, *, task_id: int) -> typing.Optional[discord.Message]:
         """Remove a particular task."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -327,11 +333,11 @@ class Utility(commands.Cog):
                 view.disabled = True
             if task_id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", task_id, ctx.author.name):
                 await interaction.response.defer()
-                return await ui.response.edit(content = f"<:GeraltRightArrow:904740634982760459> **Task ID ** `{task_id}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = ui)
+                return await ui.response.edit(content = f"<:GeraltRightArrow:904740634982760459> Task ID ─ `{task_id}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>", view = ui)
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(f"DELETE FROM todo WHERE task_id = $1", task_id)
-                await ui.response.edit(content = f"Successfully removed **Task ID -** `{task_id}` <:HaroldSaysOkay:907110916104007681>", view = ui)
+                await ui.response.edit(content = f"Successfully removed Task ID ─ `{task_id}` <:HaroldSaysOkay:907110916104007681>", view = ui)
 
         async def no(ui : discord.ui.View, interaction : discord.Interaction, button : discord.ui.button):
             if interaction.user != ctx.author:
@@ -339,15 +345,16 @@ class Utility(commands.Cog):
             for view in ui.children:
                 view.disabled = True  
             await interaction.response.defer()
-            await ui.response.edit(content = f"Okay then, I haven't removed Task ID - `{task_id}` from your list <:DuckSip:917006564265705482>", view = ui)
+            await ui.response.edit(content = f"Okay then, I haven't removed Task ID ─ `{task_id}` from your list <:DuckSip:917006564265705482>", view = ui)
         
-        Confirmation.response = await ctx.reply(f"Are you sure you want to remove Task ID - `{task_id}` from your list <:BallManHmm:933398958263386222>", view = Confirmation(ctx, yes, no))    
+        Confirmation.response = await ctx.reply(f"Are you sure you want to remove Task ID ─ `{task_id}` from your list <:BallManHmm:933398958263386222>", view = Confirmation(ctx, yes, no))    
 
     @todo.command(
         name = "clear",
         brief = "Delete Todo Tasks.",
         aliases = ["delete", "del", "cl"])
-    async def todo_clear(self, ctx : GeraltContext):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def todo_clear(self, ctx : GeraltContext) -> typing.Optional[discord.Message]:
         """Delete your entire todo list."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         total = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1", ctx.author.id)
@@ -381,7 +388,7 @@ class Utility(commands.Cog):
         name = "spotify",
         brief = "Get Spotify Info.",
         aliases = ["sp", "spot"])
-    async def spotify(self, ctx : GeraltContext, *, user : typing.Union[discord.Member, discord.User] = None):
+    async def spotify(self, ctx : GeraltContext, *, user : typing.Union[discord.Member, discord.User] = None) -> typing.Optional[discord.Message]:
         """Get Information on what the user is listening to."""
         user = user or ctx.author
         try:
@@ -410,7 +417,7 @@ class Utility(commands.Cog):
         name = "afk",
         brief = "Sets you afk.")
     async def afk(self, ctx : GeraltContext, *, reason : typing.Optional[str]):
-        """Sets you afk and responds with the reason when pinged."""
+        """Sets you afk."""
         await ctx.add_nanotick()
         await ctx.reply(f"Your afk has been set. Please enjoy!")
         if not reason:
@@ -419,5 +426,5 @@ class Utility(commands.Cog):
         query = "INSERT INTO afk VALUES ($1, $2, $3)"
         try:
             await self.bot.db.execute(query, ctx.author.id, reason, ctx.message.created_at)
-        except PSQL.UniqueViolationError:
+        except asyncpg.UniqueViolationError:
             return

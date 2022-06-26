@@ -1,5 +1,7 @@
 import discord
 
+from discord.ext.commands import Group
+
 from ..subclasses.bot import Geralt
 from ..subclasses.embed import BaseEmbed
 from ..subclasses.context import GeraltContext
@@ -11,8 +13,7 @@ class HelpMenu(discord.ui.Select):
             options = options,
             min_values = 1,
             max_values = 1,
-            placeholder = "Choose a category",
-            custom_id = "help-cog-select-menu")
+            placeholder = "Choose a cog")
         self.bot: Geralt = help.context.bot 
         self.ctx: GeraltContext = help.context
         self.help = help
@@ -25,13 +26,13 @@ class HelpMenu(discord.ui.Select):
                 if self.values[0] == cog.qualified_name:
                     callback_emb = BaseEmbed(
                         title = f"{cog.qualified_name} Commands",
-                        description = f"{emote} {cog.description}" if cog and cog.description else "`. . .`",
+                        description = f"{cog.description} {emote}" if cog and cog.description else "`. . .`",
                         colour = self.bot.colour)
                     filtered_commands = await self.help.filter_commands(commands, sort = True)
                     for commands in filtered_commands:
                         callback_emb.add_field(
                                 name = f"<:Join:932976724235395072> {commands.qualified_name}",
-                                value = f"> ` ─ ` {commands.short_doc}" or "Yet to be documented",
+                                value = f"> ` ─ ` {commands.short_doc} {'<:G:915108274263703553>' if isinstance(commands, Group) else ' '}" or "Yet to be documented",
                                 inline = False)
                         callback_emb.set_thumbnail(url = self.ctx.me.display_avatar)
                         callback_emb.set_footer(text = self.help.footer(), icon_url = self.ctx.author.display_avatar)
@@ -48,9 +49,9 @@ class HelpView(discord.ui.View):
         self.add_item(HelpMenu(mapping, help, cog_list))
     
     def footer(self):
-        return f"Run {self.help.context.clean_prefix}help [category | command] for more info."
+        return f"Run {self.help.context.clean_prefix}help [cog | command] for more info."
 
-    @discord.ui.button(label = "Home", style = discord.ButtonStyle.grey, emoji = "\U0001f3d8", row = 2, custom_id = "help-home")
+    @discord.ui.button(label = "Home", style = discord.ButtonStyle.grey, emoji = "\U0001f3d8", row = 2)
     async def home(self, interaction: discord.Interaction, button: discord.ui.Button):
         help_emb = BaseEmbed(
             title = f"\U00002728 {self.help.context.author}'s Help",
@@ -74,7 +75,7 @@ class HelpView(discord.ui.View):
         except discord.errors.NotFound:
             pass
 
-    @discord.ui.button(label = "Updates", style = discord.ButtonStyle.grey, emoji = "\U0001f4dc", row = 2, custom_id = "help-bot-updates")
+    @discord.ui.button(label = "Updates", style = discord.ButtonStyle.grey, emoji = "\U0001f4dc", row = 2)
     async def updates(self, interaction: discord.Interaction, button: discord.ui.Button):
         updates_emb = BaseEmbed(
             title = "Latest Updates",
@@ -93,7 +94,7 @@ class HelpView(discord.ui.View):
         except discord.errors.NotFound:
             return
 
-    @discord.ui.button(label = "Arg-Usage", style = discord.ButtonStyle.grey, emoji = "<a:Verify:905748402871095336>", row = 2, custom_id = "help-arg-usage")
+    @discord.ui.button(label = "Arg-Usage", style = discord.ButtonStyle.grey, emoji = "<a:Verify:905748402871095336>", row = 2)
     async def arg_usage(self, interaction: discord.Interaction, button: discord.ui.Button):
         arg_usage_emb = BaseEmbed(
             title = ":scroll: Argument Usage",
@@ -110,7 +111,7 @@ class HelpView(discord.ui.View):
         except discord.errors.NotFound:
             return
     
-    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", row = 2, custom_id = "help-delete")
+    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", row = 2)
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
     
@@ -119,4 +120,20 @@ class HelpView(discord.ui.View):
         if interaction.user == self.help.context.author:
             return True
         else:
-            await interaction.response.send_message(content = f"{pain}", ephemeral = True)       
+            await interaction.response.send_message(content = f"{pain}", ephemeral = True)
+
+class Delete(discord.ui.View):
+    def __init__(self, help):
+        super().__init__()
+        self.help = help
+
+    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>")
+    async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.delete()
+
+    async def interaction_check(self, interaction : discord.Interaction) -> bool:
+        pain = f"{interaction.user.mention} ─ This view can't be handled by you at the moment <:Bonked:934033408106057738>, it is meant for {self.help.context.author.mention}\nInvoke for youself by running `{self.help.context.clean_prefix}{self.help.context.command}` for the `{self.help.context.command}` command <:SarahPray:920484222421045258>"
+        if interaction.user == self.help.context.author:
+            return True
+        else:
+            await interaction.response.send_message(content = f"{pain}", ephemeral = True)

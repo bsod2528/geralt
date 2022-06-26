@@ -28,12 +28,12 @@ class Meta(commands.Cog):
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Meta", id = 905748764432662549, animated = True)   
 
-    @commands.cooldown(2, 10, commands.BucketType.user)
     @commands.command(
         name = "ping",
         brief = "You ping Me",
         aliases = ["pong"])
-    async def ping(self, ctx: GeraltContext):
+    @commands.cooldown(2, 10, commands.BucketType.user)
+    async def ping(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Get proper latency timings of the bot."""
 
         # Latency for typing
@@ -68,12 +68,12 @@ class Meta(commands.Cog):
             await ctx.reply(embed = ping_emb, mention_author = False)
 
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of implementing buttons for System Usage [ PSUTIl ] and Latest Commits on Github :)
-    @commands.cooldown(2, 10, commands.BucketType.user)
     @commands.command(
         name = "info",
         brief = "Get info on me",
         aliases = ["about"])
-    async def info(self, ctx: GeraltContext):
+    @commands.cooldown(2, 10, commands.BucketType.user)
+    async def info(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Receive full information regarding me."""
         info_emb = BaseEmbed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
@@ -98,8 +98,8 @@ class Meta(commands.Cog):
         brief = "Report Something",
         aliases = ["r"])
     @commands.guild_only()
-    @commands.cooldown(1, 10, commands.BucketType.user)
-    async def report(self, ctx: GeraltContext):
+    @commands.cooldown(1, 20, commands.BucketType.user)
+    async def report(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Send a message to the Developer regarding a bug or a request."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -107,7 +107,8 @@ class Meta(commands.Cog):
     @report.command(
         name = "bug",
         brief = "Report a bug")
-    async def bug(self, ctx: GeraltContext, *, bug: str):
+    @commands.cooldown(1, 20, commands.BucketType.user)
+    async def bug(self, ctx: GeraltContext, *, bug: str) -> typing.Optional[discord.Message]:
         """Send a bug to the dev if you find any."""
         bug_info = f"- Reported By   :   {ctx.author} / {ctx.author.id}\n" \
                    f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -148,7 +149,8 @@ class Meta(commands.Cog):
         name = "feedback",
         brief = "Send your feeback",
         aliases = ["fb"])
-    async def feedback(self, ctx: GeraltContext, *, feedback: str):
+    @commands.cooldown(1, 20, commands.BucketType.user)
+    async def feedback(self, ctx: GeraltContext, *, feedback: str) -> typing.Optional[discord.Message]:
         """Send a feedback to the dev if you find any."""
         fb_info = f"- Sent By       :   {ctx.author} / {ctx.author.id}\n" \
                   f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -189,7 +191,8 @@ class Meta(commands.Cog):
         name = "json",
         brief = "Sends JSON Data",
         aliases = ["raw"])
-    async def json(self, ctx: GeraltContext, message: typing.Optional[discord.Message]):
+    @commands.cooldown(1, 20, commands.BucketType.user)
+    async def json(self, ctx: GeraltContext, message: typing.Optional[discord.Message]) -> typing.Optional[discord.Message]:
         """Get the JSON Data for a message."""
         message : discord.Message = getattr(ctx.message.reference, "resolved", message)
         if not message:
@@ -201,24 +204,24 @@ class Meta(commands.Cog):
         json_data = json.dumps(message_data, indent = 2)
         await ctx.reply(f"Here you go <:NanoTick:925271358735257651>", file = discord.File(io.StringIO(json_data), filename = "Message-Raw-Data.json"), allowed_mentions = self.bot.mentions)
 
-    @commands.cooldown(3, 5, commands.BucketType.user)
     @commands.command(
         name = "uptime",
         brief = "Returns Uptime",
         aliases = ["ut"])
-    async def uptime(self, ctx: GeraltContext):
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    async def uptime(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Sends my uptime -- how long I've been online for"""
         time = discord.utils.utcnow() - self.bot.uptime
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"**online**\" for -\n>>> <:ReplyContinued:930634770004725821>` ─ ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` ─ ` Roughly Since : {self.bot.timestamp(self.bot.uptime, style = 'R')} ({self.bot.timestamp(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
 
-    @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.command(
         name = "google",
         brief = "Search Google",
         aliases = ["g", "web"])
-    async def web(self, ctx: GeraltContext, *, query: str):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def web(self, ctx: GeraltContext, *, query: str) -> typing.Optional[discord.Message]:
         """Search Google for anything"""
         cx = CONFIG.get("ENGINE")
         api_key = CONFIG.get("SEARCH")
@@ -258,7 +261,7 @@ class Meta(commands.Cog):
         name = "invite",
         brief = "Get Invite Link",
         aliases = ["inv"])
-    async def invite(self, ctx: GeraltContext):
+    async def invite(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         invite_emb = BaseEmbed(
             colour = self.bot.colour)
         invite_emb.add_field(
@@ -275,13 +278,10 @@ class Meta(commands.Cog):
         brief = "Get command usage",
         aliases = ["cu"])
     @commands.guild_only()
-    async def usage(self, ctx: GeraltContext):
+    async def usage(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Get a list of how many commands have been used here"""
-        try:
-            cmd_usage = [f"> │ ` - ` \"**{self.bot.meta[ctx.guild.id][0]}**\" : `{self.bot.meta[ctx.guild.id][2]}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(self.bot.meta[ctx.guild.id][1], style = 'R')}\n────\n"]
-        except KeyError:
-            fetch_usage = await self.bot.db.fetch("SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id)
-            cmd_usage = [f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(data['invoked_at'], style = 'R')}\n────\n" for data in fetch_usage]
+        fetch_usage = await self.bot.db.fetch("SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id)
+        cmd_usage = [f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(data['invoked_at'], style = 'R')}\n────\n" for data in fetch_usage]
         if not cmd_usage:
             return await ctx.reply(f"No one has invoked any command in \"**{ctx.guild}**\" still. Be the first one \N{HANDSHAKE}")
         
@@ -301,7 +301,8 @@ class Meta(commands.Cog):
         name = "source",
         brief = "Returns Source",
         aliases = ["src"])
-    async def passs(self, ctx: GeraltContext, *, command: str = None):
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    async def source(self, ctx: GeraltContext, *, command: str = None) -> typing.Optional[discord.Message]:
         """Returns source for a command"""
         view = discord.ui.View()
         branch = "stellar-v2"
@@ -328,6 +329,7 @@ class Meta(commands.Cog):
         
         if command is None:
             view.add_item(discord.ui.Button(label = f"Source for the entire repo!", style = discord.ButtonStyle.link, emoji = "<a:Owner:905750348457738291>", url = repository.html_url))
+            view.add_item(discord.ui.Button(label = "Dashboard", emoji = "<:AkkoComfy:907104936368685106>", url = "https://bsod2528.github.io/Posts/Geralt"))
             return await ctx.reply(embed = source_emb, mention_author = False, view = view)
         
         obj = self.bot.get_command(command.replace(".", " "))
@@ -340,6 +342,7 @@ class Meta(commands.Cog):
             if obj is None:
                 source_emb.description = f"Could not find command: `{command}`\n────\n<:Join:932976724235395072> {repository.description}"
                 view.add_item(discord.ui.Button(label = f"Source for the entire repo!", style = discord.ButtonStyle.link, emoji = "<a:Owner:905750348457738291>", url = repository.html_url))
+                view.add_item(discord.ui.Button(label = "Dashboard", emoji = "<:AkkoComfy:907104936368685106>", url = "https://bsod2528.github.io/Posts/Geralt"))
                 return await ctx.reply(embed = source_emb, mention_author = False, view = view)
 
             src = obj.callback.__code__
@@ -356,4 +359,5 @@ class Meta(commands.Cog):
 
         source_emb.description = f"Here is the source for [`{command}`]({url})\n────\nEnsure to comply with [**GNU AGPL v3**](https://github.com/BSOD2528/Geralt/blob/stellar-v2/LICENSE) License"
         view.add_item(discord.ui.Button(label = f"Source for \"{command}\"", style = discord.ButtonStyle.link, emoji = "<a:Owner:905750348457738291>", url = url))
+        view.add_item(discord.ui.Button(label = "Dashboard", emoji = "<:AkkoComfy:907104936368685106>", url = "https://bsod2528.github.io/Posts/Geralt"))
         await ctx.reply(embed = source_emb, mention_author = False, view = view)

@@ -1,3 +1,4 @@
+import typing
 import discord
 
 from discord.ext import commands
@@ -33,8 +34,9 @@ class Moderation(commands.Cog):
         name = "kick",
         brief = "Kicks User")
     @commands.guild_only()
+    @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(kick_members = True)
-    async def kick(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
+    async def kick(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
         """Teach them a lesson by kicking them out."""
         self.check_hierarchy(ctx, user)
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -62,8 +64,9 @@ class Moderation(commands.Cog):
         name = "ban",
         brief = "Bans User")
     @commands.guild_only()
+    @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(ban_members = True)
-    async def ban(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
+    async def ban(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
         """Teach them a lesson by kicking them out."""
         self.check_hierarchy(ctx, user)
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -91,8 +94,9 @@ class Moderation(commands.Cog):
         name = "mute",
         brief = "Mutes User")
     @commands.guild_only()
+    @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_roles = True)
-    async def mute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
+    async def mute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
         """Mute toxic users"""
         self.check_hierarchy(ctx, user)
         role = discord.utils.get(ctx.guild.roles, name = "Muted")
@@ -135,8 +139,9 @@ class Moderation(commands.Cog):
         name = "unmute",
         brief = "Unmutes User")
     @commands.guild_only()
+    @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_roles = True)
-    async def unmute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided"):
+    async def unmute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
         """Unmute users"""
         self.check_hierarchy(ctx, user)
         role = discord.utils.get(ctx.guild.roles, name = "Muted")
@@ -177,8 +182,9 @@ class Moderation(commands.Cog):
         brief = "Change Nick",
         aliases = ["nick"])
     @commands.guild_only()
+    @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_nicknames = True)
-    async def nick(self, ctx: GeraltContext, user: discord.Member, *, nick: str):
+    async def nick(self, ctx: GeraltContext, user: discord.Member, *, nick: str) -> typing.Optional[discord.Message]:
         """Change the Nickname of a member"""
         self.check_hierarchy(ctx, user)
         

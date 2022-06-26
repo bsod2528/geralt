@@ -12,7 +12,7 @@ from ..subclasses.context import GeraltContext
 
 class SetupTicketPanel(discord.ui.Modal, title = "Setup Your Panel"):
     def __init__(self, bot: Geralt, ctx: GeraltContext, channel: discord.TextChannel):
-        super().__init__(custom_id = "panel-setup-modal")
+        super().__init__()
         self.bot: Geralt = bot
         self.ctx: GeraltContext = ctx
         self.channel = channel
@@ -61,7 +61,7 @@ class SetupTicketPanel(discord.ui.Modal, title = "Setup Your Panel"):
 
 class SetupTicketMessage(discord.ui.Modal, title = "Setup Ticket Message"):
     def __init__(self, bot: Geralt, ctx: GeraltContext):
-        super().__init__(custom_id = "message-setup-modal")
+        super().__init__()
         self.bot: Geralt = bot
         self.ctx: GeraltContext = ctx
     

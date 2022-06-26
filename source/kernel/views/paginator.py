@@ -22,7 +22,7 @@ class Paginator(discord.ui.View):
         if ctx.interaction:
             self.delete.disabled = True
 
-    @discord.ui.button(label = "<<", style = ButtonStyle.gray, custom_id = "paginator-max-left")
+    @discord.ui.button(label = "<<", style = ButtonStyle.gray)
     async def max_left(self, interaction: discord.Interaction, button: discord.ui.button):
         self.current = 0
         self.left.disabled = True
@@ -37,7 +37,7 @@ class Paginator(discord.ui.View):
 
         await interaction.response.edit_message(embed = self.embeds[self.current], view = self)
     
-    @discord.ui.button(label = "<", style = ButtonStyle.blurple, custom_id = "paginator-left")
+    @discord.ui.button(label = "<", style = ButtonStyle.blurple)
     async def left(self, interaction: discord.Interaction, button: discord.ui.button):
         self.current -= 1
         
@@ -58,7 +58,7 @@ class Paginator(discord.ui.View):
 
         await interaction.response.edit_message(embed = self.embeds[self.current], view = button.view)
     
-    @discord.ui.button(label = ">", style = ButtonStyle.blurple, custom_id = "paginator-right")
+    @discord.ui.button(label = ">", style = ButtonStyle.blurple)
     async def right(self, interaction: discord.Interaction, button: discord.ui.button):
         self.current += 1
 
@@ -76,7 +76,7 @@ class Paginator(discord.ui.View):
 
         await interaction.response.edit_message(embed = self.embeds[self.current], view = button.view)
     
-    @discord.ui.button(label = ">>", style = ButtonStyle.gray, custom_id = "paginator-max-right")
+    @discord.ui.button(label = ">>", style = ButtonStyle.gray)
     async def max_right(self, interaction: discord.Interaction, button: discord.ui.button):
         self.current = self.total - 1
         
@@ -92,7 +92,7 @@ class Paginator(discord.ui.View):
         
         await interaction.response.edit_message(embed = self.embeds[self.current], view = button.view)
 
-    @discord.ui.button(label = "Exit", style = ButtonStyle.danger, custom_id = "paginator-delete")
+    @discord.ui.button(label = "Exit", style = ButtonStyle.danger)
     async def delete(self, interaction: discord.Interaction, button: discord.ui.button):
         await interaction.message.delete()     
     

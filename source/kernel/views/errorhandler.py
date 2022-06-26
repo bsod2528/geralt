@@ -13,7 +13,7 @@ class Traceback(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.error = error
 
-    @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.grey, emoji = "<:WinTerminal:898609124982554635>", custom_id = "traceback-traceback")
+    @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.grey, emoji = "<:WinTerminal:898609124982554635>")
     async def traceback(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         error = getattr(self.error, "original", self.error)
@@ -24,7 +24,7 @@ class Traceback(discord.ui.View):
         await interaction.message.edit(view = self)
         await interaction.response.send_message(embed = error_emb, ephemeral = True)    
     
-    @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.grey, emoji = "<a:Trash:906004182463569961>", custom_id = "traceback-command-help")
+    @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.grey, emoji = "<a:Trash:906004182463569961>")
     async def cmd_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         command_help = BaseEmbed(
@@ -35,7 +35,7 @@ class Traceback(discord.ui.View):
         await interaction.message.edit(view = self)
         await interaction.response.send_message(embed = command_help, ephemeral = True)
     
-    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "traceback-delete")
+    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>")
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 
@@ -71,7 +71,7 @@ class CommandSyntax(discord.ui.View):
         self.ctx = ctx
         self.error = error
 
-    @discord.ui.button(label = "Syntax", style = discord.ButtonStyle.blurple, emoji = "<a:CoffeeSip:907110027951742996>", custom_id = "commandsyntax-syntax")
+    @discord.ui.button(label = "Syntax", style = discord.ButtonStyle.blurple, emoji = "<a:CoffeeSip:907110027951742996>")
     async def cmd_syntax(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.style = discord.ButtonStyle.green
@@ -89,7 +89,7 @@ class CommandSyntax(discord.ui.View):
         except:
             await interaction.response.send_message(content = f"This command does not have any argument missing. Rather a wrong argument was passed. Run `{self.ctx.clean_prefix}help {self.ctx.command}`", ephemeral = True)    
 
-    @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>", custom_id = "commandsyntax-command-help")
+    @discord.ui.button(label = "Command Help", style = discord.ButtonStyle.blurple, emoji = "<a:Trash:906004182463569961>")
     async def cmd_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.style = discord.ButtonStyle.green
@@ -104,7 +104,7 @@ class CommandSyntax(discord.ui.View):
         except Exception as exception:
             await interaction.response.send_message(content = exception, ephemeral = True)    
 
-    @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>", custom_id = "commandsyntax-traceback")
+    @discord.ui.button(label = "Traceback", style = discord.ButtonStyle.blurple, emoji = "<:WinTerminal:898609124982554635>")
     async def traceback(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.style = discord.ButtonStyle.green
@@ -119,7 +119,7 @@ class CommandSyntax(discord.ui.View):
         except Exception as exception:
             await interaction.response.send_message(content = exception, ephemeral = True)    
     
-    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>", custom_id = "commandsyntax-delete")
+    @discord.ui.button(label = "Delete", style = discord.ButtonStyle.red, emoji = "<a:Trash:906004182463569961>")
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.delete()
 
