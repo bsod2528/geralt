@@ -15,6 +15,7 @@ from aiogithub import GitHub
 from dotenv import dotenv_values
 from discord import app_commands
 from discord.ext import commands
+from collections import defaultdict
 
 from .embed import BaseEmbed
 from ..views.meta import Info
@@ -74,7 +75,7 @@ class Geralt(commands.Bot):
         self.git = None
         self.colour = discord.Colour.from_rgb(170, 179, 253)
         self.mentions = discord.AllowedMentions.none()
-        self.no_prefix: bool = True
+        self.no_prefix: bool = False
         self.timestamp = discord.utils.format_dt        
         self.owner_ids: typing.List = DEVELOPER_IDS
         self.github_token: str = CONFIG.get("GITHUB_TOKEN")
@@ -85,7 +86,7 @@ class Geralt(commands.Bot):
         # Geralt's Cache
         self.afk: typing.Dict = {}
         self.meta: typing.Dict = {}
-        self.prefixes: typing.Dict = {} 
+        self.prefixes: typing.DefaultDict[int, typing.Set[str]] = defaultdict(set)
         self.blacklist: typing.Dict = set()
         self.ticket_init: typing.Dict = {}
         self.ticket_kernel: typing.Dict = {}
@@ -93,7 +94,7 @@ class Geralt(commands.Bot):
     def __repr__(self) -> str:
         return "<Bot>"
 
-    async def get_context(self, message : discord.Message, *, cls = GeraltContext) -> GeraltContext:
+    async def get_context(self, message: discord.Message, *, cls = GeraltContext) -> GeraltContext:
         return await super().get_context(message, cls = cls)
 
     async def on_error(self, event_method: str, *args: typing.Any, **kwargs: typing.Any) -> None:
@@ -116,18 +117,18 @@ class Geralt(commands.Bot):
         query = "DELETE FROM blacklist WHERE user_id = $1"
         await self.db.execute(query, user.id)
         self.blacklist.remove(user.id)
-
+    
     async def get_prefix(self, message: discord.Message):
-        guild_id = getattr(message.guild, "id", message.author.id)
-        if (prefix := self.prefixes.get(guild_id)) is None:
-            try:
-                data = self.prefixes[message.guild.id]
-            except KeyError:
-                data = await self.db.fetchrow("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", guild_id)
-            prefix = self.default_prefix if data is None else data["guild_prefix"]
         if self.no_prefix is True and message.author.id in self.owner_ids:
-            return [prefix, self.user.mention, ""]
-        return [prefix, self.user.mention, self.default_prefix]
+            return ""
+        cached = self.prefixes.get((message.guild and message.guild.id), None)  # type: ignore
+        if cached is not None:
+            prefix = set(cached)
+        else:
+            prefix = {".g",}
+        if not prefix:
+            prefix = {".g"}
+        return commands.when_mentioned_or(*prefix)(self, message)
 
     async def setup_hook(self) -> None:
         print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Loading all Extensions.{colour.Style.RESET_ALL}")
@@ -147,16 +148,18 @@ class Geralt(commands.Bot):
     async def on_ready(self):
         afk_deets = await self.db.fetch("SELECT * FROM afk")
         meta_deets = await self.db.fetch("SELECT * FROM meta")
-        prefix_deets = await self.db.fetch("SELECT * FROM custom_prefix")
+        prefix_deets = await self.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
         ticket_init_deets = await self.db.fetch("SELECT * FROM ticket_init")
         ticket_kernel_deets = await self.db.fetch("SELECT * FROM ticket_kernel")
-
+        
         self.afk = {data["user_id"]: data["reason"] for data in afk_deets}
         self.meta = {data["guild_id"]: [data["command_name"], data["invoked_at"], data["uses"]] for data in meta_deets}
-        self.prefixes = {data["guild_id"]: data["guild_prefix"] for data in prefix_deets}
         self.ticket_kernel = {data["guild_id"]: [data["ticket_id"], data["invoker_id"], data["invoked_at"]] for data in ticket_kernel_deets}
         self.ticket_init = {data["guild_id"]: [data["category_id"], data["sent_channel_id"], data["sent_message_id"], data["jump_url"], data["panel_description"], data["message_description"], data["id"]] for data in ticket_init_deets}
-        
+
+        for guild_id, prefixes in prefix_deets:
+            self.prefixes[guild_id] = set(prefixes) or {".g",}
+
         if not self.add_persistent_views:
             self.add_view(Info(self, GeraltContext))
             self.add_persistent_views = True
@@ -204,19 +207,16 @@ class Geralt(commands.Bot):
                 await message.reply(f"<:Join:932976724235395072> **{pinged_user}** has been afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : {reason}\n<:Reply:930634822865547294>` ─ ` since : {humanize.naturaldelta(current_time)}")
 
         if message.content in [self.user.mention]:
-            current_prefix = await self.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", message.guild.id)
-            if not current_prefix:
-                current_prefix = self.default_prefix
             prefix_emb = BaseEmbed(
-                description = f"`{current_prefix}`\n`.g`\n{self.user.mention}",
+                description = "\n".join(await self.get_prefix(message)),
                 colour = self.colour)
-            prefix_emb.set_footer(text = f"Run {current_prefix}help prefix.")
+            prefix_emb.set_footer(text = "Run `@Geralthelp prefix`.")
             if message.guild.icon.url:
-                prefix_emb.set_author(name = message.guild, icon_url = message.guild.icon.url)
+                prefix_emb.set_author(name = f"{len(await self.get_prefix(message))} Prefixes ─ {message.guild}", icon_url = message.guild.icon.url)
             else:
                 prefix_emb.set_author(name = message.guild)
-            await message.reply(embed = prefix_emb, mention_author = False)
-            
+            return await message.reply(embed = prefix_emb, mention_author = False)
+
         await self.process_commands(message)   
     
 Geralt = Geralt()

@@ -1,8 +1,10 @@
-import discord
+import typing
 import asyncio
 import asyncpg
+import discord
 
 from discord.ext import commands
+from discord import app_commands
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.meta import Confirmation
@@ -22,9 +24,6 @@ class Guild(commands.Cog):
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Guild", id = 917013065650806854, animated = True)   
 
-    async def fetch_prefix(self, message: discord.Message):
-        return tuple([prefix["guild_prefix"] for prefix in await self.bot.db.fetch("SELECT guild_prefix FROM custom_prefix WHERE guild_id = $1", message.guild.id)]) or self.bot.default_prefix
-
     async def dont_archive_and_delete(self, ctx: GeraltContext, ticket_id: int):
         await self.bot.db.execute("DELETE FROM ticket_kernel WHERE ticket_id = $1 AND guild_id = $2", ticket_id, ctx.guild.id)
         await ctx.add_nanotick()
@@ -34,63 +33,86 @@ class Guild(commands.Cog):
     async def archive_and_dont_delete(self, ctx: GeraltContext, ticket_id: int):
         await ctx.channel.edit(name = f"{ctx.channel.name} archived")
 
-    @commands.group(
+    @commands.hybrid_group(
         name = "prefix",
         brief = "Prefix Related Sub-Commands",
-        aliases = ["p"])
+        aliases = ["p"],
+        with_app_command = True)
     @commands.guild_only()
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    @commands.has_guild_permissions(manage_guild = True)
+    @commands.has_guild_permissions(manage_roles = True)
     @commands.has_guild_permissions(administrator = True)
     @commands.has_guild_permissions(manage_channels = True)
-    async def prefix(self, ctx: GeraltContext):
+    async def prefix(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+        """Prefix related commands."""
         if ctx.invoked_subcommand is None:
-            try:
-                current_prefix = self.bot.prefixes[ctx.guild.id]
-            except KeyError:
-                current_prefix = await self.bot.db.fetchval("SELECT (guild_prefix) FROM custom_prefix WHERE guild_id = $1", ctx.guild.id)
-            if not current_prefix:
-                current_prefix = self.bot.default_prefix
             prefix_emb = BaseEmbed(
-                description = f"`{current_prefix}`\n`.g`\n{ctx.guild.me.mention}",
+                description = f"\n".join(await self.bot.get_prefix(ctx.message)),
                 colour = self.bot.colour)
             prefix_emb.set_footer(text = f"Run {ctx.clean_prefix}help prefix.")
             if ctx.guild.icon.url:
-                prefix_emb.set_author(name = ctx.guild, icon_url = ctx.guild.icon.url)
+                prefix_emb.set_author(name = f"{len(await self.bot.get_prefix(ctx.message))} Prefixes ─ {ctx.guild}", icon_url = ctx.guild.icon.url)
             else:
                 prefix_emb.set_author(name = ctx.guild)
             await ctx.reply(embed = prefix_emb, mention_author = False)
 
     @prefix.command(
-        name = "set",
-        brief = "Set Guild Prefix",
-        aliases = ["s"])
-    async def prefix_set(self, ctx: GeraltContext, *, prefix: str = None):
-        """Add custom prefixes. However, the default one will not work."""
+        name = "add",
+        brief = "Add Custom Prefixes",
+        aliases = ["a"],
+        with_app_command = True)
+    @app_commands.checks.cooldown(3, 5)
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    @app_commands.describe(prefix = "Give in a prefix you want to add.")
+    async def prefix_add(self, ctx: GeraltContext, *, prefix: str = None):
+        """Add a custom prefix.
+        ────
+        **Note:** Once a prefix is added, default prefix will not work \U0001f44d
+        ────"""
+        if prefix is None:
+            return await ctx.reply("You do realise you have to enter a `new prefix` for that to become the prefix for this guild? <:SarahPout:989816223544012801>")
+        if len(prefix) > 15:
+            return await ctx.reply("You're definitely going to ace that essay writing competition. <:SarahLaugh:907109900952420373>")
+        if prefix == "--":
+            return await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
         try:
-            if prefix == "--":
-                return await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
-            elif prefix is None:
-                return await ctx.reply("You do realise you have to enter a `new prefix` for that to become the prefix for this guild?")
-            elif len(prefix) > 15:
-                return await ctx.reply("Your definitely going to ace that essay writing competition")
-            else:
-                await self.bot.db.execute("INSERT INTO custom_prefix (guild_prefix, guild_id, guild_name) VALUES ($1, $2, $3)", prefix, ctx.guild.id, ctx.guild.name)
-                self.bot.prefixes[ctx.guild.id] = await self.fetch_prefix(ctx.message)
-                await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** will here after be `{prefix}` <:SarahLaugh:907109900952420373>")
-        
-        except asyncpg.UniqueViolationError:
-            await self.bot.db.execute("UPDATE custom_prefix SET guild_prefix = $1 WHERE guild_id = $2 AND guild_name = $3", prefix, ctx.guild.id, ctx.guild.name)
-            await ctx.reply(f"**{ctx.message.author}** - my prefix for **{ctx.guild.name}** has been updated `{prefix}` <a:DuckPopcorn:917013065650806854>")
-            self.bot.prefixes[ctx.guild.id] = await self.fetch_prefix(ctx.message)
-
+            query = "INSERT INTO prefix VALUES ($1, ARRAY [$2]) ON CONFLICT (guild_id) " \
+                    "DO UPDATE SET guild_prefix = ARRAY_APPEND(prefix.guild_prefix, $2) WHERE prefix.guild_id = $1"
+            await self.bot.db.execute(query, ctx.guild.id, prefix)
+            data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+            for guild_id, prefixes in data:
+                self.bot.prefixes[guild_id] = set(prefixes)
+            await ctx.reply(f"**{ctx.message.author}** - `{prefix}` has been added to my prefix list for **{ctx.guild.name}** <:SarahLaugh:907109900952420373>")
+        except Exception as exception:
+            await ctx.add_nanocross()
+            return await ctx.send(f"```py\n{exception}\n```")
+            
     @prefix.command(
-        name = "reset",
-        brief = "Resets to default",
-        aliases = ["r"])
-    async def prefix_reset(self, ctx: GeraltContext):
-        await self.bot.db.execute("DELETE FROM custom_prefix WHERE guild_id = $1 AND guild_name = $2", ctx.guild.id, ctx.guild.name)
-        await ctx.reply(f"Reset prefix back to `{self.bot.default_prefix}` ")
-        self.bot.prefixes[ctx.guild.id] = self.bot.default_prefix
-
+        name = "remove",
+        brief = "Remove a prefix.",
+        aliases = ["del"],
+        with_app_command = True)
+    @app_commands.checks.cooldown(3, 5)
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    @app_commands.describe(prefix = "Give in the prefix you want to you remove.")
+    async def prefix_remove(self, ctx: GeraltContext, *, prefix: str = None) -> typing.Optional[discord.Message]:
+        """Remove a custom prefix."""
+        if not prefix:
+            return await ctx.reply("Pass in a `prefix` for me to set it.")
+        else:
+            try:
+                query = "UPDATE prefix SET guild_prefix = ARRAY_REMOVE(prefix.guild_prefix, $2) WHERE guild_id = $1"
+                await self.bot.db.execute(query, ctx.guild.id, prefix)
+                data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+                for guild_id, prefixes in data:
+                    self.bot.prefixes[guild_id] = set(prefixes)
+                await ctx.add_nanotick()
+                await ctx.reply(f"**{ctx.message.author}** - `{prefix}` has been removed to my prefix list for **{ctx.guild.name}** <:SarahLaugh:907109900952420373>")
+            except Exception as exception:
+                await ctx.add_nanocross()
+                return await ctx.send(f"```py\n{exception}\n```")
+    
     @commands.group(
         name = "ticket",
         brief = "Ticket - Tool for you server.",
@@ -101,7 +123,7 @@ class Guild(commands.Cog):
     @commands.bot_has_guild_permissions(manage_channels = True)
     @commands.cooldown(3, 20, commands.BucketType.user)
     @commands.max_concurrency(1, commands.BucketType.guild)
-    async def ticket(self, ctx : GeraltContext):
+    async def ticket(self, ctx : GeraltContext) -> typing.Optional[discord.Message]:
         """Take care of your server by utilising tickets."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -109,11 +131,13 @@ class Guild(commands.Cog):
     @ticket.command(
         name = "setup",
         brief = "Set-up ticket system.")
-    async def ticket_setup(self, ctx: GeraltContext, *, channel: discord.TextChannel = None):
+    @commands.max_concurrency(1, commands.BucketType.guild)
+    async def ticket_setup(self, ctx: GeraltContext, *, channel: discord.TextChannel = None) -> typing.Optional[discord.Message]:
         """Setup ticket system in your server.
         ────
-        **Args :** `channel` ─ `#channel` / `send the id` / `type the name`
-        **Example :** `.gticket setup #channel / channel / 123456789012345678`"""
+        **Example :** 
+        `.gticket setup #channel / channel / 123456789012345678`
+        ────"""
         if not channel:
             return await ctx.reply(f"To set up ticket system, you have to `mention` / `send the id` / `type the name of the channel` for me to send the main panel over there.")
         await TicketSetup(self.bot, ctx, channel).send()
@@ -121,7 +145,8 @@ class Guild(commands.Cog):
     @ticket.command(
         name = "close",
         brief = "Close a ticket.")
-    async def ticket_close(self, ctx: GeraltContext, ticket_id: int = None):
+    @commands.cooldown(3, 20, commands.BucketType.user)
+    async def ticket_close(self, ctx: GeraltContext, ticket_id: int = None) -> typing.Optional[discord.Message]:
         """Close a ticket."""
         if not ticket_id:
            return await ctx.reply(f"Please pass in the ticket_id to close it.")
@@ -143,7 +168,8 @@ class Guild(commands.Cog):
     @ticket.command(
         name = "status",
         brief = "Status of ticket system.")
-    async def ticket_status(self, ctx: GeraltContext):
+    @commands.cooldown(3, 5, commands.BucketType.user)
+    async def ticket_status(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Returns the ticket system status for this guild."""
         try:
             system_status = [f"> │ ` ─ ` System ID : `{self.bot.ticket_init[ctx.guild.id][6]}`\n> │ ` ─ ` Category ID : `{self.bot.ticket_init[ctx.guild.id][0]}`\n> │ ` ─ ` Panel Message ID : [**{self.bot.ticket_init[ctx.guild.id][2]}**]({self.bot.ticket_init[ctx.guild.id][3]})"]
@@ -166,7 +192,8 @@ class Guild(commands.Cog):
         name = "dismantle",
         brief = "Dismantles Ticket System.",
         aliases = ["delete", "remove", "clear"])
-    async def ticket_dismantle(self, ctx: GeraltContext):
+    @commands.cooldown(2, 10, commands.BucketType.user)
+    async def ticket_dismantle(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
         """Disables the ticket system in your guild if present."""        
         try:
             try:
