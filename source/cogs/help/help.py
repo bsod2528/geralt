@@ -1,21 +1,27 @@
+from tokenize import group
+import typing
 import discord
 
 from discord.ext import commands
+from discord.ext.commands import Group
 from discord.ext.commands import HelpCommand
 
-from ...kernel.views.help import HelpView
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.subclasses.embed import BaseEmbed
+from ...kernel.views.help import HelpView, Delete
 from ...kernel.subclasses.context import GeraltContext
         
 class GeraltHelp(commands.HelpCommand):
-    def footer(self):
-        return f"Run {self.context.clean_prefix}help [category | command] for more info."
-    
-    def command_footer(self):
-        return f"Run {self.context.clean_prefix}help [command] for info on a command."
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
-    async def send_bot_help(self, mapping):
+    def footer(self):
+        return f"Run {self.context.clean_prefix}help [cog | command] for more info."
+    
+    def group_and_command_footer(self, group_or_command: typing.Union[commands.Command, commands.Group]):
+        return f"Run `{self.context.clean_prefix}help {group_or_command.cog_name}` for info on `{group_or_command.cog_name}` cog."
+
+    async def send_bot_help(self, mapping) -> typing.Optional[discord.Message]:
         cog_list = []
         self.context: GeraltContext
         help_emb = BaseEmbed(
@@ -38,19 +44,20 @@ class GeraltHelp(commands.HelpCommand):
                 help_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
         await self.context.reply(embed = help_emb, view = HelpView(mapping, self, cog_list), mention_author = False)
 
-    async def send_cog_help(self, cog: commands.Cog):
+    async def send_cog_help(self, cog: commands.Cog) -> typing.Optional[discord.Message]:
+        cog.get_commands()
         self.context: GeraltContext
         emote = getattr(cog, "emote", None)
         cog_emb = BaseEmbed(
             title = f"{cog.qualified_name} Commands",
-            description = f"{emote} {cog.description}" if cog and cog.description else "...",
+            description = f"{cog.description} {emote}\n" if cog and cog.description else "...",
             colour = self.context.bot.colour)
         
         filtered_commands = await self.filter_commands(cog.get_commands(), sort = True)
         for commands in filtered_commands:
             cog_emb.add_field(
-                name = f"<:Join:932976724235395072> {commands.qualified_name}",
-                value = f"> ` ─ ` {commands.short_doc}" or "Yet to be documented",
+                name = f"<:Join:932976724235395072> {commands.qualified_name}", 
+                value = f"> ` ─ ` {commands.short_doc} {'<:G:915108274263703553>' if isinstance(commands, Group) else ' '}" or "Yet to be documented",
                 inline = False)
             cog_emb.set_thumbnail(url = self.context.me.display_avatar)
             cog_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
@@ -64,7 +71,7 @@ class GeraltHelp(commands.HelpCommand):
         except:
             return
 
-    async def send_command_help(self, command: commands.Command):
+    async def send_command_help(self, command: commands.Command) -> typing.Optional[discord.Message]:
         try:
             await command.can_run(self.context)
         except:
@@ -74,53 +81,85 @@ class GeraltHelp(commands.HelpCommand):
         else:
             alias = "`Nil`"
         self.context: GeraltContext
+        emote = getattr(command._cog, "emote", None)
 
         command_emb = BaseEmbed(
-            title = f"{command} Help",
+            title = f"{command} Help {emote}",
             colour = self.context.bot.colour)
-        command_emb.set_footer(text = self.command_footer(), icon_url = self.context.author.display_avatar)
+        command_emb.set_footer(text = self.group_and_command_footer(command), icon_url = self.context.author.display_avatar)
+        
+        if cooldown := command._buckets._cooldown:
+            bucket = command._buckets.type
+            {"by" if bucket.name == "user" else "in"}
+            command_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Cooldown :",
+                value = f"> ` ─ ` Can be used `{cooldown.rate}` time{'' if cooldown.rate == 1 else 's'} every `{cooldown.per}` seconds a **`{bucket.name}`**.",
+                inline = False)
+
+        if concurrency := command._max_concurrency:
+            {'by' if concurrency.per.name == 'user' else 'in'}
+            command_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Concurrency :",
+                value = f"> ` ─ ` Can be used `{concurrency.number}` time{'' if concurrency.number == 1 else 's'} concurrently in a **`{concurrency.per.name}`**.",
+                inline = False)
 
         if self.context.author.is_on_mobile():
-            command_emb.description = f"```prolog\n> Syntax : {self.context.clean_prefix}{command.qualified_name} {command.signature}\n```\n" \
-                                      f">>> ` ─ ` **Aliases : ** [{alias}]\n" \
-                                      f" ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}"
+            command_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{command.qualified_name} {command.signature}\n```\n" \
+                                      f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
+                                      f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
             await self.context.reply(embed = command_emb, mention_author = False)
         else:
             command_emb.description = f"```ansi\n[0;1;37;40m > [0m [0;1;31mSyntax[0m [0;1;37;40m : [0m [0;1;37m{self.context.clean_prefix}{command.qualified_name}[0m [0;1;34m{command.signature}[0m\n```\n" \
-                                      f">>> ` ─ ` **Aliases : ** [{alias}]\n" \
-                                      f" ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}"
-            await self.context.reply(embed = command_emb, mention_author = False)
-    
-    async def send_group_help(self, group: commands.Group):
+                                      f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
+                                      f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
+            await self.context.reply(embed = command_emb, mention_author = False, view = Delete(self))
+
+    async def send_group_help(self, group: commands.Group) -> typing.Optional[discord.Message]:
         try:
             await group.can_run(self.context)
         except:
             return
-        group_commands = [f"> <:Join:932976724235395072> `{command.name}` \u200b ─ \u200b {command.short_doc}" for command in group.commands]
+        group_commands = [f"> <:Join:932976724235395072> `{command.name}{' '*(10 - len(command.name))}` \u200b ─ \u200b {command.short_doc}" for command in group.commands]
         if group.aliases:
             alias = " | ".join(f"`{alias}`" for alias in group.aliases)
         else:
             alias = "`Nil`"
         self.context: GeraltContext
+        emote = getattr(group._cog, "emote", None)
 
         group_emb = BaseEmbed(
-            title = f"{group} Help",
+            title = f"{group} Help {emote}",
             colour = self.context.bot.colour)
         group_emb.add_field(
             name = "Subcommands Present :",
             value = f"\n".join(group_commands))
-        group_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
+        group_emb.set_footer(text = self.group_and_command_footer(group), icon_url = self.context.author.display_avatar)
+
+        if cooldown := group._buckets._cooldown:
+            bucket = group._buckets._type
+            {"by" if bucket.name == "user" else "in"}
+            group_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Cooldown :",
+                value = f"> ` ─ ` Can be used `{cooldown.rate}` time{'' if cooldown.rate == 1 else 's'} every `{cooldown.per}` seconds a **`{bucket.name}`**.",
+                inline = False)
+        
+        if concurrency := group._max_concurrency:
+            {'by' if concurrency.per.name == 'user' else 'in'}
+            group_emb.add_field(
+                name = "<:GeraltRightArrow:904740634982760459> Concurrency :",
+                value = f"> ` ─ ` Can be used `{concurrency.number}` time{'' if concurrency.number == 1 else 's'} concurrently in a **`{concurrency.per.name}`**.",
+                inline = False)
 
         if self.context.author.is_on_mobile():
-            group_emb.description = f"```prolog\n> Syntax : {self.context.clean_prefix}{group} {group.signature}\n```\n" \
-                                    f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n" \
+            group_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{group} {group.signature}\n```\n" \
+                                    f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
                                     f"<:Reply:930634822865547294>` ─ ` **Description : ** {group.short_doc}"
             await self.context.reply(embed = group_emb, mention_author = False)
         else:
             group_emb.description = f"```ansi\n[0;1;37;40m > [0m [0;1;31mSyntax[0m [0;1;37;40m : [0m [0;1;37m{self.context.clean_prefix}{group}[0m [0;1;34m{group.signature}[0m\n```\n" \
-                                    f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n" \
+                                    f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
                                     f" <:Reply:930634822865547294>` ─ ` **Description : ** {group.short_doc}"
-            await self.context.reply(embed = group_emb, mention_author = False)
+            await self.context.reply(embed = group_emb, mention_author = False, view = Delete(self))
     
     async def send_error_message(self, error: str, /) -> None:
         error_emb = BaseEmbed(
