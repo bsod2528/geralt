@@ -1,8 +1,7 @@
-from tokenize import group
-import typing
 import discord
 
 from discord.ext import commands
+from typing import Union, Optional
 from discord.ext.commands import Group
 from discord.ext.commands import HelpCommand
 
@@ -18,10 +17,10 @@ class GeraltHelp(commands.HelpCommand):
     def footer(self):
         return f"Run {self.context.clean_prefix}help [cog | command] for more info."
     
-    def group_and_command_footer(self, group_or_command: typing.Union[commands.Command, commands.Group]):
+    def group_and_command_footer(self, group_or_command: Union[commands.Command, commands.Group]):
         return f"Run `{self.context.clean_prefix}help {group_or_command.cog_name}` for info on `{group_or_command.cog_name}` cog."
 
-    async def send_bot_help(self, mapping) -> typing.Optional[discord.Message]:
+    async def send_bot_help(self, mapping) -> Optional[discord.Message]:
         cog_list = []
         self.context: GeraltContext
         help_emb = BaseEmbed(
@@ -44,13 +43,13 @@ class GeraltHelp(commands.HelpCommand):
                 help_emb.set_footer(text = self.footer(), icon_url = self.context.author.display_avatar)
         await self.context.reply(embed = help_emb, view = HelpView(mapping, self, cog_list), mention_author = False)
 
-    async def send_cog_help(self, cog: commands.Cog) -> typing.Optional[discord.Message]:
+    async def send_cog_help(self, cog: commands.Cog) -> Optional[discord.Message]:
         cog.get_commands()
         self.context: GeraltContext
         emote = getattr(cog, "emote", None)
         cog_emb = BaseEmbed(
             title = f"{cog.qualified_name} Commands",
-            description = f"{cog.description} {emote}\n" if cog and cog.description else "...",
+            description = f"{cog.description} {emote}\n" if cog and cog.description else "Description Yet to be Given",
             colour = self.context.bot.colour)
         
         filtered_commands = await self.filter_commands(cog.get_commands(), sort = True)
@@ -71,7 +70,7 @@ class GeraltHelp(commands.HelpCommand):
         except:
             return
 
-    async def send_command_help(self, command: commands.Command) -> typing.Optional[discord.Message]:
+    async def send_command_help(self, command: commands.Command) -> Optional[discord.Message]:
         try:
             await command.can_run(self.context)
         except:
@@ -109,12 +108,12 @@ class GeraltHelp(commands.HelpCommand):
                                       f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
             await self.context.reply(embed = command_emb, mention_author = False)
         else:
-            command_emb.description = f"```ansi\n[0;1;37;40m > [0m [0;1;31mSyntax[0m [0;1;37;40m : [0m [0;1;37m{self.context.clean_prefix}{command.qualified_name}[0m [0;1;34m{command.signature}[0m\n```\n" \
+            command_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{command.qualified_name}\x1b[0m \x1b[0;1;34m{command.signature}\x1b[0m\n```\n" \
                                       f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
                                       f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
             await self.context.reply(embed = command_emb, mention_author = False, view = Delete(self))
 
-    async def send_group_help(self, group: commands.Group) -> typing.Optional[discord.Message]:
+    async def send_group_help(self, group: commands.Group) -> Optional[discord.Message]:
         try:
             await group.can_run(self.context)
         except:
@@ -153,19 +152,18 @@ class GeraltHelp(commands.HelpCommand):
         if self.context.author.is_on_mobile():
             group_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{group} {group.signature}\n```\n" \
                                     f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
-                                    f"<:Reply:930634822865547294>` ─ ` **Description : ** {group.short_doc}"
+                                    f"<:Reply:930634822865547294>` ─ ` **Description : ** {group.help}"
             await self.context.reply(embed = group_emb, mention_author = False)
         else:
-            group_emb.description = f"```ansi\n[0;1;37;40m > [0m [0;1;31mSyntax[0m [0;1;37;40m : [0m [0;1;37m{self.context.clean_prefix}{group}[0m [0;1;34m{group.signature}[0m\n```\n" \
+            group_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{group}\x1b[0m \x1b[0;1;34m{group.signature}\x1b[0m\n```\n" \
                                     f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
-                                    f" <:Reply:930634822865547294>` ─ ` **Description : ** {group.short_doc}"
+                                    f" <:Reply:930634822865547294>` ─ ` **Description : ** {group.help}"
             await self.context.reply(embed = group_emb, mention_author = False, view = Delete(self))
     
     async def send_error_message(self, error: str, /) -> None:
         error_emb = BaseEmbed(
             description = error,
             colour = discord.Colour.from_rgb(231,77,60))
-        error_emb.set_author(name = f"Errored by {self.context.author}", icon_url = self.context.author.display_avatar.url)
         await self.context.reply(embed = error_emb, mention_author = False)
 
 class Help(commands.Cog):

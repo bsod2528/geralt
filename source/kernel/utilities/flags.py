@@ -1,3 +1,5 @@
+import discord
+
 # Has required flags for Server and User Info Commands
 def user_perms(permissions):
     perms_list = []
@@ -48,7 +50,7 @@ def user_perms(permissions):
         return None
     return perms_list
 
-def user_badges(user, fetch_user):
+def user_badges(user: discord.User, fetch_user):
     user_flags = user.public_flags
     flags = dict(user_flags)
     flags_emote = ""
@@ -77,7 +79,7 @@ def user_badges(user, fetch_user):
     if flags["early_supporter"] is True:
         flags_emote = f"{flags_emote} <:EarlySupporter:905674700955467806> `Early Supporter`"
         
-    if user.premium_since or user.avatar.is_animated():
+    if user.premium_since:
         flags_emote = f"{flags_emote} <:WumpusNitro:905674712590454834> `Nitro Subscriber`"
         
     if user.premium_since:

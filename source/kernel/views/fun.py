@@ -1,7 +1,7 @@
-import typing
 import random
 import discord
 
+from typing import Optional
 from discord.ext import commands
 
 from ..subclasses.bot import Geralt
@@ -39,7 +39,7 @@ class Nitro(discord.ui.View):
 
 # Classes for Pop Game
 class PopSize(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = False):
-    size: typing.Optional[int]
+    size: Optional[int]
 
 class PopButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
@@ -52,11 +52,11 @@ class PopButton(discord.ui.Button):
             return
     
 class Pop(discord.ui.View):
-    def __init__(self, ctx: GeraltContext, *, size: typing.Optional[PopSize]):
+    def __init__(self, ctx: GeraltContext, *, size: Optional[PopSize]):
         super().__init__(timeout = 90)
         self.ctx: GeraltContext = ctx
         self.size = size
-        self.message: typing.Optional[discord.Message] = None
+        self.message: Optional[discord.Message] = None
     
     async def send(self):
         try:
@@ -85,7 +85,7 @@ class Pop(discord.ui.View):
 
 # Simple Click Game - Idea by InterStella0 [ Github ID ]
 class ClickSize(commands.FlagConverter, prefix = "--", delimiter = " ", case_insensitive = True):
-    size: typing.Optional[int]
+    size: Optional[int]
 
 emoji_list = ["<a:Click:973748305416835102>", "<:Bonked:934033408106057738>", "<a:RooSitComfortPatAnotherRoo:916125535015419954>", "<a:IPat:933295620834336819>", "<:DuckSip:917006564265705482>", "<a:SpongebobVibe:913798501123645480>", "<a:ZizzyHappy:915131835443474492>", "<a:ReiPet:965800035054931998>"]
 
@@ -125,7 +125,7 @@ class ClickButton(discord.ui.Button):
             await interaction.response.send_message(content = f"{pain}", ephemeral = True)  
 
 class ClickGame(discord.ui.View):
-    def __init__(self, bot: Geralt, ctx: GeraltContext, *, size: typing.Optional[int]):
+    def __init__(self, bot: Geralt, ctx: GeraltContext, *, size: Optional[int]):
         super().__init__(timeout = 60)
         self.bot: Geralt = bot
         self.ctx: GeraltContext = ctx

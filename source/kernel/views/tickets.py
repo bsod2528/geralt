@@ -1,10 +1,10 @@
-import contextlib
 import io
 import typing
 import discord
 import asyncpg
 import aiohttp
 import traceback
+import contextlib
 
 from ..subclasses.embed import BaseEmbed
 from ..subclasses.bot import Geralt, CONFIG

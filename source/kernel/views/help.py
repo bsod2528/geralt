@@ -26,7 +26,7 @@ class HelpMenu(discord.ui.Select):
                 if self.values[0] == cog.qualified_name:
                     callback_emb = BaseEmbed(
                         title = f"{cog.qualified_name} Commands",
-                        description = f"{cog.description} {emote}" if cog and cog.description else "`. . .`",
+                        description = f"{cog.description} {emote}" if cog and cog.description else "Description Yet to be Given",
                         colour = self.bot.colour)
                     filtered_commands = await self.help.filter_commands(commands, sort = True)
                     for commands in filtered_commands:
@@ -79,15 +79,15 @@ class HelpView(discord.ui.View):
     async def updates(self, interaction: discord.Interaction, button: discord.ui.Button):
         updates_emb = BaseEmbed(
             title = "Latest Updates",
-            description = f"The following points list down the latest updates made as of <t:1655651880:D> (<t:1655651880:R>)",
+            description = f"The following points list down the latest updates made as of <t:1657338759:D> (<t:1657338759:R>)",
             colour = self.help.context.bot.colour)
         updates_emb.add_field(
             name = "Updates :",
-            value = f">>> `1).` <t:1655957078:R> ─ <a:Info:905750331789561856> Added `{self.help.context.clean_prefix}source`\n" \
-                    f"`2).` <t:1655651880:R> ─ <:Ticket:987172295762149446> Added Ticket system. Enable it by running `{self.help.context.clean_prefix}ticket`\n" \
-                    f"`3).` <t:1655224433:R> ─ <a:Byee:915568796536815616> Added `{self.help.context.clean_prefix}afk`.\n" \
-                    f"`4).` <t:1654180236:R> ─ <a:Owner:905750348457738291> Developers can now blacklist users from using the bot using `{self.help.context.clean_prefix}blacklist`. \n" \
-                    f"`5).` <t:1653417000:R> ─ <a:WumpusHypesquad:905661121501990923> Added `[--size]` argument to `{self.help.context.clean_prefix}pop` \n")
+            value = f">>> `1).` <t:1657338759:R> ─ \U0001fab5 Added `{self.help.context.clean_prefix}log` and `userhistory` command.\n" \
+                    f"`2).` <t:1657338759:R> ─ <a:PandaNote:961260552435413052> Hybridized `{self.help.context.clean_prefix}prefix` and made 15 as the maximum prefixes per guild.\n" \
+                    f"`3).` <t:1656229015:R> ─ <:WumpusNitro:905674712590454834> Added support for multiple prefixes per guild. Run `{self.help.context.clean_prefix}help prefix`\n" \
+                    f"`4).` <t:1655957078:R> ─ <a:Info:905750331789561856> Added `{self.help.context.clean_prefix}source`\n" \
+                    f"`5).` <t:1655651880:R> ─ <:Ticket:987172295762149446> Added Ticket system. Enable it by running `{self.help.context.clean_prefix}ticket`\n")
         updates_emb.set_footer(text = self.help.footer(), icon_url = self.help.context.me.display_avatar)
         try:
             await interaction.response.edit_message(embed = updates_emb, view = self)

@@ -3,19 +3,18 @@ import os
 import sys
 import time
 import dotenv
-import typing
 import discord
 import asyncpg
 import aiohttp
 import humanize
 import traceback
-import colorama as colour
 
 from aiogithub import GitHub
 from dotenv import dotenv_values
 from discord import app_commands
 from discord.ext import commands
 from collections import defaultdict
+from typing import Any, Set, List, Dict, DefaultDict
 
 from .embed import BaseEmbed
 from ..views.meta import Info
@@ -23,7 +22,7 @@ from .context import GeraltContext
 
 import source.kernel.utilities.override_jsk
 
-COGS_EXTENSIONS : typing.List = [    
+COGS_EXTENSIONS : List = [    
     "jishaku",
     "source.cogs.fun",
     "source.cogs.tags",
@@ -49,17 +48,6 @@ DB_URL = CONFIG.get("DB_URL")
                 #BSOD#0067 [ME]      SID#1380 [Zeus432]
 DEVELOPER_IDS = [750979369001811982, 760823877034573864]
 
-colour.init()
-
-async def db_connect(): 
-    try:
-        print(f"{colour.Fore.LIGHTYELLOW_EX}-> {time.strftime('%c', time.localtime())} ─ Waking up {colour.Style.RESET_ALL}")
-        print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Establishing connection with my database. {colour.Style.RESET_ALL}")
-        Geralt.db = await asyncpg.create_pool(dsn = DB_URL)
-        print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Connection established successfully. {colour.Style.RESET_ALL}")
-    except Exception as exception:
-        print(f"{colour.Fore.RED}-> {time.strftime('%c', time.localtime())} ─ Couldnt connect due to : {exception} {colour.Style.RESET_ALL}")
-
 class Geralt(commands.Bot): 
     """Geralt's subclass of :class: `commands.Bot`."""
     def __init__(self, *args, **kwargs) -> None:
@@ -72,24 +60,25 @@ class Geralt(commands.Bot):
             case_insensitive = True,
             strip_after_prefix = True)
 
+        self.db: asyncpg.pool
         self.git = None
         self.colour = discord.Colour.from_rgb(170, 179, 253)
         self.mentions = discord.AllowedMentions.none()
         self.no_prefix: bool = False
         self.timestamp = discord.utils.format_dt        
-        self.owner_ids: typing.List = DEVELOPER_IDS
+        self.owner_ids: List = DEVELOPER_IDS
         self.github_token: str = CONFIG.get("GITHUB_TOKEN")
         self.developer_mode: bool = False
         self.default_prefix = ".g"
         self.add_persistent_views = False
 
         # Geralt's Cache
-        self.afk: typing.Dict = {}
-        self.meta: typing.Dict = {}
-        self.prefixes: typing.DefaultDict[int, typing.Set[str]] = defaultdict(set)
-        self.blacklist: typing.Dict = set()
-        self.ticket_init: typing.Dict = {}
-        self.ticket_kernel: typing.Dict = {}
+        self.afk: Dict = {}
+        self.meta: Dict = {}
+        self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
+        self.blacklist: Dict = set()
+        self.ticket_init: Dict = {}
+        self.ticket_kernel: Dict = {}
 
     def __repr__(self) -> str:
         return "<Bot>"
@@ -97,26 +86,13 @@ class Geralt(commands.Bot):
     async def get_context(self, message: discord.Message, *, cls = GeraltContext) -> GeraltContext:
         return await super().get_context(message, cls = cls)
 
-    async def on_error(self, event_method: str, *args: typing.Any, **kwargs: typing.Any) -> None:
+    async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
         traceback_string = "".join(traceback.format_exception(*(einfo := sys.exc_info())))
         async with aiohttp.ClientSession() as session:  
             webhook = discord.Webhook.partial(id = CONFIG.get("ERROR_ID"), token = CONFIG.get("ERROR_TOKEN"), session = session)
             await webhook.send(f"An error occurred in an `{event_method}` event", file = discord.File(io.BytesIO(traceback_string.encode()), filename = "traceback.py"))
             await webhook.send("|| Break Point ||")
         await session.close()
-
-    async def add_to_blacklist(self, user: discord.User, reason: str, url: str):
-        query = "INSERT INTO blacklist VALUES ($1, $2, $3, $4)"
-        if user.id in self.owner_ids:
-            raise commands.BadArgument("They are one of the owners \U0001f480")
-        else:
-            await self.db.execute(query, user.id, reason, discord.utils.utcnow(), url)
-            self.blacklist.add(user.id)
-    
-    async def remove_from_blacklist(self, user: discord.User):
-        query = "DELETE FROM blacklist WHERE user_id = $1"
-        await self.db.execute(query, user.id)
-        self.blacklist.remove(user.id)
     
     async def get_prefix(self, message: discord.Message):
         if self.no_prefix is True and message.author.id in self.owner_ids:
@@ -131,16 +107,25 @@ class Geralt(commands.Bot):
         return commands.when_mentioned_or(*prefix)(self, message)
 
     async def setup_hook(self) -> None:
-        print(f"{colour.Fore.BLUE}-> {time.strftime('%c', time.localtime())} ─ Loading all Extensions.{colour.Style.RESET_ALL}")
         self.tree.copy_global_to(guild = discord.Object(id = CONFIG.get("BSODsThings")))
         self.git = GitHub(self.github_token)
+        
+        try:
+            print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;36m{time.strftime('%c', time.localtime())} ─ Waking up\x1b[0m")
+            print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;34m{time.strftime('%c', time.localtime())} ─ Establishing connection with my database.\x1b[0m")
+            self.db = await asyncpg.create_pool(dsn = DB_URL)
+            print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;32m{time.strftime('%c', time.localtime())} ─ Connection established successfully.\x1b[0m")
+        except Exception as exception:
+            print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0;1;31m{time.strftime('%c', time.localtime())} ─ Couldnt connect due to : {exception}\x1b[0m")
+        
+        print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;34m{time.strftime('%c', time.localtime())} ─ Loading all Extensions.\x1b[0m")
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)
             except Exception as exception:
-                print(f"{colour.Fore.LIGHTRED_EX}-> {time.strftime('%c', time.localtime())} ─ {exception} : {exception} {colour.Style.RESET_ALL}\n")
+                print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;31m{time.strftime('%c', time.localtime())} ─ {exception} : {exception}\n\x1b[0m")
         
-        print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded. {colour.Style.RESET_ALL}")
+        print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;32m{time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded.\x1b[0m")
 
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
@@ -174,7 +159,7 @@ class Geralt(commands.Bot):
                 activity = discord.Activity(type = discord.ActivityType.listening, name = f".ghelp")) 
             await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n" \
                             f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
-            print(f"{colour.Fore.GREEN}-> {time.strftime('%c', time.localtime())} ─ Awakened {colour.Style.RESET_ALL}")
+            print(f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;35m──\x1b[0m \x1b[0;1;36m{time.strftime('%c', time.localtime())} ─ Awakened\x1b[0m")
             await session.close()
 
     async def on_message(self, message: discord.Message):
@@ -219,9 +204,21 @@ class Geralt(commands.Bot):
 
         await self.process_commands(message)   
     
+    async def add_to_blacklist(self, user: discord.User, reason: str, url: str):
+        query = "INSERT INTO blacklist VALUES ($1, $2, $3, $4)"
+        if user.id in self.owner_ids:
+            raise commands.BadArgument("They are one of the owners \U0001f480")
+        else:
+            await self.db.execute(query, user.id, reason, discord.utils.utcnow(), url)
+            self.blacklist.add(user.id)
+    
+    async def remove_from_blacklist(self, user: discord.User):
+        query = "DELETE FROM blacklist WHERE user_id = $1"
+        await self.db.execute(query, user.id)
+        self.blacklist.remove(user.id)
+
 Geralt = Geralt()
 
 async def run():
     async with Geralt:
-        Geralt.loop.create_task(db_connect())
         await Geralt.start(TOKEN)

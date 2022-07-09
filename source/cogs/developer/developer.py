@@ -1,6 +1,5 @@
 import io
 import time
-import typing
 import aiohttp
 import asyncio
 import discord
@@ -10,6 +9,7 @@ import contextlib
 
 from types import NoneType
 from discord.ext import commands
+from typing import Optional, Union
 
 from ...kernel.views.paginator import Paginator
 from ...kernel.subclasses.embed import BaseEmbed
@@ -56,7 +56,7 @@ class Developer(commands.Cog):
         aliases = ["snap", "sleep"])
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def die(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def die(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sends the bot to eternal sleep"""
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
             for view in ui.children:
@@ -88,7 +88,7 @@ class Developer(commands.Cog):
         brief = "dm them")
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def dm(self, ctx: GeraltContext, user: discord.User, *, message: str) -> typing.Optional[discord.Message]:
+    async def dm(self, ctx: GeraltContext, user: discord.User, *, message: str) -> Optional[discord.Message]:
         """DM a particular user."""
         try:
             view = discord.ui.View()
@@ -105,7 +105,7 @@ class Developer(commands.Cog):
         aliases = ["e"])
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def eval(self, ctx: GeraltContext, *, body: str) -> typing.Optional[discord.Message]:
+    async def eval(self, ctx: GeraltContext, *, body: str) -> Optional[discord.Message]:
         """Running both asynchronous and sychronous programs"""
         environment = {
             "ctx" : ctx,
@@ -155,7 +155,7 @@ class Developer(commands.Cog):
         aliases = ["l"])
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def load(self, ctx: GeraltContext, *, cog: str) -> typing.Optional[discord.Message]:
+    async def load(self, ctx: GeraltContext, *, cog: str) -> Optional[discord.Message]:
         """Loads the Extension mentioned."""
         try:
             await self.bot.load_extension(f"source.cogs.{cog}")
@@ -174,7 +174,7 @@ class Developer(commands.Cog):
         aliases = ["ul"])
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def unload(self, ctx: GeraltContext, *, cog: str) -> typing.Optional[discord.Message]:
+    async def unload(self, ctx: GeraltContext, *, cog: str) -> Optional[discord.Message]:
         """Unloads the Extension mentioned."""
         try:
             await self.bot.unload_extension(f"source.cogs.{cog}")
@@ -193,7 +193,7 @@ class Developer(commands.Cog):
         aliases = ["rl"])
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def reload(self, ctx: GeraltContext, *, cog: str = None) -> typing.Optional[discord.Message]:
+    async def reload(self, ctx: GeraltContext, *, cog: str = None) -> Optional[discord.Message]:
         """Reloads the Extension mentioned."""
         if cog is None:
             try:
@@ -222,7 +222,7 @@ class Developer(commands.Cog):
         aliases = ["devmode"])
     @commands.is_owner()
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def dev(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def dev(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Simple commands for dev to do"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -232,7 +232,7 @@ class Developer(commands.Cog):
         aliases = ["tg"],
         brief = "Sends Guild List")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def total_guilds(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def total_guilds(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sends the entire guild list."""
         await ctx.reply(f"Currently in `{len(self.bot.guilds)}` Guilds.", allowed_mentions = self.bot.mentions)
         await ctx.send(f" ".join([f"> │ ` ─ ` \"{g.name}\" : {g.owner.mention} (`{g.id}`)\n" for g in self.bot.guilds]) + "", allowed_mentions = self.bot.mentions)
@@ -241,7 +241,7 @@ class Developer(commands.Cog):
         name = "on",
         brief = "Sets Developer Mode On")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def on(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def on(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sets Developer Mode On"""
         self.bot.developer_mode = True
         await self.bot.change_presence(
@@ -252,7 +252,7 @@ class Developer(commands.Cog):
         name = "off",
         brief = "Sets Developer Mode Off")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def off(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def off(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sets Developer Mode Off"""
         self.bot.developer_mode = False
         await self.bot.change_presence(
@@ -265,7 +265,7 @@ class Developer(commands.Cog):
         brief = "Sends all tags",
         aliases = ["at"])
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def all_tags(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def all_tags(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sends tags from all guilds"""
         tag_fetch = await self.bot.db.fetch("SELECT * FROM tags ORDER BY id")
         tag_list = []
@@ -290,7 +290,7 @@ class Developer(commands.Cog):
         aliases = ["fg"])
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.is_owner()
-    async def guild_fetch(self, ctx: GeraltContext, *, guild: discord.Guild) -> typing.Optional[discord.Message]:
+    async def guild_fetch(self, ctx: GeraltContext, *, guild: discord.Guild) -> Optional[discord.Message]:
         """Get entire details about the guild."""        
         fetched_guild = await self.bot.fetch_guild(guild.id)
         fetched_guild_emb = BaseEmbed(
@@ -333,7 +333,7 @@ class Developer(commands.Cog):
         brief = "Query DB")
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.is_owner()
-    async def sql(self, ctx: GeraltContext, *, query: str) -> typing.Optional[discord.Message]:
+    async def sql(self, ctx: GeraltContext, *, query: str) -> Optional[discord.Message]:
         """Run SQL Queries"""
         query = self.cleanup_code(query)
         
@@ -369,7 +369,7 @@ class Developer(commands.Cog):
         brief = "Sync App Commands")
     @commands.cooldown(2, 5, commands.BucketType.user)
     @commands.is_owner()
-    async def cmd_sync(self, ctx: GeraltContext, *, flag: typing.Optional[SyncFlag]) -> typing.Optional[discord.Message]:
+    async def cmd_sync(self, ctx: GeraltContext, *, flag: Optional[SyncFlag]) -> Optional[discord.Message]:
         """Syncs application commands.
         ────
         **Flags Present :**
@@ -405,7 +405,7 @@ class Developer(commands.Cog):
         name = "add",
         brief = "Add them to the list")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def blacklist_add(self, ctx: GeraltContext, user: typing.Union[discord.User, discord.Member], *, reason: str = None) -> typing.Optional[discord.Message]:
+    async def blacklist_add(self, ctx: GeraltContext, user: Union[discord.User, discord.Member], *, reason: str = None) -> Optional[discord.Message]:
         """Add users to blacklist."""
         reason = reason or "Not Specified"
         try:
@@ -430,7 +430,7 @@ class Developer(commands.Cog):
         name = "remove",
         brief = "Remove them from the list")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def blacklist_remove(self, ctx: GeraltContext, user: typing.Union[discord.User, discord.Member]) -> typing.Optional[discord.Message]:
+    async def blacklist_remove(self, ctx: GeraltContext, user: Union[discord.User, discord.Member]) -> Optional[discord.Message]:
         """Remove users from blacklist."""
         try:
             await self.bot.remove_from_blacklist(user)
@@ -452,7 +452,7 @@ class Developer(commands.Cog):
         name = "all",
         brief = "Sends all blacklisted users.")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def blacklisted_all(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def blacklisted_all(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Get a list of blacklisted members."""
         query = "SELECT user_id, reason, queried_at, jump_url FROM blacklist"
         fetched_blacklisted_members = await self.bot.db.fetch(query)
@@ -485,7 +485,7 @@ class Developer(commands.Cog):
     @commands.command(
         name = "self-purge")
     @commands.is_owner()
-    async def de(self, ctx: GeraltContext, limit: int = None) -> typing.Optional[discord.Message]:
+    async def de(self, ctx: GeraltContext, limit: int = None) -> Optional[discord.Message]:
         """Delete a referenced message or purge few."""
         if ctx.message.reference and ctx.message.reference.resolved.author == self.bot.user:
             await ctx.message.reference.resolved.delete()

@@ -1,7 +1,7 @@
-import typing
 import discord
 
 from discord.ext import commands
+from typing import Optional, Literal
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.meta import Confirmation
@@ -12,6 +12,11 @@ class Moderation(commands.Cog):
     """Moderation Commands for easy moderation."""
     def __init__(self, bot: Geralt):
         self.bot: Geralt = bot
+
+    async def cog_check(self, ctx: GeraltContext) -> Literal[True]:
+        if not ctx.guild:
+            raise commands.NoPrivateMessage()
+        return True
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -33,10 +38,9 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "kick",
         brief = "Kicks User")
-    @commands.guild_only()
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(kick_members = True)
-    async def kick(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
+    async def kick(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Teach them a lesson by kicking them out."""
         self.check_hierarchy(ctx, user)
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -63,10 +67,9 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "ban",
         brief = "Bans User")
-    @commands.guild_only()
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(ban_members = True)
-    async def ban(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
+    async def ban(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Teach them a lesson by kicking them out."""
         self.check_hierarchy(ctx, user)
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -93,10 +96,9 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "mute",
         brief = "Mutes User")
-    @commands.guild_only()
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_roles = True)
-    async def mute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
+    async def mute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Mute toxic users"""
         self.check_hierarchy(ctx, user)
         role = discord.utils.get(ctx.guild.roles, name = "Muted")
@@ -138,10 +140,9 @@ class Moderation(commands.Cog):
     @commands.command(
         name = "unmute",
         brief = "Unmutes User")
-    @commands.guild_only()
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_roles = True)
-    async def unmute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> typing.Optional[discord.Message]:
+    async def unmute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Unmute users"""
         self.check_hierarchy(ctx, user)
         role = discord.utils.get(ctx.guild.roles, name = "Muted")
@@ -181,10 +182,9 @@ class Moderation(commands.Cog):
         name = "setnick",
         brief = "Change Nick",
         aliases = ["nick"])
-    @commands.guild_only()
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_nicknames = True)
-    async def nick(self, ctx: GeraltContext, user: discord.Member, *, nick: str) -> typing.Optional[discord.Message]:
+    async def nick(self, ctx: GeraltContext, user: discord.Member, *, nick: str) -> Optional[discord.Message]:
         """Change the Nickname of a member"""
         self.check_hierarchy(ctx, user)
         
@@ -200,3 +200,17 @@ class Moderation(commands.Cog):
             colour = self.bot.colour)
         nick_emb.set_thumbnail(url = user.display_avatar.url)
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> {user.mention}'s nickname has been `changed` -\n>>> <:ReplyContinued:930634770004725821> - From : {previous_nickname}\n<:Reply:930634822865547294> - To : {new_nickname} \n**Event Occured On :** {self.bot.timestamp(discord.utils.utcnow(), style = 'F')} <a:IEat:940413722537644033>", allowed_mentions = self.bot.mentions)
+
+    @commands.command(
+        name = "purge",
+        brief = "Purge messages",
+        aliases = ["cls"])
+    @commands.cooldown(5, 3, commands.BucketType.user)
+    @commands.has_guild_permissions(manage_messages = True)
+    async def purge(self, ctx: GeraltContext, *, limit: Optional[int]):
+        """Purge Messages. Default Limit = 5"""
+        if not limit:
+            limit = 5
+        if limit > 30:
+            return await ctx.reply("Purge less than `50` SMH!")
+        await ctx.channel.purge(limit = limit, bulk = False)

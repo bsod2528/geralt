@@ -1,15 +1,16 @@
-import typing
 import pygit2
 import psutil
 import discord
 import datetime
 import itertools
 
+from typing import Any
+
 from ..subclasses.embed import BaseEmbed
 from ..subclasses.context import GeraltContext
 from ..utilities.crucial import misc, total_lines as tl, misc
 
-COLOUR = discord.Colour.from_rgb(117, 128, 219)
+COLOUR = discord.Colour.from_rgb(170, 179, 253)
 
 # Gets latest commits from Github and Format them to make it look sexy :D
 def Format_Commit(commit):
@@ -49,9 +50,9 @@ class Info(discord.ui.View):
             await interaction.response.send_message(embed = stats_emb, ephemeral = True)
         else:
             stats_emb.description = f"\n Shows Code Related Things :\n" \
-                                    f"```ansi\n[0;1;35;40m - [0m [0;1;34mTotal Classes[0m   [0;1;35;40m : [0m [0;1;31m{await misc('source/', '.py', 'class'):,}[0m" \
-                                    f"\n[0;1;35;40m - [0m [0;1;34mTotal Functions[0m [0;1;35;40m : [0m [0;1;31m{await misc('source/', '.py', 'def'):,}[0m" \
-                                    f"\n[0;1;35;40m - [0m [0;1;34mTotal Lines[0m     [0;1;35;40m : [0m [0;1;31m{await tl('source/', '.py'):,}[0m```"
+                                    f"```ansi\n\x1b[0;1;35;40m - \x1b[0m \x1b[0;1;34mTotal Classes\x1b[0m   \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{await misc('source/', '.py', 'class'):,}\x1b[0m" \
+                                    f"\n\x1b[0;1;35;40m - \x1b[0m \x1b[0;1;34mTotal Functions\x1b[0m \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{await misc('source/', '.py', 'def'):,}\x1b[0m" \
+                                    f"\n\x1b[0;1;35;40m - \x1b[0m \x1b[0;1;34mTotal Lines\x1b[0m     \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{await tl('source/', '.py'):,}\x1b[0m```"
             await interaction.response.send_message(embed = stats_emb, ephemeral = True)
         
     # Shows System Usage at the current moment.
@@ -73,10 +74,10 @@ class Info(discord.ui.View):
                                         f"> Memory Available  : {mem_gb:.3f} GB [ {mem_per} % ]\n```"
             await interaction.response.send_message(embed = sys_usage_emb, ephemeral = True)
         else:
-            sys_usage_emb.description = f"```ansi\n[0;1;37;40m > [0m [0;1;34mCPU Used[0m          [0;1;35;40m : [0m [0;1;31m{cpu_usage:.2f} %[0m\n" \
-                                        f"[0;1;37;40m > [0m [0;1;34mCPU Core Count[0m    [0;1;35;40m : [0m [0;1;31m{core_count} Cores[0m\n" \
-                                        f"[0;1;37;40m > [0m [0;1;34mMemory Used[0m       [0;1;35;40m : [0m [0;1;31m{ram_usage:.2f} Megabytes[0m\n" \
-                                        f"[0;1;37;40m > [0m [0;1;34mMemory Available[0m  [0;1;35;40m : [0m [0;1;31m{mem_gb:.3f} GB [ {mem_per} % ][0m\n```"
+            sys_usage_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mCPU Used\x1b[0m          \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{cpu_usage:.2f} %\x1b[0m\n" \
+                                        f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mCPU Core Count\x1b[0m    \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{core_count} Cores\x1b[0m\n" \
+                                        f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mMemory Used\x1b[0m       \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{ram_usage:.2f} Megabytes\x1b[0m\n" \
+                                        f"\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mMemory Available\x1b[0m  \x1b[0;1;35;40m : \x1b[0m \x1b[0;1;31m{mem_gb:.3f} GB [ {mem_per} % ]\x1b[0m\n```"
             await interaction.response.send_message(embed = sys_usage_emb, ephemeral = True)
     
     # Get latest Github commits
@@ -93,9 +94,9 @@ class Info(discord.ui.View):
 class Confirmation(discord.ui.View):
     def __init__(self, ctx: GeraltContext, yes, no):
         super().__init__(timeout = None)
-        self.no: typing.Any = no
+        self.no: Any = no
         self.ctx: GeraltContext = ctx
-        self.yes: typing.Any = yes
+        self.yes: Any = yes
 
     @discord.ui.button(label = "Yes", style = discord.ButtonStyle.blurple, emoji = "<:WinCheck:898572324490604605>")
     async def confirmed(self, interaction: discord.Interaction, button: discord.ui.Button):

@@ -1,3 +1,4 @@
+import os
 import asyncio
 
 from source.kernel.subclasses.bot import run

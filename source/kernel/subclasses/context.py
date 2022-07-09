@@ -1,9 +1,8 @@
-import typing
 import discord
 
 from discord.ext import commands
 from discord.utils import MISSING
-from typing import Optional, Sequence, Union, Any
+from typing import Any, Union, Optional, Sequence
 
 from .embed import BaseEmbed
 

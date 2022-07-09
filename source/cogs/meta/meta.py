@@ -2,7 +2,6 @@ import io
 import os
 import time
 import json
-import typing
 import urllib
 import aiohttp
 import discord
@@ -10,6 +9,7 @@ import asyncio
 import inspect
 import humanize
 
+from typing import Optional
 from discord.ext import commands
 
 from ...kernel.views.paginator import Paginator
@@ -33,7 +33,7 @@ class Meta(commands.Cog):
         brief = "You ping Me",
         aliases = ["pong"])
     @commands.cooldown(2, 10, commands.BucketType.user)
-    async def ping(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def ping(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Get proper latency timings of the bot."""
 
         # Latency for typing
@@ -62,9 +62,9 @@ class Meta(commands.Cog):
 > Message Typing : {round(typing_ping, 1)} ms\n```"""
             await ctx.reply(embed = ping_emb, mention_author = False)
         else:
-            ping_emb.description = f"""```ansi\n[0;1;37;40m > [0m [0;1;34mPostgreSQL[0m     [0;1;37;40m : [0m [0;1;31m{round(db_ping, 1)} ms[0m
-[0;1;37;40m > [0m [0;1;34mDiscord API[0m    [0;1;37;40m : [0m [0;1;31m{websocket_ping:,.0f} ms[0m
-[0;1;37;40m > [0m [0;1;34mMessage Typing[0m [0;1;37;40m : [0m [0;1;31m{round(typing_ping, 1)} ms[0m\n```"""
+            ping_emb.description = f"""```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mPostgreSQL\x1b[0m     \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(db_ping, 1)} ms\x1b[0m
+\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mDiscord API\x1b[0m    \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{websocket_ping:,.0f} ms\x1b[0m
+\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mMessage Typing\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(typing_ping, 1)} ms\x1b[0m\n```"""
             await ctx.reply(embed = ping_emb, mention_author = False)
 
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of implementing buttons for System Usage [ PSUTIl ] and Latest Commits on Github :)
@@ -73,12 +73,12 @@ class Meta(commands.Cog):
         brief = "Get info on me",
         aliases = ["about"])
     @commands.cooldown(2, 10, commands.BucketType.user)
-    async def info(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def info(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Receive full information regarding me."""
         info_emb = BaseEmbed(
             title = "<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url = ctx.me.display_avatar.url,
-            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hostede **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
+            description = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
             colour = self.bot.colour)
         info_emb.add_field(
             name = "General Statistics :",
@@ -99,7 +99,7 @@ class Meta(commands.Cog):
         aliases = ["r"])
     @commands.guild_only()
     @commands.cooldown(1, 20, commands.BucketType.user)
-    async def report(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def report(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Send a message to the Developer regarding a bug or a request."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -108,7 +108,7 @@ class Meta(commands.Cog):
         name = "bug",
         brief = "Report a bug")
     @commands.cooldown(1, 20, commands.BucketType.user)
-    async def bug(self, ctx: GeraltContext, *, bug: str) -> typing.Optional[discord.Message]:
+    async def bug(self, ctx: GeraltContext, *, bug: str) -> Optional[discord.Message]:
         """Send a bug to the dev if you find any."""
         bug_info = f"- Reported By   :   {ctx.author} / {ctx.author.id}\n" \
                    f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -150,7 +150,7 @@ class Meta(commands.Cog):
         brief = "Send your feeback",
         aliases = ["fb"])
     @commands.cooldown(1, 20, commands.BucketType.user)
-    async def feedback(self, ctx: GeraltContext, *, feedback: str) -> typing.Optional[discord.Message]:
+    async def feedback(self, ctx: GeraltContext, *, feedback: str) -> Optional[discord.Message]:
         """Send a feedback to the dev if you find any."""
         fb_info = f"- Sent By       :   {ctx.author} / {ctx.author.id}\n" \
                   f"- @ Guild       :   {ctx.guild} / {ctx.guild.id}\n" \
@@ -192,7 +192,7 @@ class Meta(commands.Cog):
         brief = "Sends JSON Data",
         aliases = ["raw"])
     @commands.cooldown(1, 20, commands.BucketType.user)
-    async def json(self, ctx: GeraltContext, message: typing.Optional[discord.Message]) -> typing.Optional[discord.Message]:
+    async def json(self, ctx: GeraltContext, message: Optional[discord.Message]) -> Optional[discord.Message]:
         """Get the JSON Data for a message."""
         message : discord.Message = getattr(ctx.message.reference, "resolved", message)
         if not message:
@@ -209,7 +209,7 @@ class Meta(commands.Cog):
         brief = "Returns Uptime",
         aliases = ["ut"])
     @commands.cooldown(3, 5, commands.BucketType.user)
-    async def uptime(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def uptime(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sends my uptime -- how long I've been online for"""
         time = discord.utils.utcnow() - self.bot.uptime
         async with ctx.typing():
@@ -221,7 +221,7 @@ class Meta(commands.Cog):
         brief = "Search Google",
         aliases = ["g", "web"])
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def web(self, ctx: GeraltContext, *, query: str) -> typing.Optional[discord.Message]:
+    async def web(self, ctx: GeraltContext, *, query: str) -> Optional[discord.Message]:
         """Search Google for anything"""
         cx = CONFIG.get("ENGINE")
         api_key = CONFIG.get("SEARCH")
@@ -261,7 +261,7 @@ class Meta(commands.Cog):
         name = "invite",
         brief = "Get Invite Link",
         aliases = ["inv"])
-    async def invite(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def invite(self, ctx: GeraltContext) -> Optional[discord.Message]:
         invite_emb = BaseEmbed(
             colour = self.bot.colour)
         invite_emb.add_field(
@@ -278,7 +278,7 @@ class Meta(commands.Cog):
         brief = "Get command usage",
         aliases = ["cu"])
     @commands.guild_only()
-    async def usage(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def usage(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Get a list of how many commands have been used here"""
         fetch_usage = await self.bot.db.fetch("SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id)
         cmd_usage = [f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(data['invoked_at'], style = 'R')}\n────\n" for data in fetch_usage]
@@ -302,7 +302,7 @@ class Meta(commands.Cog):
         brief = "Returns Source",
         aliases = ["src"])
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def source(self, ctx: GeraltContext, *, command: str = None) -> typing.Optional[discord.Message]:
+    async def source(self, ctx: GeraltContext, *, command: str = None) -> Optional[discord.Message]:
         """Returns source for a command"""
         view = discord.ui.View()
         branch = "stellar-v2"
