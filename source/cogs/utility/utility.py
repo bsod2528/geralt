@@ -1,10 +1,12 @@
-import typing
+import imghdr
 import asyncio
 import asyncpg
 import discord
 import humanize
 
+from io import BytesIO
 from discord.ext import commands
+from typing import Union, Optional
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.paginator import Paginator
@@ -12,6 +14,7 @@ from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.meta import PFP, Confirmation
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.utilities.flags import user_badges, user_perms
+from ...kernel.views.history import UserHistory, SelectUserLogEvents
 
 class Utility(commands.Cog):
     """Essesntial commands for easy life on discord."""
@@ -22,10 +25,29 @@ class Utility(commands.Cog):
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name = "Utility", id = 905750331789561856, animated = True)   
 
+    @commands.Cog.listener()
+    async def on_user_update(self, before: discord.User, after: discord.User):
+        if before.display_avatar != after.display_avatar:
+            log_avatar = await self.bot.db.fetchval("SELECT avatar FROM user_settings WHERE user_id = $1", after.id)
+            if log_avatar == True:
+                avatar = await after.display_avatar.read()
+                await self.bot.db.execute("INSERT INTO avatar_history VALUES ($1, $2, $3, $4)", after.id, avatar, discord.utils.utcnow(), imghdr.what(BytesIO(avatar)))
+            return
+        if before.name != after.name:
+            log_username = await self.bot.db.fetchval("SELECT username FROM user_settings WHERE user_id = $1", after.id)
+            if log_username == True:
+                await self.bot.db.execute("INSERT INTO username_history VALUES ($1, $2, $3)", after.id, after.name, discord.utils.utcnow())
+            return
+        if before.discriminator != after.discriminator:
+            log_discriminator = await self.bot.db.fetchval("SELECT discriminator FROM user_settings WHERE user_id = $1", after.id)
+            if log_discriminator == True:
+                await self.bot.db.execute("INSERT INTO discriminator_update VALUES ($1, $2, $3)", after.id, after.discriminator, discord.utils.utcnow())
+            return
+
     @commands.command(
         name = "banner",
         brief = "View a persons banner")
-    async def banner(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
+    async def banner(self, ctx: GeraltContext, *, user: discord.Member = None) -> Optional[discord.Message]:
         """See the user's Banner in an enlarged manner."""
         user = user or ctx.author
         fetched_user = await ctx.bot.fetch_user(user.id)
@@ -42,7 +64,7 @@ class Utility(commands.Cog):
         name = "avatar",
         brief = "View a persons PFP",
         aliases = ["pfp", "pp", "dp", "av"])
-    async def avatar(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
+    async def avatar(self, ctx: GeraltContext, *, user: discord.Member = None) -> Optional[discord.Message]:
         """See the user's PFP in an enlarged manner."""
         user = user or ctx.author
         await PFP(self.bot, ctx, user).send()
@@ -53,107 +75,104 @@ class Utility(commands.Cog):
         brief = "Get user information",
         aliases = ["user", "ui"])
     @commands.guild_only()
-    async def userinfo(self, ctx: GeraltContext, *, user: discord.Member = None) -> typing.Optional[discord.Message]:
+    async def userinfo(self, ctx: GeraltContext, *, user: discord.Member = None) -> Optional[discord.Message]:
         """Get entire details about a user."""
-        try:
-            user = user or ctx.author
-            roles = ""
-            for role in user.roles:
-                if role is ctx.guild.default_role: continue
-                roles = f"{roles} {role.mention}"
-            if roles != "":
-                roles = f"{roles}"
-            fetched_user = await ctx.bot.fetch_user(user.id)
-            permissions = user_perms(user.guild_permissions)
-            if permissions:
-                perms_ = f"{' **|** '}".join(permissions)
-            avatar = user.display_avatar.with_static_format("png")
-            activity = discord.utils.find(lambda act: isinstance(act, discord.CustomActivity), user.activities)
-            activity_holder = f"`{discord.utils.remove_markdown(activity.name)}`" if activity and activity.name else f'`{user}` has no activity at the moment.'
+        user = user or ctx.author
+        roles = ""
+        for role in user.roles:
+            if role is ctx.guild.default_role: continue
+            roles = f"{roles} {role.mention}"
+        if roles != "":
+            roles = f"{roles}"
+        fetched_user = await ctx.bot.fetch_user(user.id)
+        permissions = user_perms(user.guild_permissions)
+        if permissions:
+            perms_ = f"{' **|** '}".join(permissions)
+        avatar = user.display_avatar.with_static_format("png")
+        activity = discord.utils.find(lambda act: isinstance(act, discord.CustomActivity), user.activities)
+        activity_holder = f"`{discord.utils.remove_markdown(activity.name)}`" if activity and activity.name else f'`{user}` has no activity at the moment.'
 
-            general_emb = BaseEmbed(
-                title = f":scroll: {user}'s Information",
-                colour = user.colour)
-            general_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> General Info :",
-                value = f"> <:ReplyContinued:930634770004725821> Name : {user.mention} \n" \
-                        f"> <:ReplyContinued:930634770004725821> Nickname : {(user.nick) or 'No nickname set'} \n" \
-                        f"> <:ReplyContinued:930634770004725821> Discriminator : `#{user.discriminator}` \n"
-                        f"> <:Reply:930634822865547294> Identification No. : `{user.id}` \n────")
-            general_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> Account Info :",
-                value = f"> <:ReplyContinued:930634770004725821> Join Position : `#{sorted(ctx.guild.members, key = lambda u: u.joined_at or discord.utils.utcnow()).index(user) + 1}`\n "\
-                        f"> <:ReplyContinued:930634770004725821> Created on : {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n" \
-                        f"> <:Reply:930634822865547294> Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'D')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
-                inline = False)
-            general_emb.set_thumbnail(url = avatar)
+        general_emb = BaseEmbed(
+            title = f":scroll: {user}'s Information",
+            colour = user.colour)
+        general_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> General Info :",
+            value = f"> <:ReplyContinued:930634770004725821> Name : {user.mention} \n" \
+                    f"> <:ReplyContinued:930634770004725821> Nickname : {(user.nick) or 'No nickname set'} \n" \
+                    f"> <:ReplyContinued:930634770004725821> Discriminator : `#{user.discriminator}` \n"
+                    f"> <:Reply:930634822865547294> Identification No. : `{user.id}` \n────")
+        general_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> Account Info :",
+            value = f"> <:ReplyContinued:930634770004725821> Join Position : `#{sorted(ctx.guild.members, key = lambda u: u.joined_at or discord.utils.utcnow()).index(user) + 1}`\n "\
+                    f"> <:ReplyContinued:930634770004725821> Created on : {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n" \
+                    f"> <:Reply:930634822865547294> Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'D')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
+            inline = False)
+        general_emb.set_thumbnail(url = avatar)
 
-            guild_emb = BaseEmbed(
-                title = f":scroll: {user} in {ctx.guild}",
-                colour = user.colour)
-            guild_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> Permissions Present :",
-                value = f"> <:Reply:930634822865547294> {perms_}\n────")
-            guild_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> Top Most Role :",
-                value = f"> <:Reply:930634822865547294> {user.top_role.mention}\n────",
-                inline = False)
-            guild_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> All Roles Present :",
-                value = f"> <:Reply:930634822865547294> {roles}\n────",
-                inline = False)
-            guild_emb.set_thumbnail(url = avatar)
+        guild_emb = BaseEmbed(
+            title = f":scroll: {user} in {ctx.guild}",
+            colour = user.colour)
+        guild_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> Permissions Present :",
+            value = f"> <:Reply:930634822865547294> {perms_}\n────")
+        guild_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> Top Most Role :",
+            value = f"> <:Reply:930634822865547294> {user.top_role.mention}\n────",
+            inline = False)
+        guild_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> All Roles Present :",
+            value = f"> <:Reply:930634822865547294> {roles}\n────",
+            inline = False)
+        guild_emb.set_thumbnail(url = avatar)
 
-            misc_emb = BaseEmbed(
-                title = f":scroll: {user}'s - Misc. Information",
-                colour = user.colour)
-            misc_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> Badges Present :",
-                value = f"> <:Reply:930634822865547294> {user_badges(user = user, fetch_user = fetched_user) if user_badges(user = user, fetch_user = fetched_user) else 'No Badges Present'}")
-            misc_emb.add_field(
-                name = "<:GeraltRightArrow:904740634982760459> Accent Colours :",
-                value = f"> <:ReplyContinued:930634770004725821>  Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
-                        f"> <:Reply:930634822865547294> Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
-                inline = False)  
-            misc_emb.add_field(
-                name = "Activity :",
-                value = f"> <:Reply:930634822865547294> {activity_holder}",
-                inline = False)
-            misc_emb.set_thumbnail(url = avatar)
+        misc_emb = BaseEmbed(
+            title = f":scroll: {user}'s - Misc. Information",
+            colour = user.colour)
+        misc_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> Badges Present :",
+            value = f"> <:Reply:930634822865547294> {user_badges(user = user, fetch_user = fetched_user) if user_badges(user = user, fetch_user = fetched_user) else 'No Badges Present'}")
+        misc_emb.add_field(
+            name = "<:GeraltRightArrow:904740634982760459> Accent Colours :",
+            value = f"> <:ReplyContinued:930634770004725821>  Banner Colour : `{str(fetched_user.accent_colour).upper()}` \n" \
+                    f"> <:Reply:930634822865547294> Guild Role Colour : `{user.color if user.color is not discord.Color.default() else 'Default'}`\n────",
+            inline = False)  
+        misc_emb.add_field(
+            name = "Activity :",
+            value = f"> <:Reply:930634822865547294> {activity_holder}",
+            inline = False)
+        misc_emb.set_thumbnail(url = avatar)
         
-            pfp_emb = BaseEmbed(
-                title = f":scroll: {user}'s PFP",
-                description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) │ [**PNG Format**]({user.display_avatar.with_static_format('png')}) │ [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
+        pfp_emb = BaseEmbed(
+            title = f":scroll: {user}'s PFP",
+            description = f"[**JPG Format**]({user.display_avatar.with_static_format('jpg')}) │ [**PNG Format**]({user.display_avatar.with_static_format('png')}) │ [**WEBP Format**]({user.display_avatar.with_static_format('webp')})",
+            colour = user.colour)
+        pfp_emb.set_image(url = avatar)
+
+        banner_emb = None
+
+        if fetched_user.banner is None:
+            embed_list = [general_emb, guild_emb, misc_emb, pfp_emb]
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
+            await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
+        else:
+            banner_emb = BaseEmbed(
+                title = f":scroll: {user}'s Banner",
+                description = f"[**Download Banner Here**]({fetched_user.banner.url})",
                 colour = user.colour)
-            pfp_emb.set_image(url = avatar)
+            banner_emb.set_image(url = fetched_user.banner.url)
 
-            banner_emb = None
-
-            if fetched_user.banner is None:
-                embed_list = [general_emb, guild_emb, misc_emb, pfp_emb]
-                async with ctx.channel.typing():
-                    await asyncio.sleep(0.1)
-                await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
-            else:
-                banner_emb = BaseEmbed(
-                    title = f":scroll: {user}'s Banner",
-                    description = f"[**Download Banner Here**]({fetched_user.banner.url})",
-                    colour = user.colour)
-                banner_emb.set_image(url = fetched_user.banner.url)
-
-                embed_list = [general_emb, guild_emb, misc_emb, pfp_emb, banner_emb]
-                async with ctx.channel.typing():
-                    await asyncio.sleep(0.1)
-                await Paginator(self.bot, ctx, embeds = embed_list).send(ctx) 
-        except Exception as exception:
-            await ctx.send(exception)
+            embed_list = [general_emb, guild_emb, misc_emb, pfp_emb, banner_emb]
+            async with ctx.channel.typing():
+                await asyncio.sleep(0.1)
+            await Paginator(self.bot, ctx, embeds = embed_list).send(ctx)
 
     @commands.command(
         name = "serverinfo",
         brief = "Get guild information",
         aliases = ["si", "gi"])
     @commands.guild_only()
-    async def server_info(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def server_info(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Get entire details about the guild."""
         user_status = [
                         len(list(filter(lambda u : str(u.status) == "online", ctx.guild.members))),
@@ -245,7 +264,7 @@ class Utility(commands.Cog):
         brief = "List User's Todo List.",
         aliases = ["td"])
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def todo(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sends Todo sub - commands"""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
@@ -254,7 +273,7 @@ class Utility(commands.Cog):
         name = "add",
         brief = "Add item to your list.")
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo_add(self, ctx: GeraltContext, *, task: str) -> typing.Optional[discord.Message]: 
+    async def todo_add(self, ctx: GeraltContext, *, task: str) -> Optional[discord.Message]: 
         """Add tasks to your todo list."""
         if len(task) > 200:
             return await ctx.reply(f"Please make sure that the `task` is below 200 characters.")
@@ -270,7 +289,7 @@ class Utility(commands.Cog):
         brief = "See your todo list.",
         aliases = ["show"])
     @commands.cooldown(2, 5, commands.BucketType.user)  
-    async def todo_list(self, ctx: GeraltContext) -> typing.Optional[discord.Message]:
+    async def todo_list(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """See your entire todo list."""
         fetch_tasks = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id)
         task_list = []
@@ -308,7 +327,7 @@ class Utility(commands.Cog):
         name = "edit",
         brief = "Edit task")    
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo_edit(self, ctx: GeraltContext, task_id: int, *, edited: str) -> typing.Optional[discord.Message]:
+    async def todo_edit(self, ctx: GeraltContext, task_id: int, *, edited: str) -> Optional[discord.Message]:
         """Edit a particular task."""
         if len(edited) > 200:
             return await ctx.reply(f"Please make sure that the `edited content` is below 200 characters.")
@@ -323,7 +342,7 @@ class Utility(commands.Cog):
         brief = "Removes Task",
         aliases = ["finished", "done"])
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo_remove(self, ctx: GeraltContext, *, task_id: int) -> typing.Optional[discord.Message]:
+    async def todo_remove(self, ctx: GeraltContext, *, task_id: int) -> Optional[discord.Message]:
         """Remove a particular task."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -354,7 +373,7 @@ class Utility(commands.Cog):
         brief = "Delete Todo Tasks.",
         aliases = ["delete", "del", "cl"])
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo_clear(self, ctx : GeraltContext) -> typing.Optional[discord.Message]:
+    async def todo_clear(self, ctx : GeraltContext) -> Optional[discord.Message]:
         """Delete your entire todo list."""
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{ctx.clean_prefix}{ctx.command}` for the `{ctx.command}` command <:SarahPray:920484222421045258>"
         total = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1", ctx.author.id)
@@ -369,7 +388,7 @@ class Utility(commands.Cog):
                     view.disabled = True 
                 if not fetch_task:
                     await interaction.response.defer()
-                    await ui.response.edit("You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:CoffeeSip:907110027951742996>", view = ui)
+                    await ui.response.edit(content = f"You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <TASK>` <a:CoffeeSip:907110027951742996>", view = ui)
                 else:
                     await interaction.response.defer()
                     await ui.response.edit(content = f"Successfully deleted `{len(total)}` tasks from your list <:ICool:940786050681425931>.", view = ui)
@@ -388,9 +407,10 @@ class Utility(commands.Cog):
         name = "spotify",
         brief = "Get Spotify Info.",
         aliases = ["sp", "spot"])
-    async def spotify(self, ctx : GeraltContext, *, user : typing.Union[discord.Member, discord.User] = None) -> typing.Optional[discord.Message]:
+    async def spotify(self, ctx : GeraltContext, *, user : Union[discord.Member, discord.User] = None) -> Optional[discord.Message]:
         """Get Information on what the user is listening to."""
         user = user or ctx.author
+        view = discord.ui.View()
         try:
             spotify = discord.utils.find(lambda sp : isinstance(sp, discord.Spotify), user.activities)
         except:
@@ -411,15 +431,16 @@ class Utility(commands.Cog):
                         f"> <:ReplyContinued:930634770004725821> ` - ` **Album :** {spotify.album}\n" \
                         f"> <:Reply:930634822865547294> ` - ` **Duration :** \"{humanize.precisedelta(spotify.duration)}\"")
             spotify_emb.set_thumbnail(url = spotify.album_cover_url)
-            await ctx.reply(embed = spotify_emb, mention_author = False)
+            view.add_item(discord.ui.Button(label = "Listen on Spotify", url = spotify.track_url, emoji = "<a:Spotify:993120872883834990>"))
+            await ctx.reply(embed = spotify_emb, mention_author = False, view = view)
     
     @commands.command(
         name = "afk",
         brief = "Sets you afk.")
-    async def afk(self, ctx : GeraltContext, *, reason : typing.Optional[str]):
+    async def afk(self, ctx : GeraltContext, *, reason : Optional[str]):
         """Sets you afk."""
         await ctx.add_nanotick()
-        await ctx.reply(f"Your afk has been set. Please enjoy!")
+        await ctx.reply(f"Your afk has been set. Please enjoy!", mention_author = False)
         if not reason:
             reason = "Not Specified . . ."
         self.bot.afk[ctx.author.id] = reason
@@ -428,3 +449,138 @@ class Utility(commands.Cog):
             await self.bot.db.execute(query, ctx.author.id, reason, ctx.message.created_at)
         except asyncpg.UniqueViolationError:
             return
+
+    @commands.group(
+        name = "log",
+        brief = "Logging user updates.",
+        aliases = ["settings", "tg", "toggle"])
+    @commands.cooldown(2, 15, commands.BucketType.user)
+    async def log(self, ctx: GeraltContext):
+        """Opt - in or out for global user update logging."""
+        if ctx.invoked_subcommand is None:
+            return await ctx.command_help()
+    
+    @log.command(
+        name = "all",
+        brief = "Opt - in/out for all events.")
+    async def log_all(self, ctx: GeraltContext):
+        """Opt - in/out for all events."""
+        query = "INSERT INTO user_settings (user_id, discriminator, username, avatar) VALUES ($1, $2, $2, $2) " \
+                "ON CONFLICT (user_id) " \
+                "DO UPDATE SET avatar = $2, username = $2, discriminator = $2"
+        await ctx.add_nanotick()
+        await self.bot.db.execute(query, ctx.author.id, True)
+        await ctx.reply(f"**{ctx.author}** ─ Successfully Opted in for all events")
+    
+    @log.command(
+        name = "avatar",
+        brief = "Opt - in/out for avatar logging.")
+    @commands.cooldown(2, 15, commands.BucketType.user)
+    async def log_avatar(self, ctx: GeraltContext):
+        """Opt - in/out for avatar logging."""
+        query = "INSERT INTO user_settings (user_id, avatar) VALUES ($1, $2) " \
+                "ON CONFLICT (user_id) " \
+                "DO UPDATE SET avatar = $2"
+        data = await self.bot.db.fetchval("SELECT avatar FROM user_settings WHERE user_id = $1", ctx.author.id)
+        if data == True:
+            await self.bot.db.execute(query, ctx.author.id, False)
+            await ctx.reply(f"**{ctx.author}** ─ Successfully `opted out` from avatar logging <:TokoOkay:898611996163985410>")
+            return await ctx.add_nanotick()
+
+        await self.bot.db.execute(query, ctx.author.id, True)
+        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` from avatar logging <:DuckThumbsUp:917007413259956254>")
+        await ctx.add_nanotick()
+    
+    @log.command(
+        name = "username",
+        brief = "Opt - in/out for username logging.")
+    @commands.cooldown(2, 15, commands.BucketType.user)
+    async def log_username(self, ctx: GeraltContext):
+        """Opt - in/out for username logging."""
+        query = "INSERT INTO user_settings (user_id, username) VALUES ($1, $2) " \
+                "ON CONFLICT (user_id) " \
+                "DO UPDATE SET username = $2"
+        data = await self.bot.db.fetchval("SELECT username FROM user_settings WHERE user_id = $1", ctx.author.id)
+        if data == True:
+            await self.bot.db.execute(query, ctx.author.id, False)
+            await ctx.reply(f"**{ctx.author}** ─ Successfully `opted out` from username logging <:TokoOkay:898611996163985410>")
+            return await ctx.add_nanotick()
+        
+        await self.bot.db.execute(query, ctx.author.id, True)
+        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` from username logging <:DuckThumbsUp:917007413259956254>")
+        return await ctx.add_nanotick()
+
+    @log.command(
+        name = "discriminator",
+        brief = "Opt - in/out for discriminator logging.")
+    @commands.cooldown(2, 15, commands.BucketType.user)
+    async def log_discriminator(self, ctx: GeraltContext):
+        """Opt - in/out for discriminator logging."""
+        query = "INSERT INTO user_settings (user_id, discriminator) VALUES ($1, $2) " \
+                "ON CONFLICT (user_id) " \
+                "DO UPDATE SET discriminator = $2"
+        data = await self.bot.db.fetchval("SELECT discriminator FROM user_settings WHERE user_id = $1", ctx.author.id)
+        if data == True:
+            await self.bot.db.execute(query, ctx.author.id, False)
+            await ctx.reply(f"**{ctx.author}** ─ Successfully `opted out` from discriminator logging <:TokoOkay:898611996163985410>")
+            return await ctx.add_nanotick()
+    
+        await self.bot.db.execute(query, ctx.author.id, True)
+        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` from discriminator logging <:DuckThumbsUp:917007413259956254>")
+        return await ctx.add_nanotick()
+    
+    @log.command(
+        name = "status",
+        brief = "Shows your settings")
+    @commands.cooldown(2, 15, commands.BucketType.user)
+    async def log_status(self, ctx: GeraltContext):
+        fetch_deets = await self.bot.db.fetch("SELECT * FROM user_settings WHERE user_id = $1", ctx.author.id)
+        data = [f"**Avatar Logging :** `{deets[3]}`\n**Username Logging :** `{deets[2]}`\n**Discriminator Logging :** `{deets[1]}`" for deets in fetch_deets]
+        if not fetch_deets:
+            return await ctx.reply(f"**{ctx.author}** ─ You haven't enabled logging at all. Please run `{ctx.clean_prefix}log` for more info.")
+        log_status = BaseEmbed(
+            title = f":scroll: {ctx.author}'s Log Status",
+            description = "".join(data),
+            colour = self.bot.colour)
+        log_status.set_thumbnail(url = ctx.author.display_avatar)
+        await ctx.reply(embed = log_status, mention_author = False)
+    
+    @log.command(
+        name = "delete",
+        brief = "Delete all data",
+        aliases = ["reset"])
+    @commands.cooldown(1, 30, commands.BucketType.user)
+    async def log_delete(self, ctx: GeraltContext):
+        """Delete your logged data."""        
+        async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
+            await self.bot.db.execute("DELETE FROM avatar_history WHERE user_id = $1", ctx.author.id)
+            await self.bot.db.execute("DELETE FROM username_history WHERE user_id = $1", ctx.author.id)
+            await self.bot.db.execute("DELETE FROM discriminator_history WHERE user_id = $1", ctx.author.id)
+            await self.bot.db.execute("DELETE FROM user_settings WHERE user_id = $1", ctx.author.id)
+            await ctx.add_nanotick()
+            for view in ui.children:
+                view.disabled = True
+            await ui.response.edit(content = f"Successfully deleted your logged data", view = ui)
+        
+        async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
+            for view in ui.children:
+                view.disabled = True
+            await ui.response.edit(content = f"Seems like I'm not deleting your data.", view = ui)
+            await ctx.add_nanocross()
+        
+        Confirmation.response = await ctx.reply(f"Are you sure you want to delete your data?", view = Confirmation(ctx, yes, no), allowed_mentions = self.bot.mentions)
+
+    @commands.command(
+        name = "userhistory",
+        brief = "Get history of user.",
+        aliases = ["uhy"])
+    @commands.cooldown(3, 15, commands.BucketType.user)
+    async def user_history(self, ctx: GeraltContext, *, user: Optional[discord.User] = None):
+        """Get entire history of a user."""
+        user = user or ctx.author
+        history_emb = BaseEmbed(
+            title = f"\U0001f4dc {user}'s History",
+            description = f"> [**Avatar**]({user.display_avatar.url})\n " \
+                          f"> **Created on:** {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n",
+            colour = self.bot.colour)
+        await ctx.send(embed = history_emb, view = UserHistory(self.bot, ctx, user))
