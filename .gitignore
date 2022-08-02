@@ -1,4 +1,6 @@
-geralt-env
+venv
 config.env
 __pycache__
-source/cogs/sailsa
+lavalink/logs
+source/cogs/sailu
+lavalink/application.yml
