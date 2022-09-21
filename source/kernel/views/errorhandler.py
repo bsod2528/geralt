@@ -20,6 +20,9 @@ class Traceback(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.error = error
 
+        if ctx.interaction:
+            self.remove_item(self.delete)
+
     @discord.ui.button(label="Traceback",
                        style=discord.ButtonStyle.grey,
                        emoji="<:WinTerminal:898609124982554635>")
@@ -27,7 +30,7 @@ class Traceback(discord.ui.View):
         button.disabled = True
         error = getattr(self.error, "original", self.error)
         error_emb = BaseEmbed(
-            title=f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
+            title=f"<:GeraltRightArrow:904740634982760459> Command Errored : {self.ctx.command}",
             description=f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(error), error, error.__traceback__))}\n```\n",
             colour=0x2F3136)
         await interaction.message.edit(view=self)
@@ -41,18 +44,40 @@ class Traceback(discord.ui.View):
                        emoji="<a:Trash:906004182463569961>")
     async def cmd_help(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
-        command_help = BaseEmbed(
-            title=f"<:GeralRightArrow:904740634982760459> Command Help : {self.ctx.command}",
-            description=f"> {self.ctx.command.help}",
-            colour=0x2F3136)
+        if self.ctx.command.aliases:
+            alias = " | ".join(
+                f"`{alias}`" for alias in self.ctx.command.aliases)
+        else:
+            alias = "`Nil`"
+        if interaction.user.is_on_mobile():
+            command_help = BaseEmbed(
+                title=f"<:GeraltRightArrow:904740634982760459> Command Help : {self.ctx.command}",
+                description=f"```yaml\n> Syntax : {self.ctx.clean_prefix}{self.ctx.command.qualified_name} {self.ctx.command.signature}\n```\n"
+                f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {self.ctx.command.cog_name} \n"
+                f"<:Reply:930634822865547294> ` ─ ` **Description : ** {self.ctx.command.help if self.ctx.command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{self.ctx.command.full_parent_name}`' if self.ctx.command.parent else ' '}",
+                colour=0x2F3136)
+        else:
+            command_help = BaseEmbed(
+                title=f"<:GeraltRightArrow:904740634982760459> Command Help : {self.ctx.command}",
+                description=f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.ctx.clean_prefix}{self.ctx.command.qualified_name}\x1b[0m \x1b[0;1;34m{self.ctx.command.signature}\x1b[0m\n```\n"
+                f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {self.ctx.command.cog_name} \n"
+                f"<:Reply:930634822865547294> ` ─ ` **Description : ** {self.ctx.command.help if self.ctx.command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{self.ctx.command.full_parent_name}`' if self.ctx.command.parent else ' '}",
+                colour=0x2F3136)
         command_help.set_footer(
             text=f"Invoked by {interaction.user}",
             icon_url=interaction.user.display_avatar.url)
         await interaction.message.edit(view=self)
         try:
-            await interaction.response.send_message(embed=command_help, ephemeral=True)
-        except NotFound:
-            return
+            try:
+                await interaction.response.send_message(embed=command_help, ephemeral=True)
+            except NotFound:
+                return
+        except Exception as exception:
+            try:
+                await interaction.response.send_message(content=exception, ephemeral=True)
+            except NotFound:
+                return
+
 
     @discord.ui.button(label="Delete",
                        style=discord.ButtonStyle.red,
@@ -62,7 +87,7 @@ class Traceback(discord.ui.View):
 
     async def send(self):
         common_error = BaseEmbed(
-            title=f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
+            title=f"<:GeraltRightArrow:904740634982760459> Command Errored : {self.ctx.command}",
             description=f"```py\n{self.error}\n```",
             colour=0x2F3136)
         common_error.timestamp = discord.utils.utcnow()
@@ -99,32 +124,8 @@ class CommandSyntax(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.error = error
 
-    @discord.ui.button(label="Syntax",
-                       style=discord.ButtonStyle.grey,
-                       emoji="<a:CoffeeSip:907110027951742996>")
-    async def cmd_syntax(self, interaction: discord.Interaction, button: discord.ui.Button):
-        button.disabled = True
-        button.style = discord.ButtonStyle.green
-        try:
-            command_name = f"{self.ctx.clean_prefix}{self.ctx.command} {self.ctx.command.signature}"
-            syntax_emb = BaseEmbed(
-                title=f"<:GeraltRightArrow:904740634982760459> COMMAND SYNTAX : {self.ctx.clean_prefix}{self.ctx.command}",
-                description=f"\n```prolog\n{command_name}"
-                f"\n{' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{'-' * (len(self.error.param.name) + 2)}"
-                f"\n\"{self.error.param.name}\" is a required argument which you have not passed\n```",
-                colour=0x2F3136)
-            syntax_emb.set_footer(
-                text=f"Run {self.ctx.clean_prefix}{self.ctx.command} help for more help")
-            await interaction.message.edit(view=self)
-            try:
-                await interaction.response.send_message(embed=syntax_emb, ephemeral=True)
-            except NotFound:
-                return
-        except BaseException:
-            try:
-                await interaction.response.send_message(content=f"This command does not have any argument missing. Rather a wrong argument was passed. Run `{self.ctx.clean_prefix}help {self.ctx.command}`", ephemeral=True)
-            except NotFound:
-                return
+        if ctx.interaction:
+            self.remove_item(self.delete)
 
     @discord.ui.button(label="Command Help",
                        style=discord.ButtonStyle.grey,
@@ -174,7 +175,7 @@ class CommandSyntax(discord.ui.View):
         button.style = discord.ButtonStyle.green
         error = getattr(self.error, "original", self.error)
         error_emb = BaseEmbed(
-            title=f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
+            title=f"<:GeraltRightArrow:904740634982760459> Command Errored : {self.ctx.command}",
             description=f"```yaml\n Quick Tip : Read the last 2 - 3 lines for proper info.\n```\n```py\n {''.join(traceback.format_exception(type(error), error, error.__traceback__))}\n```\n",
             colour=0x2F3136)
         await interaction.message.edit(view=self)
@@ -199,14 +200,15 @@ class CommandSyntax(discord.ui.View):
             return
 
     async def send(self):
-        common_error = BaseEmbed(
-            title=f"<:GeraltRightArrow:904740634982760459> COMMAND ERRORED : {self.ctx.command}",
-            description=f"```py\n{self.error}\n```\nClick on the `Syntax` Button for the proper syntax of `{self.ctx.command}`",
+        command_name = f"{self.ctx.clean_prefix}{self.ctx.command} {self.ctx.command.signature}"
+        syntax_emb = BaseEmbed(
+            title=f"<:GeraltRightArrow:904740634982760459> Command Errored : {self.ctx.clean_prefix}{self.ctx.command}",
+            description=f"\n```py\nerror: {self.error}\n|\n| Syntax:\n|\n| => {command_name}\n|    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{'^' * (len(self.error.param.name) + 2)}\n| Click on `Command Help` button for more info.```",
             colour=0x2F3136)
-        common_error.set_footer(
-            text=f"Errored by {self.ctx.author}",
+        syntax_emb.set_footer(
+            text=f"Run {self.ctx.clean_prefix}help {self.ctx.command}for more help",
             icon_url=self.ctx.author.display_avatar.url)
-        self.message = await self.ctx.reply(embed=common_error, view=self, mention_author=False)
+        self.message = await self.ctx.reply(embed=syntax_emb, view=self, mention_author=False)
         return self.message
 
     async def on_timeout(self) -> None:
