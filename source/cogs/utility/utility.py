@@ -1,6 +1,7 @@
 import imghdr
 import asyncio
 import asyncpg
+import aiohttp
 import discord
 import humanize
 
@@ -9,10 +10,11 @@ from discord.ext import commands
 from discord import app_commands
 from typing import Union, Optional, List
 
-from ...kernel.subclasses.bot import Geralt
+from ...kernel.views.todo import SeeTask
 from ...kernel.views.paginator import Paginator
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.meta import PFP, Confirmation
+from ...kernel.subclasses.bot import Geralt, CONFIG
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.utilities.flags import user_badges, user_perms
 from ...kernel.views.history import UserHistory, SelectUserLogEvents
@@ -42,7 +44,11 @@ class Utility(commands.Cog):
             log_avatar = await self.bot.db.fetchval("SELECT avatar FROM user_settings WHERE user_id = $1", after.id)
             if log_avatar:
                 avatar = await after.display_avatar.read()
-                await self.bot.db.execute("INSERT INTO avatar_history VALUES ($1, $2, $3, $4)", after.id, avatar, discord.utils.utcnow(), imghdr.what(BytesIO(avatar)))
+                async with aiohttp.ClientSession() as session:
+                    avatar_spam_webhook = discord.Webhook.partial(id=CONFIG.get("AVATAR_SPAM_ID"), token=CONFIG.get("AVATAR_SPAM_TOKEN"), session=session)
+                    sent_webhook_message = await avatar_spam_webhook.send(file=discord.File(BytesIO(avatar), filename=f"{after}'s_avatar.{imghdr.what(BytesIO(avatar))}"),wait=True)
+                    await self.bot.db.execute("INSERT INTO avatar_history VALUES ($1, $2, $3, $4, $5)", after.id, str(sent_webhook_message.attachments[0]), discord.utils.utcnow(), imghdr.what(BytesIO(avatar)), avatar)
+                    await avatar_spam_webhook.session.close()
             return
         if before.name != after.name:
             log_username = await self.bot.db.fetchval("SELECT username FROM user_settings WHERE user_id = $1", after.id)
@@ -58,9 +64,11 @@ class Utility(commands.Cog):
     @commands.command(
         name="banner",
         brief="View a persons banner")
-    async def banner(self, ctx: GeraltContext, *, user: discord.Member = None) -> Optional[discord.Message]:
+    async def banner(self, ctx: GeraltContext, *, user: Union[discord.Member, discord.User] = None) -> Optional[discord.Message]:
         """See the user's Banner in an enlarged manner."""
         user = user or ctx.author
+        if ctx.message.reference:
+            user = ctx.message.reference.resolved.author
         fetched_user = await ctx.bot.fetch_user(user.id)
         if fetched_user.banner is None:
             return await ctx.reply(f"**{user}** does not have a banner <a:Grimacing:914905757588283422>")
@@ -75,20 +83,25 @@ class Utility(commands.Cog):
         name="avatar",
         brief="View a persons PFP",
         aliases=["pfp", "pp", "dp", "av"])
-    async def avatar(self, ctx: GeraltContext, *, user: discord.Member = None) -> Optional[discord.Message]:
+    async def avatar(self, ctx: GeraltContext, *, user: Union[discord.Member, discord.User] = None) -> Optional[discord.Message]:
         """See the user's PFP in an enlarged manner."""
         user = user or ctx.author
+        if ctx.message.reference:
+            user = ctx.message.reference.resolved.author
         await PFP(self.bot, ctx, user).send()
 
     # Get user's information
-    @commands.command(
+    @commands.hybrid_command(
         name="userinfo",
         brief="Get user information",
-        aliases=["user", "ui"])
+        aliases=["user", "ui"],
+        with_app_command=True)
     @commands.guild_only()
     async def userinfo(self, ctx: GeraltContext, *, user: discord.Member = None) -> Optional[discord.Message]:
         """Get entire details about a user."""
         user = user or ctx.author
+        if ctx.message.reference:
+            user = ctx.message.reference.resolved.author
         roles = ""
         for role in user.roles:
             if role is ctx.guild.default_role:
@@ -188,10 +201,11 @@ class Utility(commands.Cog):
                 await asyncio.sleep(0.1)
             await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
 
-    @commands.command(
+    @commands.hybrid_command(
         name="serverinfo",
         brief="Get guild information",
-        aliases=["si", "gi"])
+        aliases=["si", "gi"],
+        with_app_command=True)
     @commands.guild_only()
     async def server_info(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Get entire details about the guild."""
@@ -290,73 +304,98 @@ class Utility(commands.Cog):
         brief="List User's Todo List.",
         aliases=["td"],
         with_app_command=True)
+    @app_commands.checks.cooldown(2, 5)
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo(self, ctx: GeraltContext) -> Optional[discord.Message]:
+    async def todo(self, ctx: GeraltContext, *, task_id: Optional[int]) -> Optional[discord.Message]:
         """Sends Todo sub - commands"""
         if ctx.invoked_subcommand is None:
-            await ctx.command_help()
+            return await ctx.command_help()
+
 
     @todo.command(
         name="add",
         brief="Add item to your list.",
         with_app_command=True)
-    @app_commands.describe(task="The task you want to complete asap.")
+    @app_commands.checks.cooldown(2, 5)
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo_add(self, ctx: GeraltContext, *, task: str) -> Optional[discord.Message]:
+    @app_commands.describe(task="The task you want to complete asap.")
+    async def todo_add(self, ctx: GeraltContext, *, task: Optional[str]) -> Optional[discord.Message]:
         """Add tasks to your todo list."""
-        if len(task) > 200:
-            return await ctx.reply(f"Please make sure that the `task` is below 200 characters.")
+        if ctx.message.reference:
+            task = ctx.message.reference.resolved.content
         if not task:
             return await ctx.reply(f"**{ctx.author}** ─ You have to pass in a `task` so that I can add it to your todo list.")
+        if len(task) > 500:
+            return await ctx.reply(f"Please make sure that the `task` is below 400 characters.")
         else:
             await self.bot.db.execute(f"INSERT INTO todo (user_name, user_id, discriminator, task, task_created_at, url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING task_id", ctx.author.name, ctx.author.id, ctx.author.discriminator, task.strip(), ctx.message.created_at, ctx.message.jump_url)
             task_id = await self.bot.db.fetchval(f"SELECT task_id FROM todo WHERE task = $1 ORDER BY task_id DESC LIMIT 1", task)
-            await ctx.reply(f"Successfully added task.\n<:Reply:930634822865547294> **Task ID -** `{task_id}`")
+            todo_add_emb = BaseEmbed(
+                title=f"\U00002728 Todo Added",
+                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{task_id}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(ctx.message.created_at, style='D')}",
+                colour=self.bot.colour)
+            todo_add_emb.add_field(
+                name="Task :",
+                value=f">>> {task}")
+            todo_add_emb.set_thumbnail(url=ctx.author.display_avatar.url)
+
+            await ctx.reply(embed=todo_add_emb)
+
+    @todo.command(
+        name="show",
+        brief="See a task in detail.",
+        aliases=["see"],
+        with_app_command=True)
+    @app_commands.rename(task_id="id")
+    @app_commands.describe(task_id="ID of your task.")
+    @commands.cooldown(2, 5, commands.BucketType.user)
+    @app_commands.autocomplete(task_id=task_id_autocomplete)
+    async def todo_see(self, ctx: GeraltContext, task_id: int) -> Optional[discord.Message]:
+        """Check out a task in detail."""
+        async with ctx.typing():
+            await asyncio.sleep(1)
+        if not task_id:
+            return await ctx.reply(f"**{ctx.author}** ─ Give me a task id for me to fetch details.")
+        fetch_task = await self.bot.db.fetch("SELECT * FROM todo WHERE task_id = $1 AND user_id = $2", task_id, ctx.author.id)
+        if not fetch_task:
+            return await ctx.reply(f"Couldn't find a task id of `{task_id}`. Try running another one.")
+        for data in fetch_task:
+            todo_show_emb = BaseEmbed(
+                title=f"\U0001f4dc {ctx.author}'s Task Info",
+                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{data[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url** : [**Click Here**]({data[6]})\n<:Reply:930634822865547294> **Noted On** : {self.bot.timestamp(data[5], style='D')}\n────",
+                colour=self.bot.colour)
+            todo_show_emb.add_field(
+                name="<:Join:932976724235395072> Task :",
+                value=f">>> {data[4]}")
+            todo_show_emb.set_thumbnail(url=ctx.author.display_avatar.url)
+        await ctx.reply(embed=todo_show_emb, view=SeeTask(self.bot, ctx, task_id=task_id))
 
     @todo.command(
         name="list",
         brief="See your todo list.",
-        aliases=["show"],
+        aliases=["all"],
         with_app_command=True)
     @commands.cooldown(2, 5, commands.BucketType.user)
     async def todo_list(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """See your entire todo list."""
         fetch_tasks = await self.bot.db.fetch(f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id)
-        task_list = []
-        serial_no = 1
-        for tasks in fetch_tasks:
-            task_list.append(
-                f"> [**{serial_no})**]({tasks['url']}) \"**{tasks['task']}**\"\n> │ ` ─ ` ID : {tasks['task_id']}\n> │ ` ─ ` Created : {self.bot.timestamp(tasks['task_created_at'], style = 'R')}\n────\n")
-            serial_no += 1
-
         if not fetch_tasks:
             return await ctx.reply(f"You currently have `0` tasks present. To start listing out tasks, run `{ctx.clean_prefix}todo add <task>` <a:LifeSucks:932255208044650596>")
-        else:
-            if serial_no <= 3:
-                todo_list_emb = BaseEmbed(
-                    title=f":scroll: {ctx.author}'s Todo List :",
-                    description=f"".join(tasks for tasks in task_list),
-                    colour=self.bot.colour)
-                todo_list_emb.set_thumbnail(url=ctx.author.display_avatar.url)
-                todo_list_emb.set_footer(
-                    text=f"Run {ctx.clean_prefix}todo for more sub - commands.")
-                await ctx.reply(embed=todo_list_emb, mention_author=False)
-            else:
-                # Huge thanks to Zeus432 [ Github ID ] for helping me enable
-                # the pagination :D
-                embed_list = []
-                while task_list:
-                    todo_list_embs = BaseEmbed(
-                        title=f":scroll: {ctx.author}'s Todo List :",
-                        description="".join(task_list[:3]),
-                        colour=self.bot.colour)
-                    todo_list_embs.set_thumbnail(
-                        url=ctx.author.display_avatar.url)
-                    todo_list_embs.set_footer(
-                        text=f"Run {ctx.clean_prefix}todo for more sub - commands.")
-                    task_list = task_list[3:]
-                    embed_list.append(todo_list_embs)
-                await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+        serial_no: int = 0
+        embed_list: List = []
+        for data in fetch_tasks:
+            serial_no += 1
+            todo_embs = BaseEmbed(
+                title=f"\U0001f4dc {ctx.author}'s Todo List",
+                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{data[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url** : [**Click Here**]({data[6]})\n<:Reply:930634822865547294> **Noted On** : {self.bot.timestamp(data[5], style='D')}\n────",
+                colour=self.bot.colour)
+            todo_embs.add_field(
+                name="Task :",
+                value=f">>> {data[4]}")
+            todo_embs.set_thumbnail(url=ctx.author.display_avatar.url)
+            todo_embs.set_footer(text=f"Task Index : {serial_no} | Run {ctx.clean_prefix}todo for more help")
+            embed_list.append(todo_embs)
+        await Paginator(self.bot, ctx, embed_list).send(ctx)
 
     @todo.command(
         name="edit",
@@ -370,7 +409,9 @@ class Utility(commands.Cog):
     @app_commands.describe(edited="New content for the current task you want to edit.")
     async def todo_edit(self, ctx: GeraltContext, task_id: int, *, edited: str) -> Optional[discord.Message]:
         """Edit a particular task."""
-        if len(edited) > 200:
+        async with ctx.typing():
+                await asyncio.sleep(0.5)
+        if len(edited) > 500:
             return await ctx.reply(f"Please make sure that the `edited content` is below 200 characters.")
         if task_id != await self.bot.db.fetchval(f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2", task_id, ctx.author.name):
             await ctx.reply(f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{task_id}` - is a task either which you do not own or is not present in the database <:DutchySMH:930620665139191839>")
@@ -497,33 +538,36 @@ class Utility(commands.Cog):
         await ctx.reply(f"Your afk has been set. Please enjoy!", mention_author=False)
         if not reason:
             reason = "Not Specified . . ."
-        self.bot.afk[ctx.author.id] = reason
         query = "INSERT INTO afk VALUES ($1, $2, $3)"
         try:
             await self.bot.db.execute(query, ctx.author.id, reason, ctx.message.created_at)
+            self.bot.afk[ctx.author.id] = reason
         except asyncpg.UniqueViolationError:
             return
 
-    @commands.group(
+    @commands.hybrid_group(
         name="userlog",
         brief="Logging user updates.",
-        aliases=["settings", "tg", "toggle"])
+        aliases=["settings", "tg", "toggle"],
+        with_app_command=True)
     @commands.cooldown(2, 15, commands.BucketType.user)
     async def userlog(self, ctx: GeraltContext):
         """Opt - in or out for global user update logging."""
-        userlog_emb = BaseEmbed(
-            title="User Logging",
-            description=f"By clicking on the buttons below, you are accepting to store changes made to your `username`, `profile picture`, and `discriminator`.\n\n"
-                        f"You can opt out of them at anytime and delete every information present",
-            colour=self.bot.colour)
-        userlog_emb.set_thumbnail(url=ctx.me.display_avatar.url)
-        userlog_emb.set_footer(
-            text=f"Run \"{ctx.clean_prefix}help userlog\" for more help")
-        return await ctx.send(embed=userlog_emb, view=SelectUserLogEvents(self.bot, ctx))
+        if ctx.invoked_subcommand is None:
+            userlog_emb = BaseEmbed(
+                title="User Logging",
+                description=f"By clicking on the buttons below, you are accepting to store changes made to your `username`, `profile picture`, and `discriminator`.\n\n"
+                            f"You can opt out of them at anytime and delete every information present",
+                colour=self.bot.colour)
+            userlog_emb.set_thumbnail(url=ctx.me.display_avatar.url)
+            userlog_emb.set_footer(
+                text=f"Run \"{ctx.clean_prefix}help userlog\" for more help")
+            return await ctx.send(embed=userlog_emb, view=SelectUserLogEvents(self.bot, ctx))
 
     @userlog.command(
         name="all",
-        brief="Opt - in/out for all events.")
+        brief="Opt - in/out for all events.",
+        with_app_command=True)
     async def userlog_all(self, ctx: GeraltContext):
         """Opt - in/out for all events."""
         query = "INSERT INTO user_settings (user_id, discriminator, username, avatar) VALUES ($1, $2, $2, $2) " \
@@ -535,7 +579,8 @@ class Utility(commands.Cog):
 
     @userlog.command(
         name="avatar",
-        brief="Opt - in/out for avatar logging.")
+        brief="Opt - in/out for avatar logging.",
+        with_app_command=True)
     @commands.cooldown(2, 15, commands.BucketType.user)
     async def userlog_avatar(self, ctx: GeraltContext):
         """Opt - in/out for avatar logging."""
@@ -549,12 +594,13 @@ class Utility(commands.Cog):
             return await ctx.add_nanotick()
 
         await self.bot.db.execute(query, ctx.author.id, True)
-        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` from avatar logging <:DuckThumbsUp:917007413259956254>")
+        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` for avatar logging <:DuckThumbsUp:917007413259956254>")
         await ctx.add_nanotick()
 
     @userlog.command(
         name="username",
-        brief="Opt - in/out for username logging.")
+        brief="Opt - in/out for username logging.",
+        with_app_command=True)
     @commands.cooldown(2, 15, commands.BucketType.user)
     async def userlog_username(self, ctx: GeraltContext):
         """Opt - in/out for username logging."""
@@ -568,12 +614,13 @@ class Utility(commands.Cog):
             return await ctx.add_nanotick()
 
         await self.bot.db.execute(query, ctx.author.id, True)
-        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` from username logging <:DuckThumbsUp:917007413259956254>")
+        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` for username logging <:DuckThumbsUp:917007413259956254>")
         return await ctx.add_nanotick()
 
     @userlog.command(
         name="discriminator",
-        brief="Opt - in/out for discriminator logging.")
+        brief="Opt - in/out for discriminator logging.",
+        with_app_command=True)
     @commands.cooldown(2, 15, commands.BucketType.user)
     async def userlog_discriminator(self, ctx: GeraltContext):
         """Opt - in/out for discriminator logging."""
@@ -587,12 +634,13 @@ class Utility(commands.Cog):
             return await ctx.add_nanotick()
 
         await self.bot.db.execute(query, ctx.author.id, True)
-        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` from discriminator logging <:DuckThumbsUp:917007413259956254>")
+        await ctx.reply(f"**{ctx.author}** ─ Successfully `opted in` for discriminator logging <:DuckThumbsUp:917007413259956254>")
         return await ctx.add_nanotick()
 
     @userlog.command(
         name="status",
-        brief="Shows your settings")
+        brief="Shows your settings",
+        with_app_command=True)
     @commands.cooldown(2, 15, commands.BucketType.user)
     async def userlog_status(self, ctx: GeraltContext):
         fetch_deets = await self.bot.db.fetch("SELECT * FROM user_settings WHERE user_id = $1", ctx.author.id)
@@ -610,7 +658,8 @@ class Utility(commands.Cog):
     @userlog.command(
         name="delete",
         brief="Delete all data",
-        aliases=["reset"])
+        aliases=["reset"],
+        with_app_command=True)
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def userlog_delete(self, ctx: GeraltContext):
         """Delete your logged data."""
@@ -632,11 +681,14 @@ class Utility(commands.Cog):
 
         Confirmation.response = await ctx.reply(f"Are you sure you want to delete your data?", view=Confirmation(ctx, yes, no), allowed_mentions=self.bot.mentions)
 
-    @commands.command(
+    @commands.hybrid_command(
         name="userhistory",
         brief="Get history of user.",
-        aliases=["uhy"])
+        aliases=["uhy"],
+        with_app_command=True)
+    @app_commands.checks.cooldown(3, 15)
     @commands.cooldown(3, 15, commands.BucketType.user)
+    @app_commands.describe(user="The user you want to get information on.")
     async def user_history(self, ctx: GeraltContext, *, user: Optional[discord.User] = None):
         """Get entire history of a user."""
         user = user or ctx.author
@@ -645,4 +697,41 @@ class Utility(commands.Cog):
             description=f"> [**Avatar**]({user.display_avatar.url})\n "
             f"> **Created on:** {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n",
             colour=self.bot.colour)
+        history_emb.set_image(url=user.display_avatar.url)
         await ctx.send(embed=history_emb, view=UserHistory(self.bot, ctx, user))
+
+    @commands.hybrid_command(
+        name="avatarhistory",
+        brief="Get Avatar History of User.",
+        aliases=["avhy"],
+        with_app_command=True)
+    @app_commands.describe(user="The user you want to see the avatar history of.")
+    async def avatar_history(self, ctx: GeraltContext, *, user: Optional[Union[discord.User, discord.Member]] = None):
+        """Get paginated view of all PFPs of a user."""
+        user = user or ctx.author
+        if ctx.message.reference:
+            user = ctx.message.reference.resolved.author
+        avatar_history = await self.bot.db.fetch("SELECT * FROM avatar_history WHERE user_id = $1", user.id)
+        if not avatar_history:
+            return await ctx.reply(f"**{user}** ─ has no records of previous avatars <:ForPatricksSake:915845797533335552> Please wait until they change their pfp atleast once \U0001f91d")
+        if len(avatar_history) == 1:
+            for x in avatar_history:
+                avatar_history_emb = BaseEmbed(
+                    title=f"{user}'s Avatar",
+                    description=f"<:GeraltRightArrow:904740634982760459> **Changed :** {self.bot.timestamp(x[2], style='D')}",
+                    colour=self.bot.colour)
+                avatar_history_emb.set_image(url=x[1])
+                avatar_history_emb.set_footer(text=f"Format : {x[3].capitalize()}")
+                return await ctx.send(embed=avatar_history_emb)
+
+        embed_list = []
+        for y in avatar_history:
+            avatar_history_embs = BaseEmbed(
+                title=f"\U0001f4dc {user}'s Avatars",
+                description=f"<:GeraltRightArrow:904740634982760459> **Changed :** {self.bot.timestamp(y[2], style='D')}",
+                colour=self.bot.colour)
+            avatar_history_embs.set_image(url=y[1])
+            avatar_history_embs.set_footer(text=f"Format : {y[3].capitalize()}")
+            embed_list.append(avatar_history_embs)
+        await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+
