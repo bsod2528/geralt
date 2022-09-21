@@ -8,10 +8,12 @@ from typing import Optional, List
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.meta import Confirmation
+from ...kernel.views.paginator import Paginator
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.views.tickets import CallTicket, TicketSetup
 from ...kernel.views.verification import SetupVerification, VerificationCall
+from ...kernel.views.prefix import Prefix
 
 
 class Guild(commands.Cog):
@@ -61,14 +63,15 @@ class Guild(commands.Cog):
         """Prefix related commands."""
         if ctx.invoked_subcommand is None:
             prefix_emb = BaseEmbed(
-                description=f"\n".join(await self.bot.get_prefix(ctx.message)),
+                description=f"> <:GeraltRightArrow:904740634982760459> " + "\n> <:GeraltRightArrow:904740634982760459> ".join(await self.bot.get_prefix(ctx.message)),
                 colour=self.bot.colour)
             prefix_emb.set_footer(text=f"Run {ctx.clean_prefix}help prefix.")
             if ctx.guild.icon.url:
                 prefix_emb.set_author(name=f"{len(await self.bot.get_prefix(ctx.message))} Prefixes ─ {ctx.guild}", icon_url=ctx.guild.icon.url)
             else:
                 prefix_emb.set_author(name=ctx.guild)
-            await ctx.reply(embed=prefix_emb, mention_author=False)
+            prefix_view = Prefix(self.bot, ctx)
+            prefix_view.message = await ctx.reply(embed=prefix_emb, view=prefix_view, mention_author=False)
 
     @prefix.command(
         name="add",
@@ -92,6 +95,10 @@ class Guild(commands.Cog):
         if prefix == "--":
             return await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
         try:
+            fetched_data = await self.bot.db.fetch("SELECT UNNEST(guild_prefix) FROM prefix WHERE guild_id = $1", ctx.guild.id)
+            for present_prefixes in fetched_data:
+                if prefix in str(present_prefixes):
+                    return await ctx.send(f"{prefix} is already present")
             query = "INSERT INTO prefix VALUES ($1, ARRAY [$2, '.g']) ON CONFLICT (guild_id) " \
                     "DO UPDATE SET guild_prefix = ARRAY_APPEND(prefix.guild_prefix, $2) WHERE prefix.guild_id = $1"
             await self.bot.db.execute(query, ctx.guild.id, prefix)
@@ -367,6 +374,7 @@ class Guild(commands.Cog):
         aliases=["ce"],
         with_app_command=True)
     @app_commands.checks.cooldown(5, 5)
+    @commands.has_guild_permissions(manage_webhooks=True)
     @commands.bot_has_guild_permissions(manage_webhooks=True)
     @app_commands.checks.bot_has_permissions(manage_webhooks=True)
     async def guild_convertemote(self, ctx: GeraltContext):
@@ -388,3 +396,37 @@ class Guild(commands.Cog):
         await ctx.add_nanotick()
         self.bot.convert_url_to_webhook[ctx.guild.id] = "true"
         await self.bot.db.execute(query, ctx.guild.id, "true")
+
+    @commands.hybrid_command(
+        name="emote",
+        brief="Emote Info",
+        aliases=["em", "emotes"],
+        with_app_command=True)
+    @app_commands.describe(emote="Get information on the emote you mention")
+    async def emotes(self, ctx: GeraltContext, *, emote: commands.EmojiConverter = None):
+        """Get info on emotes."""
+        if emote is None:
+            emote_list: List = [f"{emote} ─ [`{emote}`]({emote.url})\n" for emote in ctx.guild.emojis]
+            embed_list: List = []
+            while emote_list:
+                emote_embs = BaseEmbed(
+                    title=f"\U0001f4dc {ctx.guild}'s Emotes",
+                    description="".join(emote_list[:10]),
+                    colour=self.bot.colour)
+                try:
+                    emote_embs.set_thumbnail(url=ctx.guild.icon.url)
+                except AttributeError:
+                    pass
+                emote_embs.set_footer(text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar.url)
+                emote_list = emote_list[10:]
+                embed_list.append(emote_embs)
+            return await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+
+        if emote:
+            emote_emb = BaseEmbed(
+                title="\U0001f4dc Emote Info",
+                description=f"<:ReplyContinued:930634770004725821> **Emote Name :** `{emote.name}`\n<:ReplyContinued:930634770004725821> **From Guild :** `{emote.guild.name}`\n<:ReplyContinued:930634770004725821> **Emote ID :** [`{emote.id}`]({emote.url})\n<:Reply:930634822865547294> **Created On :**{self.bot.timestamp(emote.created_at, style='d')}",
+                colour=self.bot.colour)
+            emote_emb.set_image(url=emote.url)
+            emote_emb.set_footer(text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar.url)
+            await ctx.send(embed=emote_emb)
