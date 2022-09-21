@@ -7,13 +7,14 @@ from discord.ext.commands import HelpCommand
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.subclasses.embed import BaseEmbed
-from ...kernel.views.help import HelpView, Delete
+from ...kernel.views.help import GroupAndCommandView, HelpView
 from ...kernel.subclasses.context import GeraltContext
 
 
 class GeraltHelp(commands.HelpCommand):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+        self.context: GeraltContext
 
     def footer(self):
         return f"Run {self.context.clean_prefix}help [cog | command] for more info."
@@ -24,7 +25,6 @@ class GeraltHelp(commands.HelpCommand):
 
     async def send_bot_help(self, mapping) -> Optional[discord.Message]:
         cog_list = []
-        self.context: GeraltContext
         help_emb = BaseEmbed(
             title=f"\U00002728 {self.context.author}'s Help",
             description=f"────\nHi! I am [**Geralt**](https://github.com/BSOD2528/Geralt) and open source Discord Bot made for fun.\n────",
@@ -49,7 +49,6 @@ class GeraltHelp(commands.HelpCommand):
 
     async def send_cog_help(self, cog: commands.Cog) -> Optional[discord.Message]:
         cog.get_commands()
-        self.context: GeraltContext
         emote = getattr(cog, "emote", None)
         cog_emb = BaseEmbed(
             title=f"{cog.qualified_name} Commands",
@@ -73,7 +72,6 @@ class GeraltHelp(commands.HelpCommand):
                 cog_list = [
                     cogs for cogs in HelpCommand.get_bot_mapping(self) if cogs is not None and cogs.qualified_name not in [
                         "ErrorHandler", "Developer", "Jishaku", "Events", "Help"]]
-
         try:
             await self.context.reply(embed=cog_emb, mention_author=False, view=HelpView(HelpCommand.get_bot_mapping(self), self, cog_list=cog_list))
         except BaseException:
@@ -88,7 +86,6 @@ class GeraltHelp(commands.HelpCommand):
             alias = " | ".join(f"`{alias}`" for alias in command.aliases)
         else:
             alias = "`Nil`"
-        self.context: GeraltContext
         emote = getattr(command._cog, "emote", None)
 
         command_emb = BaseEmbed(
@@ -117,12 +114,12 @@ class GeraltHelp(commands.HelpCommand):
             command_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{command.qualified_name} {command.signature}\n```\n" \
                                       f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
                                       f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
-            await self.context.reply(embed=command_emb, mention_author=False)
+            await self.context.reply(embed=command_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
         else:
             command_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{command.qualified_name}\x1b[0m \x1b[0;1;34m{command.signature}\x1b[0m\n```\n" \
                                       f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
                                       f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
-            await self.context.reply(embed=command_emb, mention_author=False, view=Delete(self))
+            await self.context.reply(embed=command_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
 
     async def send_group_help(self, group: commands.Group) -> Optional[discord.Message]:
         try:
@@ -135,7 +132,6 @@ class GeraltHelp(commands.HelpCommand):
             alias = " | ".join(f"`{alias}`" for alias in group.aliases)
         else:
             alias = "`Nil`"
-        self.context: GeraltContext
         emote = getattr(group._cog, "emote", None)
 
         group_emb = BaseEmbed(
@@ -167,12 +163,12 @@ class GeraltHelp(commands.HelpCommand):
             group_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{group} {group.signature}\n```\n" \
                                     f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
                                     f"<:Reply:930634822865547294>` ─ ` **Description : ** {group.help}"
-            await self.context.reply(embed=group_emb, mention_author=False)
+            await self.context.reply(embed=group_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
         else:
             group_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{group}\x1b[0m \x1b[0;1;34m{group.signature}\x1b[0m\n```\n" \
                                     f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
                                     f" <:Reply:930634822865547294>` ─ ` **Description : ** {group.help}"
-            await self.context.reply(embed=group_emb, mention_author=False, view=Delete(self))
+            await self.context.reply(embed=group_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
 
     async def send_error_message(self, error: str, /) -> None:
         error_emb = BaseEmbed(

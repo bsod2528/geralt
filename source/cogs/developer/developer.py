@@ -391,7 +391,10 @@ class Developer(commands.Cog):
             f"> **No. of Bots :** `{len(list(filter(lambda U : U.bot, guild.members)))}` \n"
             f"> **Total :** `{guild.member_count}` \n",
             inline=False)
-        fetched_guild_emb.set_thumbnail(url=guild.icon.url)
+        try:
+            fetched_guild_emb.set_thumbnail(url=guild.icon.url)
+        except AttributeError:
+            pass
 
         if fetched_guild.banner is None:
             async with ctx.channel.typing():
@@ -529,3 +532,16 @@ class Developer(commands.Cog):
         except Exception as exception:
             await ctx.send(f"```py\\{exception}\n```")
             await ctx.add_nanocross()
+
+    @commands.command(
+        name="keepalive",
+        brief="Keeps the guild alive",
+        aliases=["ka"])
+    @commands.is_owner()
+    async def keep_alive(self, ctx: GeraltContext):
+        """Keeps the Among 3 guild alive"""
+        if ctx.guild.id != 913809986386284544:
+            return await ctx.reply(f"**{ctx.author}** - this is not among three guild.")
+        for _ in range(20):
+            await asyncio.sleep(30)
+            await ctx.send("br")

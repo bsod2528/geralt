@@ -281,10 +281,12 @@ class Tags(commands.Cog):
         name="make",
         brief="Make a tag",
         aliases=["add"],
-        with_app_command=False)
+        with_app_command=True)
     @commands.cooldown(5, 5, commands.BucketType.user)
     async def tag_make(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Make a tag."""
+        async with ctx.typing():
+            await asyncio.sleep(1)
         await TagView(self.bot, ctx).send()
 
     @tag.command(

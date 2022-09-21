@@ -27,6 +27,7 @@ COGS_EXTENSIONS: List = [
     # "source.cogs.music",
     "source.cogs.events",
     "source.cogs.utility",
+    #"source.cogs.highlight",
     "source.cogs.developer",
     "source.cogs.moderation",
     "source.cogs.errorhandler"

@@ -1,8 +1,8 @@
 import os
 import discord
-import aiofiles
+import aiofiles 
 
-from typing import Dict, Union, Optional
+from typing import Dict, Union
 
 # Counts the total lines
 
@@ -115,7 +115,5 @@ class WebhookManager:
             for hook in webhook_list:
                 if hook.token:
                     return hook
-        webhook = await channel.create_webhook(
-            name="Geralt's Webhook",
-            avatar=await channel.guild.me.display_avatar.read())
+        webhook = await channel.create_webhook(name="Geralt's Webhook", avatar=await channel.guild.me.display_avatar.read())
         return webhook

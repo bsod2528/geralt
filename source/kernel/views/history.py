@@ -3,6 +3,7 @@ import discord
 from discord.errors import NotFound
 from typing import Optional, TYPE_CHECKING
 
+from ...kernel.views.paginator import Paginator
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.context import GeraltContext
 
@@ -18,7 +19,7 @@ class UserHistory(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.user = user
 
-    @discord.ui.button(label="Username",
+    @discord.ui.button(label="Username(s)",
                        style=discord.ButtonStyle.grey,
                        emoji="<a:Users:905749451350638652>")
     async def see_username_history(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -38,7 +39,7 @@ class UserHistory(discord.ui.View):
         except NotFound:
             return
 
-    @discord.ui.button(label="Discriminator",
+    @discord.ui.button(label="Discriminator(s)",
                        style=discord.ButtonStyle.grey,
                        emoji="<:Channel:905674680436944906>")
     async def see_discriminator_history(self, interaction: discord.Interaction, button: discord.ui.Button):

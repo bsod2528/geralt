@@ -10,15 +10,16 @@ import inspect
 import humanize
 
 from typing import Optional
+from discord import app_commands
 from discord.ext import commands
 
+from ...cogs.help.help import GeraltHelp
 from ...kernel.views.paginator import Paginator
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.meta import Info, Confirmation
 from ...kernel.utilities.crucial import total_lines
 from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.subclasses.context import GeraltContext
-from ...cogs.help.help import GeraltHelp
 
 
 class Meta(commands.Cog):
@@ -42,6 +43,7 @@ class Meta(commands.Cog):
         name="ping",
         brief="You ping Me",
         aliases=["pong"])
+    @app_commands.checks.cooldown(2, 10)
     @commands.cooldown(2, 10, commands.BucketType.user)
     async def ping(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Get proper latency timings of the bot."""
@@ -91,7 +93,7 @@ class Meta(commands.Cog):
     # implementing buttons for System Usage [ PSUTIl ] and Latest Commits on
     # Github :)
 
-    @commands.command(
+    @commands.hybrid_command(
         name="info",
         brief="Get info on me",
         aliases=["about"])
@@ -109,17 +111,18 @@ class Meta(commands.Cog):
             f"\n<:Reply:930634822865547294> ` ─ ` Channels In : `{sum(1 for x in self.bot.get_all_channels())}`")
         info_emb.add_field(
             name="Program Statistics :",
-            value=f"<:ReplyContinued:930634770004725821> ` ─ ` Language : <:WinPython:898614277018124308> [**Python 3.10.0**](https://www.python.org/downloads/release/python-3100/)"
+            value=f"<:ReplyContinued:930634770004725821> ` ─ ` Language : <:WinPython:898614277018124308> [**Python 3.10.5**](https://www.python.org/downloads/release/python-3100/)"
             f"\n<:Reply:930634822865547294> ` ─ ` Base Library : <a:Discord:930855436670889994> [**Discord.py**](https://github.com/DisnakeDev/disnake)")
         info_emb.set_thumbnail(url=ctx.me.display_avatar.url)
         async with ctx.typing():
             await asyncio.sleep(0.5)
         await ctx.reply(embed=info_emb, mention_author=False, view=Info(self.bot, ctx))
 
-    @commands.group(
+    @commands.hybrid_group(
         name="report",
         brief="Report Something",
-        aliases=["r"])
+        aliases=["r"],
+        with_app_command=True)
     @commands.guild_only()
     @commands.cooldown(1, 20, commands.BucketType.user)
     async def report(self, ctx: GeraltContext) -> Optional[discord.Message]:
@@ -129,7 +132,10 @@ class Meta(commands.Cog):
 
     @report.command(
         name="bug",
-        brief="Report a bug")
+        brief="Report a bug",
+        with_app_command=True)
+    @app_commands.checks.cooldown(1, 20)
+    @app_commands.describe(bug="Something that you've found wrong with me.")
     @commands.cooldown(1, 20, commands.BucketType.user)
     async def bug(self, ctx: GeraltContext, *, bug: str) -> Optional[discord.Message]:
         """Send a bug to the dev if you find any."""
@@ -172,7 +178,10 @@ class Meta(commands.Cog):
     @report.command(
         name="feedback",
         brief="Send your feeback",
-        aliases=["fb"])
+        aliases=["fb"],
+        with_app_command=True)
+    @app_commands.checks.cooldown(1, 20)
+    @app_commands.describe(feedback="How you feel about the user experience in general.")
     @commands.cooldown(1, 20, commands.BucketType.user)
     async def feedback(self, ctx: GeraltContext, *, feedback: str) -> Optional[discord.Message]:
         """Send a feedback to the dev if you find any."""
@@ -236,7 +245,9 @@ class Meta(commands.Cog):
     @commands.hybrid_command(
         name="uptime",
         brief="Returns Uptime",
-        aliases=["ut"])
+        aliases=["ut"],
+        with_app_command=True)
+    @app_commands.checks.cooldown(3, 5)
     @commands.cooldown(3, 5, commands.BucketType.user)
     async def uptime(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Sends my uptime -- how long I've been online for"""
@@ -248,10 +259,12 @@ class Meta(commands.Cog):
             pass
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"**online**\" for -\n>>> <:ReplyContinued:930634770004725821>` ─ ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` ─ ` Roughly Since : {self.bot.timestamp(self.bot.uptime, style = 'R')} ({self.bot.timestamp(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
 
-    @commands.command(
+    @commands.hybrid_command(
         name="google",
         brief="Search Google",
-        aliases=["g", "web"])
+        aliases=["g", "web"],
+        with_app_command=True)
+    @app_commands.checks.cooldown(2, 5)
     @commands.cooldown(2, 5, commands.BucketType.user)
     async def web(self, ctx: GeraltContext, *, query: str) -> Optional[discord.Message]:
         """Search Google for anything"""
@@ -292,10 +305,11 @@ class Meta(commands.Cog):
         await ctx.reply(embed=web_emb, allowed_mentions=self.bot.mentions)
         await session.close()
 
-    @commands.command(
+    @commands.hybrid_command(
         name="invite",
-        brief="Get Invite Link",
-        aliases=["inv"])
+        brief="Get Invite Links",
+        aliases=["inv"],
+        with_app_command=True)
     async def invite(self, ctx: GeraltContext) -> Optional[discord.Message]:
         invite_emb = BaseEmbed(
             colour=self.bot.colour)
@@ -310,7 +324,7 @@ class Meta(commands.Cog):
             icon_url=ctx.author.display_avatar.url)
         await ctx.reply(embed=invite_emb, mention_author=False)
 
-    @commands.command(
+    @commands.hybrid_command(
         name="usage",
         brief="Get command usage",
         aliases=["cu"])
@@ -336,17 +350,20 @@ class Meta(commands.Cog):
             embed_list.append(cmd_usage_emb)
         await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
 
-    @commands.command(
+    @commands.hybrid_command(
         name="source",
         brief="Returns Source",
         aliases=["src"])
+    @app_commands.checks.cooldown(2, 5)
     @commands.cooldown(2, 5, commands.BucketType.user)
+    @app_commands.describe(command="A command you want to get the source for.")
     async def source(self, ctx: GeraltContext, *, command: str = None) -> Optional[discord.Message]:
         """Returns source for a command"""
         view = discord.ui.View()
         branch = "stellar-v2"
         repo_url = "https://github.com/BSOD2528/Geralt"
         repository = await self.bot.git.get_repo("BSOD2528", "Geralt")
+        line_count = await total_lines("source", ".py")
 
         source_emb = BaseEmbed(
             title=f"Github - {repository.full_name}",
@@ -355,7 +372,7 @@ class Meta(commands.Cog):
             colour=self.bot.colour)
         source_emb.add_field(
             name="Total Lines",
-            value=f"<:Reply:930634822865547294> `{await total_lines('source', '.py'):,}`")
+            value=f"<:Reply:930634822865547294> `{line_count + 10}`")
         source_emb.add_field(
             name="Stars",
             value=f"<:Reply:930634822865547294> `{repository.stargazers_count}`")

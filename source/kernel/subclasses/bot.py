@@ -61,7 +61,7 @@ class Geralt(commands.Bot):
             *args,
             **kwargs)
 
-        self.db: asyncpg.pool
+        self.db: asyncpg.Pool = None
         self.git = None
         self.colour = discord.Colour.from_rgb(170, 179, 253)
         self.mentions = discord.AllowedMentions.none()
@@ -78,6 +78,7 @@ class Geralt(commands.Bot):
         self.meta: Dict = {}
         self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
         self.blacklists: Dict = set()
+        self.highlight: Dict = {}
         self.ticket_init: Dict = {}
         self.verification: Dict = {}
         self.ticket_kernel: Dict = {}
@@ -107,7 +108,7 @@ class Geralt(commands.Bot):
             return ""
         cached = self.prefixes.get(
             (message.guild and message.guild.id),
-            None)  # type: ignore
+            None)
         if cached is not None:
             prefix = set(cached)
         else:
@@ -145,8 +146,9 @@ class Geralt(commands.Bot):
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)
+                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;37m└──{escape}[0m {escape}[0;1;37m{time.strftime('%c', time.localtime())}  └── Loading : {extensions} {escape}[0m")
             except Exception as exception:
-                print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;31m{time.strftime('%c', time.localtime())} ─ {exception} : {exception}\n{escape}[0m")
+                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;31m└──{escape}[0m {escape}[0;1;31m{time.strftime('%c', time.localtime())}  └── Error Loading : {exception} {escape}[0m")
         print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded.{escape}[0m")
 
     async def setup_hook(self) -> None:
@@ -165,6 +167,7 @@ class Geralt(commands.Bot):
         afk_deets = await self.db.fetch("SELECT * FROM afk")
         meta_deets = await self.db.fetch("SELECT * FROM meta")
         prefix_deets = await self.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+        highlight_deets = await self.db.fetch("SELECT * FROM highlight")
         ticket_init_deets = await self.db.fetch("SELECT * FROM ticket_init")
         verification_deets = await self.db.fetch("SELECT * FROM verification")
         ticket_kernel_deets = await self.db.fetch("SELECT * FROM ticket_kernel")
@@ -200,6 +203,10 @@ class Geralt(commands.Bot):
                 data["message_id"]] for data in verification_deets}
         self.convert_url_to_webhook = {
             data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_deets}
+
+        if highlight_deets:
+            self.highlight = {
+                data["user_id"]: [data["trigger"]] for data in highlight_deets}
 
         self.locked_objects_ids.append(
             data["object_id"] for data in locked_objects_ids_deets)
@@ -282,7 +289,7 @@ class Geralt(commands.Bot):
 
         if message.content in [self.user.mention]:
             prefix_emb = BaseEmbed(
-                description="\n".join(await self.get_prefix(message)),
+                description=f"> <:GeraltRightArrow:904740634982760459> " + "\n> <:GeraltRightArrow:904740634982760459> ".join(await self.get_prefix(message)),
                 colour=self.colour)
             prefix_emb.set_footer(text="Run `@Geralthelp prefix`.")
             if message.guild.icon.url:
@@ -299,9 +306,9 @@ class Geralt(commands.Bot):
             return await self.process_commands(after)
 
 
-Geralt = Geralt()
+geralt = Geralt()
 
 
 async def run():
-    async with Geralt:
-        await Geralt.start(TOKEN)
+    async with geralt:
+        await geralt.start(TOKEN)

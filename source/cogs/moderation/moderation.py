@@ -1,7 +1,8 @@
 import discord
 
+from discord import app_commands
 from discord.ext import commands
-from typing import Optional, Literal, Union, Dict
+from typing import Optional, Literal, Union
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.meta import Confirmation
@@ -47,8 +48,11 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(
         name="kick",
         brief="Kicks User")
+    @app_commands.checks.cooldown(5, 3)
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(kick_members=True)
+    @app_commands.describe(reason="Reason why you're kicking them.")
+    @app_commands.describe(user="User you want to kick from this server.")
     async def kick(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Teach them a lesson by kicking them out."""
         self.check_hierarchy(ctx, user)
@@ -77,10 +81,13 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(
         name="ban",
         brief="Bans User")
-    @commands.cooldown(5, 3, commands.BucketType.user)
+    @app_commands.checks.cooldown(5, 3)
     @commands.has_guild_permissions(ban_members=True)
+    @commands.cooldown(5, 3, commands.BucketType.user)
+    @app_commands.describe(reason="Reason why you're banning them.")
+    @app_commands.describe(user="User you want to ban from this server.")
     async def ban(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
-        """Teach them a lesson by kicking them out."""
+        """Teach them a lesson by banning them out."""
         self.check_hierarchy(ctx, user)
 
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.button):
@@ -107,8 +114,11 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(
         name="mute",
         brief="Mutes User")
+    @app_commands.checks.cooldown(5, 3)
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_roles=True)
+    @app_commands.describe(user="The user you want to mute.")
+    @app_commands.describe(reason="The reason why you're muting them.")
     async def mute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Mute toxic users"""
         self.check_hierarchy(ctx, user)
@@ -151,8 +161,11 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(
         name="unmute",
         brief="Unmutes User")
+    @app_commands.checks.cooldown(5, 3)
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_roles=True)
+    @app_commands.describe(user="The user you're unmuting them.")
+    @app_commands.describe(reason="The reason why you're unmuting them.")
     async def unmute(self, ctx: GeraltContext, user: discord.Member, *, reason: str = "Not Provided") -> Optional[discord.Message]:
         """Unmute users"""
         self.check_hierarchy(ctx, user)
@@ -194,6 +207,9 @@ class Moderation(commands.Cog):
         name="setnick",
         brief="Change Nick",
         aliases=["nick"])
+    @app_commands.checks.cooldown(5, 3)
+    @app_commands.describe(nick="The nick name you want to set for them.")
+    @app_commands.describe(user="The user you want to set / change nick name for.")
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_nicknames=True)
     async def nick(self, ctx: GeraltContext, user: discord.Member, *, nick: str) -> Optional[discord.Message]:
@@ -217,8 +233,10 @@ class Moderation(commands.Cog):
         name="purge",
         brief="Purge messages",
         aliases=["cls"])
+    @app_commands.checks.cooldown(5, 3)
     @commands.cooldown(5, 3, commands.BucketType.user)
     @commands.has_guild_permissions(manage_messages=True)
+    @app_commands.describe(limit="Number of messages you want to delete.")
     async def purge(self, ctx: GeraltContext, *, limit: Optional[int]) -> Optional[discord.Message]:
         """Purge Messages. Default Limit = 5"""
         if not limit:
@@ -226,7 +244,7 @@ class Moderation(commands.Cog):
         if limit > 30:
             return await ctx.reply("Purge less than `50` SMH!")
         await ctx.channel.purge(limit=limit, bulk=False)
-        await ctx.send(f"Deleted a total of `{limit}` messages.", delete_after=2.5)
+        return await ctx.send(f"Deleted a total of `{limit}` messages.", delete_after=2.5)
 
     @commands.hybrid_group(
         name="channel",
@@ -243,7 +261,8 @@ class Moderation(commands.Cog):
         brief="Lock channels from objects.",
         aliases=["lk"],
         with_app_command=True)
-    @commands.is_owner()
+    @app_commands.describe(channel="Choose the channel you want to lock.")
+    @app_commands.describe(snowflake="The role or user you want to block that channel for.")
     async def lock(self, ctx: GeraltContext, channel: discord.TextChannel, snowflake: Union[discord.Member, discord.Role]) -> Optional[discord.Message]:
         """Lock user/role from using a channel."""
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
@@ -278,7 +297,7 @@ class Moderation(commands.Cog):
                 pass
             await ui.response.edit(embed=locked_emb, view=ui, allowed_mentions=self.bot.mentions)
             query = "INSERT INTO channel_lock VALUES ($1, $2, $3, $4, $5)"
-            self.bot.locked_objects.append(snowflake.id)
+            self.bot.locked_objects_ids.append(snowflake.id)
             if ctx.guild.get_role(snowflake.id):
                 return await self.bot.db.execute(query, snowflake.id, channel.id, ctx.guild.id, "role", discord.utils.utcnow())
             if ctx.guild.get_member(snowflake.id):
@@ -316,6 +335,8 @@ class Moderation(commands.Cog):
         brief="Unlock channels from objects.",
         aliases=["unlk"],
         with_app_command=True)
+    @app_commands.describe(channel="Choose the channel you want to unlock.")
+    @app_commands.describe(snowflake="The role or user you want to unblock that channel for.")
     async def channel_unlock(self, ctx: GeraltContext, channel: discord.TextChannel, snowflake: Union[discord.Member, discord.Role]) -> Optional[discord.Message]:
         """Unlock channels from members/roles."""
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
@@ -357,7 +378,7 @@ class Moderation(commands.Cog):
             await ui.response.edit(embed=unlocked_emb, view=ui, allowed_mentions=self.bot.mentions)
             query = "DELETE FROM channel_lock WHERE object_id = $1 AND guild_id = $2"
             await self.bot.db.execute(query, snowflake.id, ctx.guild.id)
-            self.bot.locked_objects.remove(snowflake.id)
+            self.bot.locked_objects_ids.remove(snowflake.id)
 
         async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:

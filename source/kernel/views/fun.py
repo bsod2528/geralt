@@ -25,7 +25,7 @@ class Nitro(discord.ui.View):
     async def nitro(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.disabled = True
         button.label = "Claimed"
-        await interaction.message.edit(view=self)
+        await interaction.message.edit(view=self)  
         try:
             await interaction.user.send(content=f"discord.gift/R1cKr0OlL3d")
             await interaction.response.send_message(content="https://imgur.com/NQinKJB", ephemeral=True)
@@ -39,9 +39,9 @@ class Nitro(discord.ui.View):
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user != self.ctx.author:
             try:
-                return await interaction.response.send_message(content=f"{pain}", ephemeral=True)
+                return await interaction.response.send_message(content=f"{pain}", ephemeral=True)  
             except NotFound:
-                return
+                return  
         return True
 
 # Classes for Pop Game
@@ -61,7 +61,7 @@ class PopButton(discord.ui.Button):
             await interaction.response.defer()
             self.disabled = True
             self.style = discord.ButtonStyle.grey
-            await self.view.message.edit(view=self.view)
+            await self.view.message.edit(view=self.view)  
         except NotFound:
             return
 
@@ -75,8 +75,8 @@ class Pop(discord.ui.View):
 
     async def send(self):
         try:
-            for button in range(self.size):
-                if self.size > 25:
+            for button in range(self.size):  
+                if self.size > 25:  
                     raise commands.BadArgument(
                         "size passed in should be less than 25.")
                 if not self.size:
@@ -97,17 +97,17 @@ class Pop(discord.ui.View):
 
     async def on_timeout(self) -> None:
         for view in self.children:
-            view.disabled = True
-            view.style = discord.ButtonStyle.grey
-            await self.message.edit(view=self)
+            view.disabled = True  
+            view.style = discord.ButtonStyle.grey  
+            await self.message.edit(view=self)  
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user != self.ctx.author:
             try:
-                return await interaction.response.send_message(content=f"{pain}", ephemeral=True)
+                return await interaction.response.send_message(content=f"{pain}", ephemeral=True)  
             except NotFound:
-                return
+                return  
         return True
 
 # Simple Click Game - Idea by InterStella0 [ Github ID ]
@@ -151,12 +151,12 @@ class ClickButton(discord.ui.Button):
                         "VALUES ($1, $2, 1, $3)" \
                         "ON CONFLICT (guild_id, player_id)" \
                         "DO UPDATE SET clicks = click_guild.clicks + 1, player_name = $3"
-                    await self.bot.db.execute(guild_score_query, interaction.guild_id, interaction.user.id, str(self.ctx.author))
+                    await self.bot.db.execute(guild_score_query, interaction.guild_id, interaction.user.id, str(self.ctx.author))  
                     global_score_query = "INSERT INTO click_global (player_id, clicks, player_name, player_pfp)" \
                         "VALUES ($1, 1, $2, $3)" \
                         "ON CONFLICT (player_id)" \
                         "DO UPDATE SET clicks = click_global.clicks + 1, player_name = $2, player_pfp = $3"
-                    await self.bot.db.execute(global_score_query, interaction.user.id, str(self.ctx.author), str(self.ctx.author.display_avatar))
+                    await self.bot.db.execute(global_score_query, interaction.user.id, str(self.ctx.author), str(self.ctx.author.display_avatar))  
                 except NotFound:
                     return
             except Exception as exception:
@@ -183,8 +183,8 @@ class ClickGame(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.size = size
 
-        for button in range(self.size):
-            if self.size > 10:
+        for button in range(self.size):  
+            if self.size > 10:  
                 raise commands.BadArgument("Size should be less than \"10\"")
             if not self.size:
                 self.add_item(ClickButton(self.bot, self.ctx))
@@ -197,12 +197,12 @@ class ClickGame(discord.ui.View):
                        row=2)
     async def on_click_guild_leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
-            guild_score_query = await self.bot.db.fetchval("SELECT (clicks) FROM click_guild WHERE guild_id = $1 AND player_id = $2", interaction.guild_id, self.ctx.author.id)
+            guild_score_query = await self.bot.db.fetchval("SELECT (clicks) FROM click_guild WHERE guild_id = $1 AND player_id = $2", interaction.guild_id, self.ctx.author.id)  
             await interaction.response.defer()
             if not guild_score_query:
-                await interaction.followup.send(content=f"{self.ctx.author.mention} has yet to click on the button in **{interaction.guild.name}** <:TokoOkay:898611996163985410>", ephemeral=True)
+                await interaction.followup.send(content=f"{self.ctx.author.mention} has yet to click on the button in **{interaction.guild.name}** <:TokoOkay:898611996163985410>", ephemeral=True)  
             else:
-                await interaction.followup.send(content=f"{self.ctx.author.mention} has clicked a total of `{guild_score_query}` times in **{interaction.guild.name}** <:TokoOkay:898611996163985410>", ephemeral=True)
+                await interaction.followup.send(content=f"{self.ctx.author.mention} has clicked a total of `{guild_score_query}` times in **{interaction.guild.name}** <:TokoOkay:898611996163985410>", ephemeral=True)  
         except Exception as exception:
             try:
                 await interaction.followup.send(content=f"```py\n{exception}\n```", ephemeral=True)
@@ -227,7 +227,7 @@ class ClickGame(discord.ui.View):
 
     async def on_timeout(self) -> None:
         for view in self.children:
-            view.disabled = True
+            view.disabled = True  
         return await self.message.edit(content=f"**{self.ctx.author}** - you've been timed out due to inactivity. To start clicking again, rerun `{self.ctx.clean_prefix}{self.ctx.command}` and be the number one on the leaderboard <a:Comfort:918844984621428787>", view=self)
 
 
@@ -243,7 +243,7 @@ class ClickLeaderboard(discord.ui.View):
     async def click_global_leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             await interaction.response.defer()
-            global_leaderboard_query = await self.bot.db.fetch("SELECT player_name, clicks, player_pfp FROM click_global ORDER BY clicks DESC LIMIT 10")
+            global_leaderboard_query = await self.bot.db.fetch("SELECT player_name, clicks, player_pfp FROM click_global ORDER BY clicks DESC LIMIT 10")  
             serial_no = 1
             leaderboard = []
             for data in global_leaderboard_query:
@@ -265,7 +265,7 @@ class ClickLeaderboard(discord.ui.View):
                     text=f"Run {self.ctx.clean_prefix}click for more sub ─ commands.")
                 leaderboard = leaderboard[10:]
             try:
-                await interaction.followup.send(embed=global_leaderboard_emb, ephemeral=True)
+                await interaction.followup.send(embed=global_leaderboard_emb, ephemeral=True)  
             except NotFound:
                 return
         except Exception as exception:
@@ -275,7 +275,7 @@ class ClickLeaderboard(discord.ui.View):
                 return
 
     async def send(self):
-        guild_score_query = await self.bot.db.fetch("SELECT player_id, clicks FROM click_guild WHERE guild_id = $1 ORDER BY clicks DESC LIMIT 10", self.ctx.guild.id)
+        guild_score_query = await self.bot.db.fetch("SELECT player_id, clicks FROM click_guild WHERE guild_id = $1 ORDER BY clicks DESC LIMIT 10", self.ctx.guild.id)  
         serial_no = 1
         leaderboard = []
         for data in guild_score_query:
@@ -294,14 +294,14 @@ class ClickLeaderboard(discord.ui.View):
                 leaderboard_emb.add_field(
                     name="Top 10 Scores",
                     value="".join(leaderboard[:10]))
-                leaderboard_emb.set_thumbnail(url=self.ctx.guild.icon.url)
+                leaderboard_emb.set_thumbnail(url=self.ctx.guild.icon.url)  
                 leaderboard_emb.set_footer(
                     text=f"Run {self.ctx.clean_prefix}help click for more sub ─ commands.")
                 leaderboard = leaderboard[10:]
-        self.message = await self.ctx.reply(embed=leaderboard_emb, view=self, mention_author=False)
+        self.message = await self.ctx.reply(embed=leaderboard_emb, view=self, mention_author=False)  
         return self.message
 
     async def on_timeout(self) -> None:
         for view in self.children:
-            view.disabled = True
-            return await self.message.edit(view=self)
+            view.disabled = True  
+            return await self.message.edit(view=self)  

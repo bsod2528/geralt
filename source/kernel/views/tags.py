@@ -27,6 +27,9 @@ class TagView(discord.ui.View):
         self.bot: "Geralt" = bot
         self.ctx: GeraltContext = ctx
 
+        if ctx.interaction:
+            self.remove_item(self.exit_tag_creation)
+
     class CreateTagModal(discord.ui.Modal, title="Create a Tag !"):
         def __init__(self, bot: "Geralt", ctx: GeraltContext):
             super().__init__()

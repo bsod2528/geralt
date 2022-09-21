@@ -74,7 +74,7 @@ class Info(discord.ui.View):
         mem_per = psutil.virtual_memory().percent
         mem_gb = psutil.virtual_memory().available / 1024 ** 3
         ram_usage = psutil.Process().memory_full_info().uss / 1024 ** 2
-
+        no_of_lines = await tl('source/', '.py')
         stats_emb = BaseEmbed(
             title="<:VerifiedDev:905668791831265290> Miscellaneous Statistics :",
             colour=COLOUR)
@@ -84,7 +84,7 @@ class Info(discord.ui.View):
             stats_emb.description = f"\n Shows Code Related Things :\n" \
                                     f"```prolog\n - Total Classes    : {await misc('source/', '.py', 'class'):,}" \
                                     f"\n - Total Functions  : {await misc('source/', '.py', 'def'):,}" \
-                                    f"\n - Total Lines      : {await tl('source/', '.py'):,}```"
+                                    f"\n - Total Lines      : {no_of_lines + 10}```"
 
             stats_emb.add_field(
                 name="System Usage",
