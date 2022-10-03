@@ -232,7 +232,7 @@ class PFP(discord.ui.View):
 
 class Leave(discord.ui.View):
     def __init__(self, ctx: GeraltContext, guild: discord.Guild):
-        super().__init__()
+        super().__init__(timeout=60)
         self.ctx = ctx
         self.guild = guild
 
@@ -256,6 +256,11 @@ class Leave(discord.ui.View):
             await interaction.message.delete()
         except NotFound:
             return
+
+    async def on_timeout(self) -> None:
+        for view in self.children:
+            view.disabled = True
+            await self.message.edit(view=self)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment <:SarahPray:920484222421045258>"

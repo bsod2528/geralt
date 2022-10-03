@@ -396,15 +396,16 @@ class Developer(commands.Cog):
         except AttributeError:
             pass
 
+        leave_view = Leave(ctx, guild)
         if fetched_guild.banner is None:
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await ctx.reply(embed=fetched_guild_emb, mention_author=False, view=Leave(ctx, guild))
+            leave_view.message = await ctx.reply(embed=fetched_guild_emb, mention_author=False, view=leave_view)
         else:
             fetched_guild_emb.set_image(url=fetched_guild.banner.url)
             async with ctx.channel.typing():
                 await asyncio.sleep(0.1)
-            await ctx.reply(embed=fetched_guild_emb, mention_author=False, view=Leave(ctx, guild))
+            leave_view.message =  await ctx.reply(embed=fetched_guild_emb, mention_author=False, view=leave_view)
 
     # Taken from R.Danny Bot by Rapptz - Danny [ Github Profile Name ]
     @commands.command(

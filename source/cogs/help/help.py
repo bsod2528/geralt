@@ -5,7 +5,6 @@ from typing import Union, Optional
 from discord.ext.commands import Group
 from discord.ext.commands import HelpCommand
 
-from ...kernel.subclasses.bot import Geralt
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.views.help import GroupAndCommandView, HelpView
 from ...kernel.subclasses.context import GeraltContext
@@ -21,7 +20,7 @@ class GeraltHelp(commands.HelpCommand):
 
     def group_and_command_footer(
             self, group_or_command: Union[commands.Command, commands.Group]):
-        return f"Run `{self.context.clean_prefix}help {group_or_command.cog_name}` for info on `{group_or_command.cog_name}` cog."
+        return f"Run \"{self.context.clean_prefix}help {group_or_command.cog_name}\" for info on \"{group_or_command.cog_name}\" cog."
 
     async def send_bot_help(self, mapping) -> Optional[discord.Message]:
         cog_list = []
@@ -45,7 +44,9 @@ class GeraltHelp(commands.HelpCommand):
                 help_emb.set_footer(
                     text=self.footer(),
                     icon_url=self.context.author.display_avatar)
-        await self.context.reply(embed=help_emb, view=HelpView(mapping, self, cog_list), mention_author=False)
+        main_help_view: discord.ui.View = HelpView(mapping, self, cog_list)
+        main_help_view.message = await self.context.reply(embed=help_emb, view=main_help_view, mention_author=False)
+        await main_help_view.wait()
 
     async def send_cog_help(self, cog: commands.Cog) -> Optional[discord.Message]:
         cog.get_commands()
@@ -73,7 +74,9 @@ class GeraltHelp(commands.HelpCommand):
                     cogs for cogs in HelpCommand.get_bot_mapping(self) if cogs is not None and cogs.qualified_name not in [
                         "ErrorHandler", "Developer", "Jishaku", "Events", "Help"]]
         try:
-            await self.context.reply(embed=cog_emb, mention_author=False, view=HelpView(HelpCommand.get_bot_mapping(self), self, cog_list=cog_list))
+            cog_view: discord.ui.View = HelpView(HelpCommand.get_bot_mapping(self), self, cog_list)
+            cog_view.message = await self.context.reply(embed=cog_emb, mention_author=False, view=cog_view)
+            await cog_view.wait()
         except BaseException:
             return
 
@@ -83,7 +86,7 @@ class GeraltHelp(commands.HelpCommand):
         except BaseException:
             return
         if command.aliases:
-            alias = " | ".join(f"`{alias}`" for alias in command.aliases)
+            alias = " | ".join(f"`{alias}`" for alias in sorted(command.aliases))
         else:
             alias = "`Nil`"
         emote = getattr(command._cog, "emote", None)
@@ -114,12 +117,16 @@ class GeraltHelp(commands.HelpCommand):
             command_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{command.qualified_name} {command.signature}\n```\n" \
                                       f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
                                       f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
-            await self.context.reply(embed=command_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
+            command_view_for_mobile: discord.ui.View = GroupAndCommandView(self, HelpCommand.get_bot_mapping(self))
+            command_view_for_mobile.message = await self.context.reply(embed=command_emb, mention_author=False, view=command_view_for_mobile)
+            await command_view_for_mobile.wait()
         else:
             command_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{command.qualified_name}\x1b[0m \x1b[0;1;34m{command.signature}\x1b[0m\n```\n" \
                                       f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {command.cog_name} \n" \
                                       f"<:Reply:930634822865547294> ` ─ ` **Description : ** {command.help if command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{command.full_parent_name}`' if command.parent else ' '}"
-            await self.context.reply(embed=command_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
+            command_view_for_pc: discord.ui.View = GroupAndCommandView(self, HelpCommand.get_bot_mapping(self))
+            command_view_for_pc.message = await self.context.reply(embed=command_emb, mention_author=False, view=command_view_for_pc)
+            await command_view_for_pc.wait()
 
     async def send_group_help(self, group: commands.Group) -> Optional[discord.Message]:
         try:
@@ -129,7 +136,7 @@ class GeraltHelp(commands.HelpCommand):
         group_commands = [
             f"> <:Join:932976724235395072> `{command.name}{' '*(10 - len(command.name))}` \u200b ─ \u200b {command.short_doc}" for command in group.commands]
         if group.aliases:
-            alias = " | ".join(f"`{alias}`" for alias in group.aliases)
+            alias = " | ".join(f"`{alias}`" for alias in sorted(group.aliases))
         else:
             alias = "`Nil`"
         emote = getattr(group._cog, "emote", None)
@@ -139,7 +146,7 @@ class GeraltHelp(commands.HelpCommand):
             colour=self.context.bot.colour)
         group_emb.add_field(
             name="Subcommands Present :",
-            value=f"\n".join(group_commands))
+            value=f"\n".join(sorted(group_commands)))
         group_emb.set_footer(
             text=self.group_and_command_footer(group),
             icon_url=self.context.author.display_avatar)
@@ -163,12 +170,16 @@ class GeraltHelp(commands.HelpCommand):
             group_emb.description = f"```yaml\n> Syntax : {self.context.clean_prefix}{group} {group.signature}\n```\n" \
                                     f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
                                     f"<:Reply:930634822865547294>` ─ ` **Description : ** {group.help}"
-            await self.context.reply(embed=group_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
+            group_view_for_mobile: discord.ui.View = GroupAndCommandView(self, HelpCommand.get_bot_mapping(self))
+            group_view_for_mobile.message = await self.context.reply(embed=group_emb, mention_author=False, view=group_view_for_mobile)
+            await group_view_for_mobile.wait()
         else:
             group_emb.description = f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{group}\x1b[0m \x1b[0;1;34m{group.signature}\x1b[0m\n```\n" \
                                     f">>> <:ReplyContinued:930634770004725821>` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821>` ─ ` **Category :** {group.cog_name}\n" \
                                     f" <:Reply:930634822865547294>` ─ ` **Description : ** {group.help}"
-            await self.context.reply(embed=group_emb, mention_author=False, view=GroupAndCommandView(self, HelpCommand.get_bot_mapping(self)))
+            group_view_for_pc: discord.ui.View = GroupAndCommandView(self, HelpCommand.get_bot_mapping(self))
+            group_view_for_pc.message = await self.context.reply(embed=group_emb, mention_author=False, view=group_view_for_pc)
+            await group_view_for_pc.wait()
 
     async def send_error_message(self, error: str, /) -> None:
         error_emb = BaseEmbed(

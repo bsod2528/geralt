@@ -271,7 +271,7 @@ class Tags(commands.Cog):
     @app_commands.checks.cooldown(5, 5)
     @commands.cooldown(5, 5, commands.BucketType.user)
     async def tag(self, ctx: GeraltContext, *, tag_name: str = None) -> Optional[discord.Message]:
-        """Make me to say something upon being invoking a trigger"""
+        """Allows you to tag text for later retrieval."""
         if not tag_name:
             return await ctx.command_help()
         if ctx.invoked_subcommand is None:

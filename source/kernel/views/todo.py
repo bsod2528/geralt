@@ -64,7 +64,7 @@ class SeeTask(discord.ui.View):
             bot: Geralt,
             ctx: GeraltContext,
             task_id: int):
-        super().__init__()
+        super().__init__(timeout=100)
         self.bot: Geralt = bot
         self.ctx: GeraltContext = ctx
         self.task_id: int = task_id
@@ -82,7 +82,12 @@ class SeeTask(discord.ui.View):
     async def delete_task(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.bot.db.execute(f"DELETE FROM todo WHERE task_id = $1", self.task_id)
         button.disabled = True
-        return await interaction.response.send_message(content=f"Successfully deleted Task ID - `{self.task_id}` from your todo list <:RavenPray:914410353155244073>", ephemeral=True, view=self)
+        return await interaction.response.edit_message(content=f"Successfully deleted Task ID - `{self.task_id}` from your todo list <:RavenPray:914410353155244073>", view=self)
+
+    async def on_timeout(self) -> None:
+        for view in self.children:
+            view.disabled = True
+        return await self.message.edit(view=self)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"

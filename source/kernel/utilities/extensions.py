@@ -15,7 +15,6 @@ import source.kernel.subclasses.context as context
 import source.kernel.views.verification as verification
 import source.kernel.views.errorhandler as errorhandler
 import source.kernel.utilities.extensions as extensions
-import source.kernel.subclasses.wavelink_player as player
 import source.kernel.utilities.override_jsk as overidden_jishaku
 
 COGS_EXTENSIONS: List = [
@@ -24,10 +23,9 @@ COGS_EXTENSIONS: List = [
     "source.cogs.tags",
     "source.cogs.meta",
     "source.cogs.guild",
-    # "source.cogs.music",
     "source.cogs.events",
     "source.cogs.utility",
-    #"source.cogs.highlight",
+    "source.cogs.discord",
     "source.cogs.developer",
     "source.cogs.moderation",
     "source.cogs.errorhandler"
@@ -41,7 +39,6 @@ KERNEL_EXTENSIONS: List = [
     tags,
     flags,
     embed,
-    player,
     history,
     tickets,
     crucial,

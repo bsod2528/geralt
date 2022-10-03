@@ -1,7 +1,5 @@
-.vscode
 venv
+.vscode
 config.env
 __pycache__
-lavalink/logs
 source/cogs/sailu
-lavalink/application.yml

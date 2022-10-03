@@ -10,7 +10,7 @@ from ..subclasses.context import GeraltContext
 
 if TYPE_CHECKING:
     from ..subclasses.bot import Geralt
-
+    from ...cogs.help.help import GeraltHelp
 
 class HelpMenu(discord.ui.Select):
     def __init__(self, mapping, help, cog_list):
@@ -57,11 +57,14 @@ class HelpMenu(discord.ui.Select):
 
 class HelpView(discord.ui.View):
     def __init__(self, mapping, help, cog_list):
-        super().__init__(timeout=180)
-        self.help = help
+        super().__init__(timeout=100)
+        self.help: "GeraltHelp" = help
         self.mapping = mapping
-        self.ctx = help.context
+        self.ctx: GeraltContext = help.context
         self.add_item(HelpMenu(mapping, help, cog_list))
+
+        if self.ctx.interaction:
+            self.delete.disabled = True
 
     def footer(self):
         return f"Run {self.ctx.clean_prefix}help [cog | command] for more info."
@@ -102,14 +105,15 @@ class HelpView(discord.ui.View):
     async def updates(self, interaction: discord.Interaction, button: discord.ui.Button):
         updates_emb = BaseEmbed(
             title="Latest Updates",
-            description=f"The following points list down the latest updates made as of <t:1659450876:D> (<t:1659450876:R>)",
+            description=f"The following points list down the latest updates made as of <t:1664774386:D> (<t:1664774386:R>)",
             colour=self.ctx.bot.colour)
         updates_emb.add_field(
-            name="Updates :", value=f">>> `1).` <t:1659450876:R> ─ <:SarahPray:920484222421045258> Added more slash commands. Type out `/` to see them all.\n"
-            f"`2).` <t:1659450876:R> ─ <a:WumpusVibe:905457020575031358> Added `{self.ctx.clean_prefix}guild convertemote` which converts emote urls into webhook messages.\n"
-            f"`2).` <t:1659450876:R> ─ <a:Lock:1003635545097900112> Added `{self.ctx.clean_prefix}channel` for locking/unlocking channels.\n"
-            f"`3).` <t:1659450876:R> ─ <a:Verify:905748402871095336> Added `{self.ctx.clean_prefix}verification` for overrall guild safety.\n"
-            f"`4).` <t:1657338759:R> ─ \U0001fab5 Added `{self.ctx.clean_prefix}userlog` and `userhistory` command.\n")
+            name="Updates :",
+            value=f">>> <:One:989876071052750868> <t:1664774386:D> ─ <a:Nope:988845795920990279> Added `{self.ctx.clean_prefix}highlight` - </highlight add:1025824025563377746> to begin!\n"
+            f"<:Two:989876145291948122> <t:1664774386:D> ─ <:WinCogs:898591890209910854> Added `Discord Cog` with commands switched from `Utility Cog` to here.\n"
+            f"<:Three:989876184420610099> <t:1664774386:D> ─ <:SlashCommands:1026146843295498340> Slashified the help command. \n"
+            f"<:Four:1002832347240083486> <t:1664774386:D> ─ <:TicketHelp:987182220626235482> Added `{self.ctx.clean_prefix}avatarhistory` & `{self.ctx.clean_prefix}emote`. Available as slash to - </avatarhistory:1017741037902516278> </emote:1019843698332282900>\n"
+            f"<:Five:1002832404051935282> <t:1659450876:D> ─ <:SarahPray:920484222421045258> Added more slash commands. Type out `/` to see them all.\n")
         updates_emb.set_footer(
             text=self.help.footer(),
             icon_url=self.ctx.me.display_avatar)
@@ -151,6 +155,14 @@ class HelpView(discord.ui.View):
         except NotFound:
             return await interaction.response.send_message(content="You cannot delete messages in ephemeral messages", ephemeral=True)
 
+    async def on_timeout(self) -> None:
+        try:
+            for view in self.children:
+                view.disabled = True
+            await self.message.edit(view=self)
+        except NotFound:
+            return
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
         if interaction.user != self.ctx.author:
@@ -177,9 +189,13 @@ class SearchCommand(discord.ui.Modal, title="Search Command"):
 
 class GroupAndCommandView(discord.ui.View):
     def __init__(self, help, mapping):
-        super().__init__()
+        super().__init__(timeout=60)
         self.help = help
         self.mapping = mapping
+        self.message = self.from_message(self.help.context.message)
+
+        if self.help.context.interaction:
+            self.delete.disabled = True
 
     def footer(self):
         return f"Run {self.help.context.clean_prefix}help [cog | command] for more info."
@@ -219,6 +235,14 @@ class GroupAndCommandView(discord.ui.View):
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             return await interaction.message.delete()
+        except NotFound:
+            return
+
+    async def on_timeout(self) -> None:
+        try:
+            for view in self.children:
+                view.disabled = True
+            await self.message.edit(view=self)
         except NotFound:
             return
 

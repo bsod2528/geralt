@@ -32,6 +32,9 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
 
+        if isinstance(error, app_commands.AppCommandError):
+            return await Traceback(self.bot, ctx, error).send()
+            
         if isinstance(error, app_commands.errors.CommandNotFound):
             return
 
