@@ -2,13 +2,13 @@ import discord
 
 from discord import app_commands
 from discord.ext import commands
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from discord import Forbidden, NotFound
 
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.context import GeraltContext
-from ...kernel.views.fun import Pop, Nitro, ClickGame, PopSize, ClickSize, ClickLeaderboard
+from ...kernel.views.fun import Pop, Nitro, ClickGame, PopSize, ClickSize, ClickLeaderboard, MemoryGame, MemoryDifficulty
 
 
 class Fun(commands.Cog):
@@ -52,7 +52,8 @@ class Fun(commands.Cog):
     async def echo(self, ctx: GeraltContext, user: discord.Member, *, message: str) -> Optional[discord.Message]:
         """Send a webhook message as the user you mentioned"""
         try:
-            await ctx.interaction.response.defer(thinking=True, ephemeral=True)
+            if ctx.interaction:
+                await ctx.interaction.response.defer(thinking=True, ephemeral=True)
             wbhk = await self.bot.webhook_manager.create_webhook(ctx.channel)
             thread = discord.utils.MISSING
             if isinstance(ctx.channel, discord.Thread):
@@ -62,7 +63,8 @@ class Fun(commands.Cog):
                 avatar_url=user.display_avatar.url,
                 username=user.display_name,
                 thread=thread)
-            await ctx.send("Successfully sent <:NanoTick:925271358735257651>")
+            if ctx.interaction:
+                await ctx.send("Successfully sent <:NanoTick:925271358735257651>")
             await ctx.message.delete(delay=0)
         except NotFound:
             return await ctx.send(f"{ctx.author.mention} ─ please try again later. Either your internet is slow or mine is \U0001f91d")
@@ -171,14 +173,14 @@ class Fun(commands.Cog):
         if flag:
             await Pop(ctx, size=flag.size).send()
 
-    @commands.group(
+    @commands.hybrid_group(
         name="click",
         brief="Click and Win",
         aliases=["cl", "clock"])
     @commands.guild_only()
     @commands.cooldown(2, 5, commands.BucketType.user)
     async def click(self, ctx: GeraltContext) -> Optional[discord.Message]:
-        """Enjoy a nice satisfying game by clicking on the button!"""
+        """Just click the button!"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
@@ -191,12 +193,15 @@ class Fun(commands.Cog):
         ────
         **Flags Present :**
         `--size` : Sends that many number of buttons to click.
+        <:Join:932976724235395072> **Size Limit :** `10` \U0001f44d
         **Example :**
-        `.gclick start [--size 10]` Max size is `10` \U0001f44d
+        `.gclick start [--size 10]`
         ────"""
         if not flag:
             await ClickGame(self.bot, ctx, size=1).send(ctx)
         if flag:
+            if not flag.size:
+                return await ctx.reply(f"Please pass in a number for the number of buttons you want : `{ctx.clean_prefix}click start --size [int]`. Maximum buttons is 10.")
             await ClickGame(self.bot, ctx, size=flag.size).send(ctx)
 
     @click.command(
@@ -206,3 +211,42 @@ class Fun(commands.Cog):
     @commands.cooldown(3, 5, commands.BucketType.user)
     async def click_score(self, ctx: GeraltContext) -> Optional[discord.Message]:
         await ClickLeaderboard(self.bot, ctx).send()
+
+    @commands.hybrid_command(
+        name="memory-game",
+        brief="Simple Memory Game",
+        aliases=["monkey-game", "mem", "monke"])
+    @app_commands.rename(flag="difficulty-level")
+    @app_commands.describe(flag="Start with `--difficulty`")
+    @commands.cooldown(3, 10, commands.BucketType.user)
+    async def monkey_memory(self, ctx: GeraltContext, *, flag: Optional[MemoryDifficulty]) -> Optional[discord.Message]:
+        """Play the Monkey Memory Game!
+        ────
+        **Flags Present :**
+        `--difficulty` : Sets the difficulty level.
+        <:Join:932976724235395072> **Aliases :** `--diff`
+        <:Join:932976724235395072> **Levels :** [`easy`, `medium`, `hard`]
+        **Example :**
+        `.gmemory-game [--difficulty easy]`
+        ────"""
+        if not flag:
+            view = MemoryGame("easy", ctx, 10)
+            view.message = await ctx.reply(f"You have **{30 + (10* 5)}** seconds to finish it!", view=view, allowed_mentions=self.bot.mentions)
+            await view.start()
+        if flag:
+            difficulty: List = ["easy", "medium", "hard"]
+            if flag.difficulty not in difficulty:
+                return await ctx.reply(f"**{ctx.author}** - These are your difficulty options:\n>>> ` - ` `easy`\n` - ` `medium`\n` - ` `hard`\n\n`{ctx.clean_prefix}{ctx.command.name} --difficulty [easy|medium|hard]`")
+            if flag.difficulty in difficulty:
+                if flag.difficulty == difficulty[0]:
+                    easy_view = MemoryGame("easy", ctx, 10)
+                    easy_view.message = await ctx.reply(f"You have **{30 + (10* 5)}** seconds to finish it!", view=easy_view, allowed_mentions=self.bot.mentions)
+                    await easy_view.start()
+                if flag.difficulty == difficulty[1]:
+                    medium_view = MemoryGame("medium", ctx, 16)
+                    medium_view.message = await ctx.reply(f"You have **{30 + (15* 5)}** seconds to finish it!", view=medium_view, allowed_mentions=self.bot.mentions)
+                    await medium_view.start()
+                if flag.difficulty == difficulty[2]:
+                    hard_view = MemoryGame("hard", ctx, 20)
+                    hard_view.message = await ctx.reply(f"You have **{30 + (20* 5)}** seconds to finish it!", view=hard_view, allowed_mentions=self.bot.mentions)
+                    await hard_view.start()
