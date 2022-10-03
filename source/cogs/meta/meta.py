@@ -9,9 +9,9 @@ import asyncio
 import inspect
 import humanize
 
-from typing import Optional
 from discord import app_commands
 from discord.ext import commands
+from typing import Optional, List
 
 from ...cogs.help.help import GeraltHelp
 from ...kernel.views.paginator import Paginator
@@ -39,55 +39,51 @@ class Meta(commands.Cog):
             id=905748764432662549,
             animated=True)
 
-    @commands.hybrid_command(
-        name="ping",
-        brief="You ping Me",
-        aliases=["pong"])
-    @app_commands.checks.cooldown(2, 10)
-    @commands.cooldown(2, 10, commands.BucketType.user)
-    async def ping(self, ctx: GeraltContext) -> Optional[discord.Message]:
-        """Get proper latency timings of the bot."""
+    async def source_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        command_list: List = [command.qualified_name for command in list(self.bot.walk_commands())]
+        if interaction.user.id not in self.bot.owner_ids:
+            for commands in command_list:
+                if commands.startswith("jishaku"):
+                    command_list.remove(commands)
+        return [app_commands.Choice(name=command, value=command) for command in command_list]
 
-        # Latency for typing
-        typing_start = time.perf_counter()
-        async with ctx.typing():
-            await asyncio.sleep(0.5)
-        typing_end = time.perf_counter()
-        typing_ping = (typing_end - typing_start) * 1000
+    @app_commands.command(
+        name="help",
+        description="The main help command")
+    @app_commands.describe(cog="Enter a Cog Name.")
+    @app_commands.describe(command="Enter a Command Name.")
+    async def _help(self, interaction: discord.Interaction, cog: str | None, command: str | None):
+        """Shows help for a command or a cog"""
+        ctx: GeraltContext = await self.bot.get_context(interaction)
+        if cog:
+            await ctx.send_help(cog)
+        if command:
+            return await ctx.send_help(command)
+        if not cog or command:
+            return await ctx.send_help()
 
-        # Latency with the database
-        start_db = time.perf_counter()
-        await self.bot.db.fetch("SELECT 1")
-        end_db = time.perf_counter()
-        db_ping = (end_db - start_db) * 1000
+    @_help.autocomplete("cog")
+    async def _help_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        cog_list = [cog for cog in list(self.bot.cogs)]
+        unwanted_cogs = ["Jishaku", "Events", "ErrorHandler"]
+        if interaction.user.id in self.bot.owner_ids:
+            for cogs in unwanted_cogs:
+                cog_list.remove(cogs)
+        if interaction.user.id not in self.bot.owner_ids:
+            cog_list.remove("Developer")
+            for cogs in unwanted_cogs:
+                cog_list.remove(cogs)
+        return [app_commands.Choice(name=cog, value=cog) for cog in cog_list]
 
-        # Latency for Discord Api
-        websocket_ping = self.bot.latency * 1000
-
-        ping_emb = BaseEmbed(
-            title="__ My Latencies : __",
-            colour=0x2F3136)
-
-        if ctx.interaction:
-            if ctx.author.is_on_mobile():
-                ping_emb.description = f"""```yaml\n> PostgreSQL     : {round(db_ping, 1)} ms
-> Discord API    : {websocket_ping:,.0f} ms\n```"""
-                return await ctx.reply(embed=ping_emb, mention_author=False, ephemeral=True)
-            else:
-                ping_emb.description = f"""```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mPostgreSQL\x1b[0m     \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(db_ping, 1)} ms\x1b[0m
-\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mDiscord API\x1b[0m    \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{websocket_ping:,.0f} ms\x1b[0m\n```"""
-                return await ctx.reply(embed=ping_emb, mention_author=False, ephemeral=True)
-        else:
-            if ctx.author.is_on_mobile():
-                ping_emb.description = f"""```yaml\n> PostgreSQL     : {round(db_ping, 1)} ms
-> Discord API    : {websocket_ping:,.0f} ms
-> Message Typing : {round(typing_ping, 1)} ms\n```"""
-                await ctx.reply(embed=ping_emb, mention_author=False)
-            else:
-                ping_emb.description = f"""```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mPostgreSQL\x1b[0m     \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(db_ping, 1)} ms\x1b[0m
-\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mDiscord API\x1b[0m    \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{websocket_ping:,.0f} ms\x1b[0m
-\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mMessage Typing\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(typing_ping, 1)} ms\x1b[0m\n```"""
-            await ctx.reply(embed=ping_emb, mention_author=False)
+    @_help.autocomplete("command")
+    async def _help_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        command_list: List = [
+            command.qualified_name for command in list(self.bot.walk_commands()) if current in command.qualified_name and len(current) > 10]
+        if interaction.user.id not in self.bot.owner_ids:
+            for commands in command_list:
+                if commands.startswith("jishaku"):
+                    command_list.remove(commands)
+        return [app_commands.Choice(name=cmd, value=cmd) for cmd in command_list]
 
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of
     # implementing buttons for System Usage [ PSUTIl ] and Latest Commits on
@@ -100,10 +96,12 @@ class Meta(commands.Cog):
     @commands.cooldown(2, 10, commands.BucketType.user)
     async def info(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Receive full information regarding me."""
+        description: str = f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. " \
+                           f"Since I'm locally hosted, I suck. Made with love by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D"
         info_emb = BaseEmbed(
             title="<:WinGIT:898591166864441345> __Geralt : Da Bot__",
             url=ctx.me.display_avatar.url,
-            description=f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. I'm currently under reconstruction, so I suck at the moment [ continued after construction ]. I'm made by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D",
+            description=description,
             colour=self.bot.colour)
         info_emb.add_field(
             name="General Statistics :",
@@ -126,7 +124,7 @@ class Meta(commands.Cog):
     @commands.guild_only()
     @commands.cooldown(1, 20, commands.BucketType.user)
     async def report(self, ctx: GeraltContext) -> Optional[discord.Message]:
-        """Send a message to the Developer regarding a bug or a request."""
+        """Report a bug or request a feature."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
 
@@ -356,6 +354,7 @@ class Meta(commands.Cog):
         aliases=["src"])
     @app_commands.checks.cooldown(2, 5)
     @commands.cooldown(2, 5, commands.BucketType.user)
+    @app_commands.autocomplete(command=source_autocomplete)
     @app_commands.describe(command="A command you want to get the source for.")
     async def source(self, ctx: GeraltContext, *, command: str = None) -> Optional[discord.Message]:
         """Returns source for a command"""
