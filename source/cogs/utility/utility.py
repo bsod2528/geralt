@@ -117,8 +117,8 @@ class Utility(commands.Cog):
                             user = message.guild.get_member(user_id)
                             if user.id not in message.guild._members:
                                 return
-                            #if message.author.id == user.id:
-                            #    return
+                            if message.author.id == user.id:
+                                return
                             highlight_emb = await self.generate_highlight_emb(message, str(user.id))
                             jump_url_component = discord.ui.View()
                             jump_url_component.add_item(
