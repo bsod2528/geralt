@@ -8,16 +8,14 @@ import discord
 import asyncpg
 import aiohttp
 import humanize
-import wavelink
 import traceback
 
 from aiogithub import GitHub
 from dotenv import dotenv_values
-from wavelink.ext import spotify
 from discord import app_commands
 from discord.ext import commands
 from collections import defaultdict
-from typing import Any, Set, List, Dict, Union, Optional, DefaultDict
+from typing import Any, Set, List, Dict, Tuple, DefaultDict
 
 from .embed import BaseEmbed
 from ..views.meta import Info
@@ -40,8 +38,8 @@ EMOTE_TO_URL = re.compile(
 
 escape: str = "\x1b"
 
-# BSOD#0067 [ME]      SID#1380 [Zeus432]
-DEVELOPER_IDS = [750979369001811982, 760823877034573864]
+                            # BSOD#0067 [ME]      SID#1380 [Zeus432]
+DEVELOPER_IDS: List[int] = [750979369001811982, 760823877034573864]
 
 
 class Geralt(commands.Bot):
@@ -74,19 +72,32 @@ class Geralt(commands.Bot):
         self.webhook_manager = WebhookManager()
 
         # Attributes for caching.
-        self.afk: Dict = {}
-        self.meta: Dict = {}
+        self.afk: Dict[int, str] = {}
+        self.meta: Dict[int, List] = {}
         self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
         self.blacklists: Dict = set()
-        self.highlight: Dict = {}
-        self.ticket_init: Dict = {}
-        self.verification: Dict = {}
-        self.ticket_kernel: Dict = {}
-        self.locked_objects_ids: List = []
-        self.convert_url_to_webhook: Dict = {}
+        self.highlight: Dict[int, Dict[int, List]] = {}
+        self.ticket_init: Dict[int, List] = {}
+        self.verification: Dict[int, List] = {}
+        self.ticket_kernel: Dict[int, List] = {}
+        self.highlight_blocked: Dict[int, Dict[int, List]] = {}
+        self.locked_objects_ids: List[int] = []
+        self.convert_url_to_webhook: Dict[int, str] = {}
 
     def __repr__(self) -> str:
         return "<Bot>"
+
+    # Credits to qt_haskell [ Lia Marie ] - *sobs*
+    def generate_highlight_cache(self, entries: List[Tuple]) -> Dict:
+        cache: Dict = {}
+        for entry in entries:
+            guild_id, user_id, trigger = entry
+            if guild_id not in cache:
+                cache[guild_id]: Dict = {}
+            if user_id not in cache[guild_id]:
+                cache[guild_id][user_id]: List = []
+            cache[guild_id][user_id].append(trigger)
+        return cache
 
     async def get_context(self, message: discord.Message, *, cls=GeraltContext) -> GeraltContext:
         return await super().get_context(message, cls=cls)
@@ -116,19 +127,6 @@ class Geralt(commands.Bot):
         if not prefix:
             prefix = {".g"}
         return commands.when_mentioned_or(*prefix)(self, message)
-
-    # Connects to Lavalink server.
-    async def connect_to_lavalink(self):
-        try:
-            await wavelink.NodePool.create_node(
-                bot=self,
-                host="127.0.0.1",
-                port=2333,
-                password=CONFIG.get("LAVALINK"),
-                spotify_client=spotify.SpotifyClient(client_id=CONFIG.get("SPOTIFY_ID"), client_secret=CONFIG.get("SPOTIFY_SECRET")))
-        except Exception as exception:
-            print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;31m{time.strftime('%c', time.localtime())} ─ {exception} : {exception}\n{escape}[0m")
-            return
 
     # DB connection
     async def connect_to_database(self):
@@ -163,28 +161,29 @@ class Geralt(commands.Bot):
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
 
-    async def cache_stuff(self):
-        afk_deets = await self.db.fetch("SELECT * FROM afk")
-        meta_deets = await self.db.fetch("SELECT * FROM meta")
-        prefix_deets = await self.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
-        highlight_deets = await self.db.fetch("SELECT * FROM highlight")
-        ticket_init_deets = await self.db.fetch("SELECT * FROM ticket_init")
-        verification_deets = await self.db.fetch("SELECT * FROM verification")
-        ticket_kernel_deets = await self.db.fetch("SELECT * FROM ticket_kernel")
-        locked_objects_ids_deets = await self.db.fetch("SELECT * FROM channel_lock")
-        convert_url_to_webhook_deets = await self.db.fetch("SELECT * FROM guild_settings")
+    async def load_cache(self):
+        afk_data = await self.db.fetch("SELECT * FROM afk")
+        meta_data = await self.db.fetch("SELECT * FROM meta")
+        prefix_data = await self.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+        highlight_data = await self.db.fetch("SELECT * FROM highlight")
+        ticket_init_data = await self.db.fetch("SELECT * FROM ticket_init")
+        verification_data = await self.db.fetch("SELECT * FROM verification")
+        ticket_kernel_data = await self.db.fetch("SELECT * FROM ticket_kernel")
+        highlight_blocked_data = await self.db.fetch("SELECT * FROM highlight_blocked")
+        locked_objects_ids_data = await self.db.fetch("SELECT * FROM channel_lock")
+        convert_url_to_webhook_data = await self.db.fetch("SELECT * FROM guild_settings")
 
-        self.afk = {data["user_id"]: data["reason"] for data in afk_deets}
+        self.afk = {data["user_id"]: data["reason"] for data in afk_data}
         self.meta = {
             data["guild_id"]: [
                 data["command_name"],
                 data["invoked_at"],
-                data["uses"]] for data in meta_deets}
+                data["uses"]] for data in meta_data}
         self.ticket_kernel = {
             data["guild_id"]: [
                 data["ticket_id"],
                 data["invoker_id"],
-                data["invoked_at"]] for data in ticket_kernel_deets}
+                data["invoked_at"]] for data in ticket_kernel_data}
         self.ticket_init = {
             data["guild_id"]: [
                 data["category_id"],
@@ -193,31 +192,36 @@ class Geralt(commands.Bot):
                 data["jump_url"],
                 data["panel_description"],
                 data["message_description"],
-                data["id"]] for data in ticket_init_deets}
+                data["id"]] for data in ticket_init_data}
         self.verification = {
             data["guild_id"]: [
                 data["question"],
                 data["answer"],
                 data["role_id"],
                 data["channel_id"],
-                data["message_id"]] for data in verification_deets}
+                data["message_id"]] for data in verification_data}
         self.convert_url_to_webhook = {
-            data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_deets}
+            data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_data}
 
-        if highlight_deets:
-            self.highlight = {
-                data["user_id"]: [data["trigger"]] for data in highlight_deets}
+        if highlight_data:
+            highlight_data_list: List[Tuple] = [
+                (data["guild_id"], data["user_id"], data["trigger"]) for data in highlight_data]
+            self.highlight = self.generate_highlight_cache(highlight_data_list)
+
+        if highlight_blocked_data:
+            highlight_blocked_data: List[Tuple] = [
+                (data["guild_id"], data["user_id"], data["object_id"]) for data in highlight_blocked_data]
+            self.highlight_blocked = self.generate_highlight_cache(highlight_blocked_data)
 
         self.locked_objects_ids.append(
-            data["object_id"] for data in locked_objects_ids_deets)
+            data["object_id"] for data in locked_objects_ids_data)
 
-        for guild_id, prefixes in prefix_deets:
+        for guild_id, prefixes in prefix_data:
             self.prefixes[guild_id] = set(prefixes) or {".g", }
 
     async def on_ready(self):
 
-        await self.cache_stuff()
-        # await self.connect_to_lavalink()
+        await self.load_cache()
 
         if not self.add_persistent_views:
             self.add_view(Info(self, GeraltContext))
@@ -234,14 +238,14 @@ class Geralt(commands.Bot):
             await self.change_presence(
                 status=discord.Status.idle,
                 activity=discord.Activity(type=discord.ActivityType.listening, name=f".ghelp"))
-            await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n"
-                            f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
+            #await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n"
+            #                f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
             print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;36m{time.strftime('%c', time.localtime())} ─ Awakened{escape}[0m")
             await session.close()
 
     async def on_message(self, message: discord.Message):
         await self.wait_until_ready()
-        afk_deets = await self.db.fetch("SELECT * FROM afk")
+        afk_data = await self.db.fetch("SELECT * FROM afk")
 
         try:
             if message.author.id in self.blacklists:
@@ -268,7 +272,7 @@ class Geralt(commands.Bot):
             return
 
         if message.author.id in self.afk:
-            for user in afk_deets:
+            for user in afk_data:
                 time = user["time"]
                 reason = user["reason"]
             current_time = discord.utils.utcnow() - time
@@ -281,7 +285,7 @@ class Geralt(commands.Bot):
 
         for pinged_user in message.mentions:
             if pinged_user.id in self.afk:
-                for data in afk_deets:
+                for data in afk_data:
                     time = data["time"]
                     reason = data["reason"]
                     current_time = discord.utils.utcnow() - time
