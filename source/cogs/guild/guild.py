@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord import app_commands
 from typing import Optional, List
 
+from ...kernel.views.prefix import Prefix
 from ...kernel.subclasses.bot import Geralt
 from ...kernel.views.meta import Confirmation
 from ...kernel.views.paginator import Paginator
@@ -13,7 +14,6 @@ from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.context import GeraltContext
 from ...kernel.views.tickets import CallTicket, TicketSetup
 from ...kernel.views.verification import SetupVerification, VerificationCall
-from ...kernel.views.prefix import Prefix
 
 
 class Guild(commands.Cog):
@@ -86,12 +86,14 @@ class Guild(commands.Cog):
     async def prefix_add(self, ctx: GeraltContext, *, prefix: str = None):
         """Add a custom prefix."""
         total_prefixes = await self.bot.get_prefix(ctx.message)
+        if prefix.strip() == ".g":
+            return await ctx.reply(f"**{ctx.author}** - `.g` is the default prefix, so you can't add that lmao <:SarahLaugh:907109900952420373>")
         if len(total_prefixes) > 14:
-            return await ctx.reply(f"For **{ctx.guild}** ─ The maximum of `15` prefixes has reached. To add more, please remove other custom prefixes <:SarahYay:990543210235461682>")
+            return await ctx.reply(f"For **{ctx.guild}** - The maximum of `15` prefixes has reached. To add more, please remove other custom prefixes <:SarahYay:990543210235461682>")
         if prefix is None:
             return await ctx.reply("You do realise you have to enter a `new prefix` for that to become the prefix for this guild? <:SarahPout:989816223544012801>")
         if len(prefix) > 15:
-            return await ctx.reply("You're definitely going to ace that essay writing competition. <:SarahLaugh:907109900952420373>")
+            return await ctx.reply("You're definitely going to ace that essay writing competition <:SarahLaugh:907109900952420373>")
         if prefix == "--":
             return await ctx.reply(f"I'm afraid that `--` cannot be set as a guild prefix. As it is used for invoking flags. Try another one.")
         try:
@@ -121,12 +123,14 @@ class Guild(commands.Cog):
     @app_commands.describe(prefix="Give in the prefix you want to you remove.")
     async def prefix_remove(self, ctx: GeraltContext, *, prefix: str = None) -> Optional[discord.Message]:
         """Remove a custom prefix."""
+        if prefix.strip() == ".g":
+            return await ctx.reply(f"**{ctx.author}** - `.g` is the default prefix, so you can't remove that lmao <:SarahLaugh:907109900952420373>")
         if not prefix:
             return await ctx.reply("Pass in a `prefix` for me to remove from the list.")
         try:
             fetched_prefixes = "\n".join(await self.bot.get_prefix(ctx.message or discord.Interaction.channel))
             if prefix.strip() not in fetched_prefixes:
-                return await ctx.reply(f"`{prefix}` ─ is not in the guild's prefix list for **{ctx.guild}** <:SarahPout:989816223544012801>")
+                return await ctx.reply(f"`{prefix}` - is not in the guild's prefix list for **{ctx.guild}** <:SarahPout:989816223544012801>")
             query = "UPDATE prefix SET guild_prefix = ARRAY_REMOVE(prefix.guild_prefix, $2) WHERE guild_id = $1"
             await self.bot.db.execute(query, ctx.guild.id, prefix)
             data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
@@ -162,7 +166,7 @@ class Guild(commands.Cog):
     @commands.max_concurrency(1, commands.BucketType.guild)
     @commands.bot_has_guild_permissions(manage_channels=True)
     async def ticket(self, ctx: GeraltContext) -> Optional[discord.Message]:
-        """Take care of your server by utilising tickets."""
+        """Ticketing system for support in your guild."""
         if ctx.invoked_subcommand is None:
             await ctx.command_help()
 
@@ -289,9 +293,9 @@ class Guild(commands.Cog):
     async def verification_setup(self, ctx: GeraltContext, channel: Optional[discord.TextChannel]) -> Optional[discord.Message]:
         """Secure your guild with verification."""
         if ctx.guild.id in self.bot.verification:
-            return await ctx.reply(f"**{ctx.author}** ─ verification system has already been setup here smh <a:ImSorryWhat:923941819266527304>. Run `{ctx.clean_prefix}verification status`")
+            return await ctx.reply(f"**{ctx.author}** - verification system has already been setup here smh <a:ImSorryWhat:923941819266527304>. Run `{ctx.clean_prefix}verification status`")
         if not channel:
-            return await ctx.reply(f"**{ctx.author}** ─ please `mention`, or send `channel id`, or `type the channel name` to setup the verification system.")
+            return await ctx.reply(f"**{ctx.author}** - please `mention`, or send `channel id`, or `type the channel name` to setup the verification system.")
         await SetupVerification(self.bot, ctx, channel).send()
 
     @verification.command(
@@ -344,7 +348,7 @@ class Guild(commands.Cog):
             status = [
                 f"> <:One:989876071052750868>**Question:**\n> {deets[1]}\n────\n> <:Two:989876145291948122> **Answer:**\n> {deets[2]}\n────\n> <:Three:989876184420610099>**Present In:**\n> <#{deets[4]}>" for deets in data]
         if not status:
-            return await ctx.reply(f"**{ctx.author}** ─ verification system hasn't been setup for `{ctx.guild}`. Please run `{ctx.clean_prefix}help verification` for more information.")
+            return await ctx.reply(f"**{ctx.author}** - verification system hasn't been setup for `{ctx.guild}`. Please run `{ctx.clean_prefix}help verification` for more information.")
         verification_status_emb = BaseEmbed(
             title=f"Verification Status for {ctx.guild}",
             description="".join(status),
@@ -430,3 +434,59 @@ class Guild(commands.Cog):
             emote_emb.set_image(url=emote.url)
             emote_emb.set_footer(text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar.url)
             await ctx.send(embed=emote_emb)
+
+    @commands.hybrid_command(
+        name="stickers",
+        brief="Info on stickers",
+        aliases=["stcki", "sticker"])
+    async def stickers(self, ctx: GeraltContext):
+        """Get information on each sticker present!"""
+        if ctx.message.reference:
+            try:
+                sticker = await self.bot.fetch_sticker(ctx.message.reference.resolved.stickers[0].id)
+            except discord.HTTPException:
+                return await ctx.reply(f"Sorry **{ctx.author}**, there seems to be an issue in fetching the details of that sticker <:SIDGoesHmmMan:967421008137056276> Please try again <a:IWait:948253556190904371>")
+            referenced_sticker_emb = BaseEmbed(
+                title=f"\U0001f4dc {ctx.guild}'s Sticker Info",
+                description=f"<:ReplyContinued:930634770004725821> **ID** : [`{sticker.id}`]({sticker.url})\n<:ReplyContinued:930634770004725821> **Name** : `{sticker.name}`\n<:ReplyContinued:930634770004725821> **Created At** : {self.bot.timestamp(sticker.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote** : `{sticker.emoji}`",
+                colour=self.bot.colour)
+            referenced_sticker_emb.set_image(url=sticker.url)
+            referenced_sticker_emb.set_footer(text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar)
+            if sticker.description:
+                referenced_sticker_emb.add_field(
+                    name="Description",
+                    value=f">>> {sticker.description}")
+            return await ctx.send(embed=referenced_sticker_emb)
+
+        if not ctx.guild.stickers:
+            return await ctx.reply(f"**{ctx.guild}** - Has no stickers present.")
+
+        if len(ctx.guild.stickers) == 1:
+            for alpha in ctx.guild.stickers:
+                single_sticker_emb = BaseEmbed(
+                    title=f"\U0001f4dc {ctx.guild}'s Sticker Info",
+                    description=f"<:ReplyContinued:930634770004725821> **ID** : [`{alpha.id}`]({alpha.url})\n<:ReplyContinued:930634770004725821> **Name** : `{alpha.name}`\n<:ReplyContinued:930634770004725821> **Created At** : {self.bot.timestamp(alpha.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote** : `{alpha.emoji}`",
+                    colour=self.bot.colour)
+                single_sticker_emb.set_image(url=alpha.url)
+                single_sticker_emb.set_footer(text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar)
+                return await ctx.send(embed=single_sticker_emb)
+
+        embed_list: List = []
+        for beta in ctx.guild.stickers:
+            sticker_embs = BaseEmbed(
+                title=f"\U0001f4dc {ctx.guild}'s Sticker Info",
+                description=f"<:ReplyContinued:930634770004725821> **ID** : [`{beta.id}`]({beta.url})\n<:ReplyContinued:930634770004725821> **Name** : `{beta.name}`\n<:ReplyContinued:930634770004725821> **Created At** : {self.bot.timestamp(beta.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote** : `{beta.emoji}`",
+                colour=self.bot.colour)
+            if beta.description:
+                sticker_embs.add_field(
+                    name="Description",
+                    value=f">>> {beta.description}")
+
+            sticker_embs.set_image(url=beta.url)
+            sticker_embs.set_footer(text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar)
+            try:
+                sticker_embs.set_thumbnail(url=ctx.guild.icon.url)
+            except AttributeError:
+                pass
+            embed_list.append(sticker_embs)
+        return await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
