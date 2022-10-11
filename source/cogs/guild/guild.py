@@ -1,10 +1,12 @@
 import asyncio
+from email.message import Message
 import asyncpg
 import discord
 
 from discord.ext import commands
 from discord import app_commands
 from typing import Optional, List
+from discord.errors import NotFound
 
 from ...kernel.views.prefix import Prefix
 from ...kernel.subclasses.bot import Geralt
@@ -38,6 +40,9 @@ class Guild(commands.Cog):
         await ctx.add_nanotick()
         await asyncio.sleep(5)
         await ctx.channel.delete()
+        ticket_kernel = await self.bot.db.fetch("SELECT * FROM ticket_kernel")
+        ticket_kernel_list: List = [(data["guild_id"], data["ticket_id"], data["invoker_id"]) for data in ticket_kernel]
+        self.bot.ticket_kernel = self.bot.generate_dict_cache(ticket_kernel_list)
 
     async def archive_and_dont_delete(self, ctx: GeraltContext, ticket_id: int):
         await ctx.channel.edit(name=f"{ctx.channel.name} archived")
@@ -47,6 +52,21 @@ class Guild(commands.Cog):
         names = [f"{deets[0]}" for deets in tag_deets]
         return [app_commands.Choice(name=names, value=names)
                 for names in names if current.lower() in names]
+
+    async def ticket_id_autocomplete(self, interaction: discord.Interaction, current: int) -> List[app_commands.Choice[int]]:
+        try:
+            ids: List = []
+            for key, value in self.bot.ticket_kernel.items():
+                if interaction.guild.id == key:
+                    for ticket_id, invoker_id in value.items():
+                        ids.append(ticket_id)
+        except KeyError:
+            open_tickets = await self.bot.db.fetch("SELECT ticket_id FROM ticket_kernel WHERE guild_id = $1 ORDER BY ticket_id ASC", interaction.guild.id)
+            ids = [data[0] for data in open_tickets]
+        try:
+            return [app_commands.Choice(name=ids, value=ids) for ids in ids]
+        except NotFound:
+            return
 
     @commands.hybrid_group(
         name="prefix",
@@ -83,9 +103,11 @@ class Guild(commands.Cog):
     @app_commands.autocomplete(prefix=guild_preifx_autocomplete)
     @app_commands.describe(
         prefix="Make sure you're not entering the same prefix as shown here!")
-    async def prefix_add(self, ctx: GeraltContext, *, prefix: str = None):
+    async def prefix_add(self, ctx: GeraltContext, *, prefix: Optional[str]):
         """Add a custom prefix."""
         total_prefixes = await self.bot.get_prefix(ctx.message)
+        if not prefix:
+            return await ctx.reply("Pass in a `prefix` for me to add from the list.")
         if prefix.strip() == ".g":
             return await ctx.reply(f"**{ctx.author}** - `.g` is the default prefix, so you can't add that lmao <:SarahLaugh:907109900952420373>")
         if len(total_prefixes) > 14:
@@ -121,12 +143,12 @@ class Guild(commands.Cog):
     @commands.cooldown(3, 5, commands.BucketType.user)
     @app_commands.autocomplete(prefix=guild_preifx_autocomplete)
     @app_commands.describe(prefix="Give in the prefix you want to you remove.")
-    async def prefix_remove(self, ctx: GeraltContext, *, prefix: str = None) -> Optional[discord.Message]:
+    async def prefix_remove(self, ctx: GeraltContext, *, prefix: Optional[str]) -> Optional[discord.Message]:
         """Remove a custom prefix."""
-        if prefix.strip() == ".g":
-            return await ctx.reply(f"**{ctx.author}** - `.g` is the default prefix, so you can't remove that lmao <:SarahLaugh:907109900952420373>")
         if not prefix:
             return await ctx.reply("Pass in a `prefix` for me to remove from the list.")
+        if prefix.strip() == ".g":
+            return await ctx.reply(f"**{ctx.author}** - `.g` is the default prefix, so you can't remove that lmao <:SarahLaugh:907109900952420373>")
         try:
             fetched_prefixes = "\n".join(await self.bot.get_prefix(ctx.message or discord.Interaction.channel))
             if prefix.strip() not in fetched_prefixes:
@@ -155,10 +177,12 @@ class Guild(commands.Cog):
         await ctx.add_nanotick()
         return await self.bot.db.execute("DELETE FROM prefix WHERE guild_id = $1", ctx.guild.id)
 
-    @commands.group(
+    # Todo - Rewrite this whole thing because it's messy.
+    @commands.hybrid_group(
         name="ticket",
         brief="Ticket - Tool for you server.",
-        aliases=["tt", "tools"])
+        aliases=["tt", "tools"],
+        with_app_command=True)
     @commands.guild_only()
     @commands.cooldown(3, 20, commands.BucketType.user)
     @commands.has_guild_permissions(administrator=True)
@@ -172,26 +196,96 @@ class Guild(commands.Cog):
 
     @ticket.command(
         name="setup",
-        brief="Set-up ticket system.")
-    @commands.max_concurrency(1, commands.BucketType.guild)
+        brief="Set-up ticket system.",
+        with_app_command=True)
+    @commands.has_guild_permissions(administrator=True)
+    @app_commands.describe(channel="Channel you want members to raise a ticket from.")
     async def ticket_setup(self, ctx: GeraltContext, *, channel: discord.TextChannel = None) -> Optional[discord.Message]:
         """Setup ticket system in your server.
         ────
         **Example :**
         `.gticket setup #channel / channel / 123456789012345678`
         ────"""
+        if ctx.guild.id in self.bot.ticket_init:
+            return await ctx.reply(f"**{ctx.author}** - Ticket System is already present in `{ctx.guild}`. Run `{ctx.clean_prefix}ticket status` to see more <a:FrogHappy:915131835808383016>")
         if not channel:
-            return await ctx.reply(f"To set up ticket system, you have to `mention` / `send the id` / `type the name of the channel` for me to send the main panel over there.")
+            return await ctx.reply(f"To set up ticket system, you have to `mention` / `send the id` / `type the name of the channel` for me to send the main panel over there <a:LifeSucks:932255208044650596>")
         await TicketSetup(self.bot, ctx, channel).send()
 
     @ticket.command(
+        name="pending",
+        brief="Check pending tickets",
+        with_app_command=True)
+    async def ticket_pending(self, ctx: GeraltContext) -> Optional[discord.Message]:
+        """Review pending tickets."""
+        try:
+            enabled_bool = self.bot.ticket_init[ctx.guild.id]
+        except KeyError:
+            enabled_bool = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
+        if not enabled_bool:
+            return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket` <a:IWait:948253556190904371>")
+
+        fetched_data = await self.bot.db.fetch("SELECT * FROM ticket_kernel WHERE guild_id = $1", ctx.guild.id)
+        if not fetched_data:
+            return await ctx.reply(f"**{ctx.author}** - There are no tickets opened in **{ctx.guild}** at the moment <a:Click:973748305416835102>")
+
+        pending_tickets_list: List[str] = [
+            f"> <:ReplyContinued:930634770004725821> **Ticket ID:** `{data[0]}`\n> <:ReplyContinued:930634770004725821> **Opened By:** {ctx.guild.get_member(data[2]).mention}\n> <:Reply:930634822865547294> **At Channel:** {ctx.guild.get_channel(data[3]).mention}\n───\n"
+            for data in fetched_data]
+
+        if len(pending_tickets_list) > 3:
+            embed_list: List[BaseEmbed] = []
+            while pending_tickets_list:
+                pending_tickets_embs = BaseEmbed(
+                    title=f"\U0001f4dc Tickets Pending in {ctx.guild}",
+                    description="".join(pending_tickets_list[:3]),
+                    colour=self.bot.colour)
+                pending_tickets_list = pending_tickets_list[3:]
+                embed_list.append(pending_tickets_embs)
+            return await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+
+        pending_tickets_emb = BaseEmbed(
+            title=f"\U0001f4dc Tickets Pending in {ctx.guild}",
+            description="".join(pending_tickets_list),
+            colour=self.bot.colour)
+        await ctx.send(embed=pending_tickets_emb)
+
+
+    @ticket.command(
         name="close",
-        brief="Close a ticket.")
-    @commands.cooldown(3, 20, commands.BucketType.user)
-    async def ticket_close(self, ctx: GeraltContext, ticket_id: int = None) -> Optional[discord.Message]:
+        brief="Close a ticket.",
+        with_app_command=True)
+    @app_commands.rename(ticket_id="ticket-id")
+    @app_commands.autocomplete(ticket_id=ticket_id_autocomplete)
+    @app_commands.describe(ticket_id="The ID of the ticket you want to close.")
+    async def ticket_close(self, ctx: GeraltContext, ticket_id: Optional[int]) -> Optional[discord.Message]:
         """Close a ticket."""
+        try:
+            enabled_bool = self.bot.ticket_init[ctx.guild.id]
+        except KeyError:
+            enabled_bool = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
+        if not enabled_bool:
+            return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket` <a:IWait:948253556190904371>")
+
         if not ticket_id:
-            return await ctx.reply(f"Please pass in the ticket_id to close it.")
+            return await ctx.reply(f"**{ctx.author}** - Please pass in the `ticket_id` to close it.")
+
+        fetched_data = await self.bot.db.fetch("SELECT * FROM ticket_kernel WHERE guild_id = $1", ctx.guild.id)
+        if not fetched_data:
+            return await ctx.reply(f"**{ctx.author}** - There are no tickets opened in **{ctx.guild}** at the moment <a:Click:973748305416835102>")
+
+        for key, value in self.bot.ticket_kernel.items():
+            if ctx.guild.id == key:
+                if ticket_id not in value:
+                    first_message: discord.Message = [messag async for messag in ctx.channel.history(oldest_first=True, limit=1)][0]
+                    view = discord.ui.View()
+                    view.add_item(
+                        discord.ui.Button(
+                            label="Jump to First Message",
+                            style=discord.ButtonStyle.url,
+                            emoji="<a:LifeSucks:932255208044650596>",
+                            url=first_message.jump_url))
+                    return await ctx.reply(f"**{ctx.author}** - There is no such ticket with the ID of `{ticket_id}` <:DutchySMH:930620665139191839> Click on the button to check the `ticket-id`.", view=view)
 
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
@@ -207,40 +301,70 @@ class Guild(commands.Cog):
             await interaction.response.defer()
             await ui.response.edit(content=f"{ctx.channel.mention} will be deleted in 5 seconds", view=ui, allowed_mentions=self.bot.mentions)
             await self.dont_archive_and_delete(ctx, ticket_id)
-        Confirmation.response = await ctx.reply("Do you want to archive this ticket?", view=Confirmation(ctx, yes, no), mention_author=False)
+
+        details = await self.bot.db.fetch("SELECT * FROM ticket_kernel WHERE guild_id = $1 AND ticket_id = $2", ctx.guild.id, ticket_id)
+        for deet in details:
+            if ctx.channel.id != deet[3]:
+                return await ctx.reply(f"**{ctx.author}** - Please go to {ctx.guild.get_channel(deet[3]).mention} and run `{ctx.clean_prefix}ticket close {ticket_id}`.")
+
+        fetch_id = await self.bot.db.fetch("SELECT * FROM ticket_kernel WHERE guild_id = $1 AND ticket_id = $2 AND channel_id = $3", ctx.guild.id, ticket_id, ctx.channel.id)
+        for data in fetch_id:
+            if data[3] == ctx.channel.id:
+                Confirmation.response = await ctx.reply("Do you want to archive this ticket?", view=Confirmation(ctx, yes, no), mention_author=False)
 
     @ticket.command(
         name="status",
         brief="Status of ticket system.")
-    @commands.cooldown(3, 5, commands.BucketType.user)
     async def ticket_status(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Returns the ticket system status for this guild."""
+        view = discord.ui.View()
         try:
             system_status = [
-                f"> │ ` ─ ` System ID : `{self.bot.ticket_init[ctx.guild.id][6]}`\n> │ ` ─ ` Category ID : `{self.bot.ticket_init[ctx.guild.id][0]}`\n> │ ` ─ ` Panel Message ID : [**{self.bot.ticket_init[ctx.guild.id][2]}**]({self.bot.ticket_init[ctx.guild.id][3]})"]
+                f"> <:Join:932976724235395072> Category ID : `{self.bot.ticket_init[ctx.guild.id][0]}`\n> <:Join:932976724235395072> Panel Message ID : `{self.bot.ticket_init[ctx.guild.id][2]}`"]
             if not system_status:
-                return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket`.")
+                return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket` <a:IWait:948253556190904371>")
+            view.add_item(
+                discord.ui.Button(
+                    label="Jump to Panel",
+                    style=discord.ButtonStyle.url,
+                    emoji="<a:Click:973748305416835102>",
+                    url=self.bot.ticket_init[ctx.guild.id][3]))
         except KeyError:
             fetch_deets = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
             system_status = [
-                f"> │ ` ─ ` System ID : `{data['id']}`\n> │ ` ─ ` Category ID : `{data['category_id']}`\n> │ ` ─ ` Panel Message ID : [**{data['sent_message_id']}**]({data['jump_url']})" for data in fetch_deets]
+                f"> <:Join:932976724235395072> Category ID : `{data['category_id']}`\n> <:Join:932976724235395072> Panel Message ID : `{data['sent_message_id']}`" for data in fetch_deets]
             if not fetch_deets:
-                return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket`.")
+                return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket` <a:IWait:948253556190904371>")
+            view.add_item(
+                discord.ui.Button(
+                    label="Jump to Panel",
+                    style=discord.ButtonStyle.url,
+                    emoji="<a:Click:973748305416835102>",
+                    url=data["jump_url"]) for data in fetch_deets)
 
         status_emb = BaseEmbed(
             title=f"{ctx.guild}'s Ticket System Status",
             description="".join(system_status),
             colour=self.bot.colour)
         status_emb.set_thumbnail(url=ctx.guild.icon.url)
-        await ctx.reply(embed=status_emb, mention_author=False)
+        await ctx.reply(embed=status_emb, view=view, mention_author=False)
 
     @ticket.command(
         name="dismantle",
         brief="Dismantles Ticket System.",
         aliases=["delete", "remove", "clear"])
-    @commands.cooldown(2, 10, commands.BucketType.user)
     async def ticket_dismantle(self, ctx: GeraltContext) -> Optional[discord.Message]:
-        """Disables the ticket system in your guild if present."""
+        """Disables the ticket system in your guild."""
+        try:
+            enabled_bool = self.bot.ticket_init[ctx.guild.id]
+        except KeyError:
+            enabled_bool = await self.bot.db.fetch("SELECT * FROM ticket_init WHERE guild_id = $1", ctx.guild.id)
+        if not enabled_bool:
+            return await ctx.reply(f"**{ctx.guild}** has not set up Ticket System. To setup, run `{ctx.clean_prefix}ticket` <a:IWait:948253556190904371>")
+
+        if ctx.guild.id not in self.bot.ticket_init:
+            return await ctx.reply(f"**{ctx.author}** - Ticket System has already been disabled in **{ctx.guild}** <a:DuckPopcorn:917013065650806854>")
+
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
                 view.disabled = True
@@ -258,30 +382,34 @@ class Guild(commands.Cog):
                     query_two = "DELETE FROM ticket_kernel WHERE guild_id = $1"
                     await self.bot.db.execute(query_one, ctx.guild.id)
                     await self.bot.db.execute(query_two, ctx.guild.id)
+                    del self.bot.ticket_init[ctx.guild.id]
+                    del self.bot.ticket_kernel[ctx.guild.id]
                 except asyncpg.errors as error:
                     return await ui.response.edit(content=f"```py\n{error}\n```", view=ui, allowed_mentions=self.bot.mentions)
-                await ui.response.edit(content=f"Successfully dismantled the `ticket system` from **{ctx.guild}**", view=ui, allowed_mentions=self.bot.mentions)
+                await ui.response.edit(content=f"Successfully dismantled the `ticket system` from **{ctx.guild}** <a:DecayerVibe:910196112458145833>", view=ui, allowed_mentions=self.bot.mentions)
                 await ctx.add_nanotick()
             except discord.errors.NotFound:
-                return await ui.response.edit(content="It seems you have already executed this command.", view=ui, allowed_mentions=self.bot.mentions)
+                return await ui.response.edit(content="It seems you have already executed this command <a:IThink:933315875501641739>", view=ui, allowed_mentions=self.bot.mentions)
             await ctx.add_nanotick()
 
         async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
-            await ui.response.edit(content="Seems like I'm not dismantling the ticket-system", view=ui, allowed_mentions=self.bot.mentions)
+            await ui.response.edit(content="Seems like I'm not dismantling the ticket-system <a:AnimeSmile:915132366094209054>", view=ui, allowed_mentions=self.bot.mentions)
         Confirmation.response = await ctx.reply("Are you sure you want to dismantle the ticket-system?", view=Confirmation(ctx, yes, no), mention_author=False)
 
-    @commands.group(
+    @commands.hybrid_group(
         name="verification",
         brief="Verification commands",
-        aliases=["verify", "vf"])
+        aliases=["verify", "vf"],
+        with_app_command=True)
     @commands.guild_only()
+    @commands.has_guild_permissions(manage_roles=True)
     @commands.cooldown(3, 20, commands.BucketType.user)
     @commands.has_guild_permissions(administrator=True)
-    @commands.has_guild_permissions(manage_roles=True)
     @commands.bot_has_guild_permissions(manage_roles=True)
+    @commands.max_concurrency(1, commands.BucketType.guild)
     async def verification(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Group commands for securing your guild."""
         if ctx.invoked_subcommand is None:
@@ -289,21 +417,23 @@ class Guild(commands.Cog):
 
     @verification.command(
         name="setup",
-        brief="Setup")
+        brief="Setup",
+        with_app_command=True)
+    @app_commands.describe(channel="The channel you want users to get verified at.")
     async def verification_setup(self, ctx: GeraltContext, channel: Optional[discord.TextChannel]) -> Optional[discord.Message]:
         """Secure your guild with verification."""
         if ctx.guild.id in self.bot.verification:
-            return await ctx.reply(f"**{ctx.author}** - verification system has already been setup here smh <a:ImSorryWhat:923941819266527304>. Run `{ctx.clean_prefix}verification status`")
+            return await ctx.reply(f"**{ctx.author}** - verification system has already been setup in **{ctx.guild} <a:ImSorryWhat:923941819266527304> Run `{ctx.clean_prefix}verification status`")
         if not channel:
             return await ctx.reply(f"**{ctx.author}** - please `mention`, or send `channel id`, or `type the channel name` to setup the verification system.")
         await SetupVerification(self.bot, ctx, channel).send()
 
     @verification.command(
         name="dismantle",
-        brief="Remove verification system",
+        brief="Dismantle verification system",
         aliases=["remove"])
     async def verification_dismantle(self, ctx: GeraltContext):
-        """Remove the verification system from your server."""
+        """Dismantle verification system from your server."""
         async def yes(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
                 view.disabled = True
@@ -318,25 +448,24 @@ class Guild(commands.Cog):
                     message = await self.bot.db.fetchval("SELECT message_id FROM verification WHERE guild_id = $1", ctx.guild.id)
                     await self.bot.http.delete_message(channel, message)
                 await self.bot.db.execute(query, ctx.guild.id)
-                self.bot.verification.pop(ctx.guild.id)
+                del self.bot.verification[ctx.guild.id]
             except Exception:
                 await ctx.add_nanocross()
-                await ui.response.edit(content=f"Verification system hasn't been set-up for **{ctx.guild}**.", view=ui, allowed_mentions=self.bot.mentions)
-                return
+                return await ui.response.edit(content=f"Verification system hasn't been set-up for **{ctx.guild}** <:SarahPout:990514983978827796> Run `{ctx.clean_prefix}verification setup", view=ui, allowed_mentions=self.bot.mentions)
             await ctx.add_nanotick()
-            await ui.response.edit(content=f"Successfully removed the verification system for **{ctx.guild}**.", view=ui, allowed_mentions=self.bot.mentions)
-            return
+            return await ui.response.edit(content=f"Successfully removed the verification system for **{ctx.guild}** <:KeanuCool:910026122383728671>", view=ui, allowed_mentions=self.bot.mentions)
 
         async def no(ui: discord.ui.View, interaction: discord.Interaction, button: discord.ui.Button):
             for view in ui.children:
                 view.disabled = True
             await interaction.response.defer()
-            await ui.response.edit(content=f"Alright, I am not dismantling the verification system here.", view=ui, allowed_mentions=self.bot.mentions)
-        Confirmation.response = await ctx.reply("Are you sure you want to dismantle the verification system?", view=Confirmation(ctx, yes, no), mention_author=False)
+            await ui.response.edit(content=f"Alright, I am not dismantling the verification system here <:RavenPray:914410353155244073>", view=ui, allowed_mentions=self.bot.mentions)
+        Confirmation.response = await ctx.reply("Are you sure you want to dismantle the verification system <:SIDGoesHmmMan:967421008137056276>", view=Confirmation(ctx, yes, no), mention_author=False)
 
     @verification.command(
         name="status",
-        brief="Verification Status")
+        brief="Verification Status",
+        with_app_command=True)
     async def verification_status(self, ctx: GeraltContext):
         """Returns verification status for your guild."""
         try:
@@ -367,6 +496,9 @@ class Guild(commands.Cog):
         brief="Guild Settings",
         with_app_command=True)
     @commands.guild_only()
+    @commands.cooldown(3, 20, commands.BucketType.user)
+    @commands.has_guild_permissions(administrator=True)
+    @commands.has_guild_permissions(manage_channels=True)
     async def guild(self, ctx: GeraltContext):
         """Sub-commands for basic guild settings"""
         if ctx.invoked_subcommand is None:
