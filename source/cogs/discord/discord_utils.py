@@ -150,8 +150,8 @@ class Discord(commands.Cog):
         general_emb.add_field(
             name="<:GeraltRightArrow:904740634982760459> Account Info :",
             value=f"> <:ReplyContinued:930634770004725821> Join Position : `#{sorted(ctx.guild.members, key = lambda u: u.joined_at or discord.utils.utcnow()).index(user) + 1}`\n "
-            f"> <:ReplyContinued:930634770004725821> Created on : {self.bot.timestamp(user.created_at, style = 'D')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n"
-            f"> <:Reply:930634822865547294> Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'D')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
+            f"> <:ReplyContinued:930634770004725821> Created on : {self.bot.timestamp(user.created_at, style = 'd')} ({self.bot.timestamp(user.created_at, style = 'R')}) \n"
+            f"> <:Reply:930634822865547294> Joined Guild on : {self.bot.timestamp(user.joined_at, style = 'd')} ({self.bot.timestamp(user.joined_at, style = 'R')})\n────",
             inline=False)
         general_emb.set_thumbnail(url=avatar)
 
@@ -246,7 +246,7 @@ class Discord(commands.Cog):
             f"> │ ` ─ ` <:WinFileBruh:898571301986373692> File Transfer Limit: `{humanize.naturalsize(ctx.guild.filesize_limit)}`\n────")
         general_emb.add_field(
             name="<:GeraltRightArrow:904740634982760459> Initialisation :",
-            value=f"> │ ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.timestamp(ctx.guild.created_at)} \n"
+            value=f"> │ ` ─ ` <a:Woo:905754435379163176> Made On : {self.bot.timestamp(ctx.guild.created_at, style='d')} \n"
             f"> │ ` ─ ` <:ISus:915817563307515924> Media Filteration : For `{str(ctx.guild.explicit_content_filter).replace('_',' ').replace('`NONE`', '`NILL`').title()}` \n────",
             inline=False)
         general_emb.set_thumbnail(url=ctx.guild.icon.url)

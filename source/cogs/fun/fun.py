@@ -96,7 +96,7 @@ class Fun(commands.Cog):
                 colour=0x2F3136)
             delete_emb.add_field(
                 name="Message Content",
-                value=f"{message}")
+                value=f">>> {message}")
             await ctx.reply(embed=delete_emb, allowed_mentions=self.bot.mentions)
         except BaseException:
             await ctx.reply("No one has deleted. any messages as of now <a:HumanBro:905748764432662549>", allowed_mentions=self.bot.mentions)
@@ -125,10 +125,10 @@ class Fun(commands.Cog):
                 colour=0x2F3136)
             edit_emb.add_field(
                 name="Before Edit",
-                value=f"{message}")
+                value=f">>> {message}")
             edit_emb.add_field(
                 name="After Edit",
-                value=f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.timestamp(post_time, style='R')}\n{post_message}",
+                value=f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.timestamp(post_time, style='R')}\n>>> {post_message}",
                 inline=False)
             await ctx.reply(embed=edit_emb, allowed_mentions=self.bot.mentions, view=view)
         except BaseException:

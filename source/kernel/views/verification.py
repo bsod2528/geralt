@@ -138,6 +138,9 @@ class SetupVerification(discord.ui.View):
         self.ctx: GeraltContext = ctx
         self.channel = channel
 
+        if ctx.interaction:
+            self.delete.disabled = True
+
     @discord.ui.button(label="Setup Verification",
                        style=discord.ButtonStyle.grey,
                        emoji="<a:Owner:905750348457738291>")

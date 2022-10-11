@@ -77,6 +77,7 @@ class Tags(commands.Cog):
                 await ctx.reply(f"**{user}** ─ You own no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>")
             if user == user:
                 await ctx.reply(f"**{user}** ─ owns no tags in `{ctx.guild}`. To create one, run `{ctx.clean_prefix}tag make` <:DuckSip:917006564265705482>")
+            commands.Group.get_command()
         else:
             if serial_no <= 4:
                 tag_list_emb = BaseEmbed(
@@ -270,7 +271,7 @@ class Tags(commands.Cog):
     @app_commands.guild_only()
     @app_commands.checks.cooldown(5, 5)
     @commands.cooldown(5, 5, commands.BucketType.user)
-    async def tag(self, ctx: GeraltContext, *, tag_name: str = None) -> Optional[discord.Message]:
+    async def tag(self, ctx: GeraltContext, *, tag_name: Optional[str]) -> Optional[discord.Message]:
         """Allows you to tag text for later retrieval."""
         if not tag_name:
             return await ctx.command_help()

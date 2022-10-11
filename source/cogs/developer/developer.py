@@ -8,7 +8,6 @@ import traceback
 import contextlib
 
 from typing import Optional
-from importlib import reload
 from discord.ext import commands
 
 from ...kernel.views.paginator import Paginator
@@ -16,8 +15,8 @@ from ...kernel.subclasses.embed import BaseEmbed
 from ...kernel.subclasses.bot import CONFIG, Geralt
 from ...kernel.views.meta import Leave, Confirmation
 from ...kernel.subclasses.context import GeraltContext
+from ...kernel.utilities.extensions import COGS_EXTENSIONS
 from ...kernel.utilities.crucial import Plural, TabulateData
-from ...kernel.utilities.extensions import KERNEL_EXTENSIONS, COGS_EXTENSIONS
 
 
 class Developer(commands.Cog):
@@ -104,19 +103,6 @@ class Developer(commands.Cog):
         except Exception as exception:
             await ctx.reply(f"```py\n{exception}\n```")
             await ctx.add_nanocross()
-
-    @commands.command(
-        name="no-prefix",
-        brief="Sets prefix to \" \"",
-        aliases=["np"])
-    @commands.is_owner()
-    @commands.cooldown(2, 5, commands.BucketType.user)
-    async def no_prefix(self, ctx: GeraltContext):
-        if self.bot.no_prefix is False:
-            self.bot.no_prefix = True
-            return await ctx.add_nanotick()
-        self.bot.no_prefix = False
-        await ctx.add_nanocross()
 
     # Shuts the bot down in a friendly manner.
     @commands.command(
@@ -300,7 +286,19 @@ class Developer(commands.Cog):
     async def dev(self, ctx: GeraltContext) -> Optional[discord.Message]:
         """Simple commands for dev to do"""
         if ctx.invoked_subcommand is None:
-            await ctx.command_help()
+            return await ctx.command_help()
+
+    @dev.command(
+        name="no-prefix",
+        brief="Set Prefix to Nill",
+        aliases=["np"])
+    async def no_prefix(self, ctx: GeraltContext) -> Optional[discord.Message]:
+        """Sets the prefix to ` `."""
+        if self.bot.no_prefix is False:
+            self.bot.no_prefix = True
+            return await ctx.add_nanotick()
+        self.bot.no_prefix = False
+        await ctx.add_nanocross()
 
     @dev.command(
         name="total-guilds",

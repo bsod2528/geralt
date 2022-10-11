@@ -1,4 +1,5 @@
 import io
+from operator import ge
 import aiohttp
 import discord
 import traceback
@@ -34,7 +35,10 @@ class ErrorHandler(commands.Cog):
 
         if isinstance(error, app_commands.AppCommandError):
             return await Traceback(self.bot, ctx, error).send()
-            
+
+        if isinstance(error, commands.errors.MaxConcurrencyReached):
+            return await Traceback(self.bot, ctx, error).send()
+
         if isinstance(error, app_commands.errors.CommandNotFound):
             return
 
@@ -80,9 +84,14 @@ class ErrorHandler(commands.Cog):
                         type(error), error, error.__traceback__))
                 error_emb = BaseEmbed(
                     title="Error Boi <:Pain:911261018582306867>",
-                    description=f"```prolog\n{command_data} \n```\n```py\n {error_str}\n```",
+                    description=f"[**Jump Url**]({ctx.message.jump_url})```prolog\n{command_data} \n```\n```py\n {error_str}\n```",
                     colour=0x2F3136)
-
+                view = discord.ui.View()
+                view.add_item(
+                    discord.ui.Button(
+                        label="Jump",
+                        style=discord.ButtonStyle.url,
+                        url=ctx.message.jump_url))
                 send_error = error_webhook
                 if len(error_str) < 2000:
                     try:

@@ -192,7 +192,6 @@ class GroupAndCommandView(discord.ui.View):
         super().__init__(timeout=60)
         self.help = help
         self.mapping = mapping
-        self.message = self.from_message(self.help.context.message)
 
         if self.help.context.interaction:
             self.delete.disabled = True

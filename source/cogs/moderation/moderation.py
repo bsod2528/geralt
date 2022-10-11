@@ -30,7 +30,7 @@ class Moderation(commands.Cog):
             animated=False)
 
     @staticmethod
-    def check_hierarchy(ctx: commands.context, user: discord.Member):
+    def check_hierarchy(ctx: GeraltContext, user: discord.Member):
         if isinstance(user, discord.Member):
             if user == ctx.guild.owner:
                 raise commands.BadArgument(f"Oh come on, they're the owner.\n")

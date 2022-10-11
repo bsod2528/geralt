@@ -12,6 +12,7 @@ import humanize
 from discord import app_commands
 from discord.ext import commands
 from typing import Optional, List
+from aiogithub.exceptions import HttpException
 
 from ...cogs.help.help import GeraltHelp
 from ...kernel.views.paginator import Paginator
@@ -55,12 +56,15 @@ class Meta(commands.Cog):
     async def _help(self, interaction: discord.Interaction, cog: str | None, command: str | None):
         """Shows help for a command or a cog"""
         ctx: GeraltContext = await self.bot.get_context(interaction)
+        if not cog:
+            return await ctx.send_help()
+        if not command:
+            return await ctx.send_help()
         if cog:
             await ctx.send_help(cog)
         if command:
-            return await ctx.send_help(command)
-        if not cog or command:
-            return await ctx.send_help()
+            await ctx.send_help(command)
+
 
     @_help.autocomplete("cog")
     async def _help_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
@@ -83,7 +87,7 @@ class Meta(commands.Cog):
             for commands in command_list:
                 if commands.startswith("jishaku"):
                     command_list.remove(commands)
-        return [app_commands.Choice(name=cmd, value=cmd) for cmd in command_list]
+        return [app_commands.Choice(name=command, value=command) for command in command_list]
 
     # Huge shoutout to @Zeus432 [ Github User ID ] for the idea of
     # implementing buttons for System Usage [ PSUTIl ] and Latest Commits on
@@ -256,7 +260,7 @@ class Meta(commands.Cog):
         except BaseException:
             pass
         await ctx.reply(f"<:GeraltRightArrow:904740634982760459> I have been \"**online**\" for -\n>>> <:ReplyContinued:930634770004725821>` ─ ` Exactly : {humanize.precisedelta(time)}\n<:Reply:930634822865547294>` ─ ` Roughly Since : {self.bot.timestamp(self.bot.uptime, style = 'R')} ({self.bot.timestamp(self.bot.uptime, style = 'f')}) <a:CoffeeSip:907110027951742996>")
-
+        humanize.na
     @commands.hybrid_command(
         name="google",
         brief="Search Google",
@@ -359,10 +363,14 @@ class Meta(commands.Cog):
     async def source(self, ctx: GeraltContext, *, command: str = None) -> Optional[discord.Message]:
         """Returns source for a command"""
         view = discord.ui.View()
-        branch = "stellar-v2"
-        repo_url = "https://github.com/BSOD2528/Geralt"
-        repository = await self.bot.git.get_repo("BSOD2528", "Geralt")
-        line_count = await total_lines("source", ".py")
+        branch: str = "stellar-v2"
+        repo_url: str = "https://github.com/BSOD2528/Geralt"
+        try:
+            repository = await self.bot.git.get_repo("BSOD2528", "Geralt")
+        except HttpException:
+
+            return await ctx.reply(f"**BSOD#0067** - has to change his `GitHub` Personalised Token. Please ping him at my support server <a:AwkwardDoggo:1027813617015455774>")
+        line_count: int = await total_lines("source", ".py")
 
         source_emb = BaseEmbed(
             title=f"Github - {repository.full_name}",

@@ -67,9 +67,9 @@ class Geralt(commands.Bot):
         self.timestamp = discord.utils.format_dt
         self.owner_ids: List = DEVELOPER_IDS
         self.github_token: str = CONFIG.get("GITHUB_TOKEN")
+        self.webhook_manager = WebhookManager()
         self.developer_mode: bool = False
         self.add_persistent_views = False
-        self.webhook_manager = WebhookManager()
 
         # Attributes for caching.
         self.afk: Dict[int, str] = {}
@@ -88,15 +88,15 @@ class Geralt(commands.Bot):
         return "<Bot>"
 
     # Credits to qt_haskell [ Lia Marie ] - *sobs*
-    def generate_highlight_cache(self, entries: List[Tuple]) -> Dict:
+    def generate_dict_cache(self, entries: List[Tuple]) -> Dict:
         cache: Dict = {}
         for entry in entries:
-            guild_id, user_id, trigger = entry
+            guild_id, user_id, entity = entry
             if guild_id not in cache:
                 cache[guild_id]: Dict = {}
             if user_id not in cache[guild_id]:
                 cache[guild_id][user_id]: List = []
-            cache[guild_id][user_id].append(trigger)
+            cache[guild_id][user_id].append(entity)
         return cache
 
     async def get_context(self, message: discord.Message, *, cls=GeraltContext) -> GeraltContext:
@@ -179,11 +179,6 @@ class Geralt(commands.Bot):
                 data["command_name"],
                 data["invoked_at"],
                 data["uses"]] for data in meta_data}
-        self.ticket_kernel = {
-            data["guild_id"]: [
-                data["ticket_id"],
-                data["invoker_id"],
-                data["invoked_at"]] for data in ticket_kernel_data}
         self.ticket_init = {
             data["guild_id"]: [
                 data["category_id"],
@@ -191,7 +186,6 @@ class Geralt(commands.Bot):
                 data["sent_message_id"],
                 data["jump_url"],
                 data["panel_description"],
-                data["message_description"],
                 data["id"]] for data in ticket_init_data}
         self.verification = {
             data["guild_id"]: [
@@ -203,15 +197,20 @@ class Geralt(commands.Bot):
         self.convert_url_to_webhook = {
             data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_data}
 
+        if ticket_kernel_data:
+            ticket_kernel_list: List[Tuple] = [
+                (data["guild_id"], data["ticket_id"], data["invoker_id"]) for data in ticket_kernel_data]
+            self.ticket_kernel = self.generate_dict_cache(ticket_kernel_list)
+
         if highlight_data:
             highlight_data_list: List[Tuple] = [
                 (data["guild_id"], data["user_id"], data["trigger"]) for data in highlight_data]
-            self.highlight = self.generate_highlight_cache(highlight_data_list)
+            self.highlight = self.generate_dict_cache(highlight_data_list)
 
         if highlight_blocked_data:
             highlight_blocked_data: List[Tuple] = [
                 (data["guild_id"], data["user_id"], data["object_id"]) for data in highlight_blocked_data]
-            self.highlight_blocked = self.generate_highlight_cache(highlight_blocked_data)
+            self.highlight_blocked = self.generate_dict_cache(highlight_blocked_data)
 
         self.locked_objects_ids.append(
             data["object_id"] for data in locked_objects_ids_data)
@@ -220,7 +219,6 @@ class Geralt(commands.Bot):
             self.prefixes[guild_id] = set(prefixes) or {".g", }
 
     async def on_ready(self):
-
         await self.load_cache()
 
         if not self.add_persistent_views:

@@ -1,12 +1,13 @@
 import imghdr
 import asyncio
+from re import A
 import asyncpg
 import aiohttp
 import discord
 
 from io import BytesIO
 from discord.ext import commands
-from discord import app_commands
+from discord import NotFound, app_commands
 from typing import Union, Optional, List, Dict, Tuple
 
 from ...kernel.views.todo import SeeTask
@@ -23,6 +24,10 @@ class Utility(commands.Cog):
 
     def __init__(self, bot: Geralt):
         self.bot: Geralt = bot
+        self.context_menu = app_commands.ContextMenu(
+            name="Toggle Highlight-Block User",
+            callback=self.highlight_block_context_menu)
+        self.bot.tree.add_command(self.context_menu)
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -31,6 +36,23 @@ class Utility(commands.Cog):
             id=1026029046146007050,
             animated=True)
 
+    async def highlight_block_context_menu(self, interaction: discord.Interaction, member: discord.Member):
+        if member.bot:
+            return await interaction.response.send_message(content=f"{member.mention} is a bot <a:IPat:933295620834336819> Please choose a human this time.", ephemeral=True)
+        query: str = "INSERT INTO highlight_blocked VALUES ($1, $2, $3, $4, $5)"
+        try:
+            await self.bot.db.execute(query, interaction.user.id, interaction.guild.id, member.id, "member", discord.utils.utcnow())
+            await interaction.response.send_message(f"**{member.mention}** - Has now been blocked from highlighting you in **{interaction.guild}** <:SarahPray:907109950248067154>", allowed_mentions=self.bot.mentions, ephemeral=True)
+        except asyncpg.UniqueViolationError:
+            await self.bot.db.execute("DELETE FROM highlight_blocked WHERE user_id = $1 AND guild_id = $2 AND object_id = $3", interaction.user.id, interaction.guild.id, member.id)
+            return await interaction.response.send_message(content=f"Successfully removed {member.mention} from your `highlight blocked` list. {member.mention} will now be able to highlight you <:RavenPray:914410353155244073>", allowed_mentions=self.bot.mentions, ephemeral=True)
+        highlight_blocked_data = await self.bot.db.fetch("SELECT * FROM highlight_blocked")
+        if highlight_blocked_data:
+            highlight_blocked_data_list: List = [(data["guild_id"], data["user_id"], data["object_id"]) for data in highlight_blocked_data]
+            self.bot.highlight_blocked = self.bot.generate_dict_cache(highlight_blocked_data_list)
+        else:
+            self.bot.highlight_blocked = {}
+            
     async def generate_highlight_emb(self, message: discord.Message, user_id: str):
         message_history: List[str] = []
         async for msg in message.channel.history(limit=5):
@@ -50,7 +72,10 @@ class Utility(commands.Cog):
     async def task_id_autocomplete(self, interaction: discord.Interaction, current: int) -> List[app_commands.Choice[int]]:
         task_deets = await self.bot.db.fetch("SELECT (task_id) FROM todo WHERE user_id = $1 ORDER BY task_id ASC", interaction.user.id)
         ids = [data[0] for data in task_deets]
-        return [app_commands.Choice(name=ids, value=ids) for ids in ids]
+        try:
+            return [app_commands.Choice(name=ids, value=ids) for ids in ids]
+        except NotFound:
+            return
 
     async def trigger_list_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
         try:
@@ -60,8 +85,11 @@ class Utility(commands.Cog):
         except KeyError:
             trigger_list = await self.bot.db.fetch("SELECT * FROM highlight WHERE user_id = $1 AND guild_id = $2", interaction.user.id, interaction.guild.id)
             names = [f"{data[2]}" for data in trigger_list]
-        return [app_commands.Choice(name=names, value=names)
+        try:
+            return [app_commands.Choice(name=names, value=names)
                 for names in names if current.lower() in names]
+        except NotFound:
+            return
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
@@ -120,13 +148,15 @@ class Utility(commands.Cog):
                             if message.author.id == user.id:
                                 return
                             highlight_emb = await self.generate_highlight_emb(message, str(user.id))
+                            if not highlight_emb:
+                                return
                             jump_url_component = discord.ui.View()
                             jump_url_component.add_item(
                                 discord.ui.Button(
                                     label="Jump to Message",
                                     emoji="<a:Jump:1024989069157077062>",
                                     url=message.jump_url))
-                            return await user.send(content=f"In {message.channel.mention} for **{message.guild}** you were highlighted with the word `{trigger}`!",embed=highlight_emb, view=jump_url_component)
+                            return await user.send(content=f"In {message.channel.mention} for **{message.guild}** you were highlighted with the word `{trigger}`!", embed=highlight_emb, view=jump_url_component)
 
     @commands.hybrid_group(
         name="todo",
@@ -561,7 +591,7 @@ class Utility(commands.Cog):
             highlight_data = await self.bot.db.fetch("SELECT * FROM highlight")
             if highlight_data:
                 highlight_data_list: List[Tuple] = [(data["guild_id"], data["user_id"], data["trigger"]) for data in highlight_data]
-                self.bot.highlight = self.bot.generate_highlight_cache(highlight_data_list)
+                self.bot.highlight = self.bot.generate_dict_cache(highlight_data_list)
         except asyncpg.UniqueViolationError:
             return await ctx.reply(f"`{trigger.strip()}` - is a trigger word which is already set. Please set another word <:ICool:940786050681425931>")
 
@@ -587,7 +617,7 @@ class Utility(commands.Cog):
             await ctx.reply(f"**{ctx.author}** - Removed `{trigger}` from your list <a:IEat:940413722537644033>", delete_after=5)
             highlight_data = await self.bot.db.fetch("SELECT * FROM highlight")
             highlight_data_list: List = [(data["guild_id"], data["user_id"], data["trigger"]) for data in highlight_data]
-            self.bot.highlight = self.bot.generate_highlight_cache(highlight_data_list)
+            self.bot.highlight = self.bot.generate_dict_cache(highlight_data_list)
         except Exception as error:
             await ctx.send(error)
 
@@ -617,17 +647,20 @@ class Utility(commands.Cog):
     @app_commands.describe(object="Member or Role you want to block from highlighting you.")
     async def highlight_block(self, ctx: GeraltContext, *, object: Union[discord.Member, discord.Role]):
         """Block discord objects from highlighting you!"""
+        if object.bot:
+            return await ctx.reply(content=f"{object.mention} is a bot <a:IPat:933295620834336819> Please choose a human this time.")
+
         if not object:
             return await ctx.reply(f"**{ctx.author}** - Please pass in an `object` for blocking highlights from them <:RageKill:917007995571961866>")
 
         if ctx.author.id == object.id:
             return await ctx.reply(f"**{ctx.author}** - You do realise that you cannot highlight yourself right <a:IPat:933295620834336819>")
 
-        query = "INSERT INTO highlight_blocked VALUES ($1, $2, $3, $4, $5)"
+        query: str = "INSERT INTO highlight_blocked VALUES ($1, $2, $3, $4, $5)"
         if ctx.guild.get_role(object.id):
             try:
                 await ctx.add_nanotick()
-                await self.bot.db.execute(query, ctx.author.id, ctx.guild.id, object.id, "channel", discord.utils.utcnow())
+                await self.bot.db.execute(query, ctx.author.id, ctx.guild.id, object.id, "role", discord.utils.utcnow())
                 await ctx.reply(f"**{object.mention}** - Has now been blocked from highlighting you in **{ctx.guild}** <:SarahPray:907109950248067154>", allowed_mentions=self.bot.mentions)
             except asyncpg.UniqueViolationError:
                 await ctx.add_nanocross()
@@ -645,7 +678,7 @@ class Utility(commands.Cog):
         highlight_blocked_data = await self.bot.db.fetch("SELECT * FROM highlight_blocked")
         if highlight_blocked_data:
             highlight_blocked_data_list: List = [(data["guild_id"], data["user_id"], data["object_id"]) for data in highlight_blocked_data]
-            self.bot.highlight_blocked = self.bot.generate_highlight_cache(highlight_blocked_data_list)
+            self.bot.highlight_blocked = self.bot.generate_dict_cache(highlight_blocked_data_list)
 
     @highlight.command(
         name="unblock",
@@ -655,6 +688,9 @@ class Utility(commands.Cog):
     @app_commands.describe(object="Member or Role you want to unblock from highlighting you.")
     async def highlight_unblock(self, ctx: GeraltContext, *, object: Union[discord.Member, discord.Role]):
         """Unblock discord objects from highlighting you!"""
+        if object.bot:
+            return await ctx.reply(content=f"{object.mention} is a bot <a:IPat:933295620834336819> Please choose a human this time.")
+
         if not object:
             return await ctx.reply(f"**{ctx.author}** - Please pass in an `object` for unblocking highlights from them <:FrogGoesHmmMan:925366780422152232>")
 
@@ -669,7 +705,7 @@ class Utility(commands.Cog):
         highlight_blocked_data = await self.bot.db.fetch("SELECT * FROM highlight_blocked")
         if highlight_blocked_data:
             highlight_blocked_data_list: List = [(data["guild_id"], data["user_id"], data["object_id"]) for data in highlight_blocked_data]
-            self.bot.highlight_blocked = self.bot.generate_highlight_cache(highlight_blocked_data_list)
+            self.bot.highlight_blocked = self.bot.generate_dict_cache(highlight_blocked_data_list)
         else:
             self.bot.highlight_blocked: Dict = {}
 
