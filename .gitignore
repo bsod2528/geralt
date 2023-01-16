@@ -2,4 +2,4 @@ venv
 .vscode
 config.env
 __pycache__
-source/cogs/sailu
+geralt/ext/sailu

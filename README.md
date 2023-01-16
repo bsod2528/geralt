@@ -20,7 +20,7 @@ The website provides full details from A to Z regarding the bot. [**Click here**
 
 ## Setup
 
-An `.env` file has to be there for storing the keys. You can use any other method too like a json lmao. Just saying. Set up a venv too.
+An `.env` file has to be there for storing the keys. An `example_config.env` has been provided for reference. You can use any other method too like a json lmao. Just saying. Set up a venv too.
 
 Ensure all tables are present in your [**postgresql**](https://www.postgresql.org/download/) server. Check out `Schema` folder for all the tables you need.
 ```py
