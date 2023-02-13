@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import re
 import sys
@@ -19,11 +20,11 @@ from dotenv import dotenv_values
 
 import geralt.kernel.utilities.override_jsk
 
+from .context import BaseContext
+from .embed import BaseEmbed
 from .kernel.utilities.crucial import WebhookManager
 from .kernel.utilities.extensions import COGS_EXTENSIONS
 from .kernel.views.meta import Info
-from .context import BaseContext
-from .embed import BaseEmbed
 
 dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
@@ -178,7 +179,7 @@ class BaseBot(commands.Bot):
             prefix = {".g"}
         return commands.when_mentioned_or(*prefix)(self, message)
 
-    # DB connection
+    # db connection
     async def connect_to_database(self):
         try:
             print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;36m{time.strftime('%c', time.localtime())}{escape}[0;1;36m ─ Waking up{escape}[0m")
@@ -188,30 +189,18 @@ class BaseBot(commands.Bot):
         except Exception as exception:
             print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0;1;31m{time.strftime('%c', time.localtime())}{escape}[0;1;31m ─ Couldnt connect due to : {exception}{escape}[0m")
 
-    # Load extensions.
+    # load extensions
     async def load_all_extensions(self):
         print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Loading all Extensions.{escape}[0m")
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)
-                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;37m└── {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  {escape}[0m{escape}[0;1;37m└── {escape}[0m{escape}[0;1;32mLoaded {escape}[0m{escape}[0;1;37m: {escape}[0m{escape}[0;1;35m{extensions} {escape}[0m")
+                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;37m└── {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  {escape}[0m{escape}[0;1;37m└── {escape}[0m{escape}[0;1;32mLoaded{escape}[0m{escape}[0;1;37m: {escape}[0m{escape}[0;1;35m{extensions} {escape}[0m")
             except Exception as exception:
-                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;31m└──{escape}[0m {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  └── Error Loading : {exception} {escape}[0m")
+                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;31m└──{escape}[0m {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  └── Error Loading: {exception} {escape}[0m")
         print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded.{escape}[0m")
 
-    async def setup_hook(self) -> None:
-        self.session: aiohttp.ClientSession = aiohttp.ClientSession()
-        self.tree.copy_global_to(
-            guild=discord.Object(
-                id=CONFIG.get("BSODsThings")))
-        self.git = GitHub(self.github_token)
-
-        await self.connect_to_database()
-        await self.load_all_extensions()
-
-        if not hasattr(self, "uptime"):
-            self.uptime = discord.utils.utcnow()
-
+    # load cache from db
     async def load_cache(self):
         afk_data = await self.db.fetch("SELECT * FROM afk")
         meta_data = await self.db.fetch("SELECT * FROM meta")
@@ -274,8 +263,22 @@ class BaseBot(commands.Bot):
         for guild_id, prefixes in prefix_data:
             self.prefixes[guild_id] = set(prefixes) or {".g", }
 
-    async def on_ready(self):
+    async def setup_hook(self) -> None:
+        self.session: aiohttp.ClientSession = aiohttp.ClientSession()
+        self.tree.copy_global_to(
+            guild=discord.Object(
+                id=CONFIG.get("BSODsThings")))
+        self.git = GitHub(self.github_token)
+
+        await self.connect_to_database()
+        await self.load_all_extensions()
         await self.load_cache()
+
+        if not hasattr(self, "uptime"):
+            self.uptime = discord.utils.utcnow()
+
+
+    async def on_ready(self):
 
         if not self.add_persistent_views:
             self.add_view(Info(self, BaseContext))

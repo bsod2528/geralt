@@ -1,5 +1,7 @@
 from typing import List
+
 import discord
+
 # Has required flags for Server and User Info Commands
 
 

@@ -1,16 +1,17 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Dict
+
+from typing import TYPE_CHECKING, Dict, List
 
 import discord
 from discord.errors import NotFound
-from discord.ext.commands import Group, Cog, Command
+from discord.ext.commands import Cog, Command, Group
 
 from ...context import BaseContext
 from ...embed import BaseEmbed
 
 if TYPE_CHECKING:
-    from ..help import BaseHelp
     from ...bot import BaseBot
+    from ..help import BaseHelp
 
 
 class HelpMenu(discord.ui.Select):

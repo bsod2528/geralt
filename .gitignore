@@ -3,3 +3,4 @@ venv
 config.env
 __pycache__
 geralt/ext/sailu
+geralt/geralt.log

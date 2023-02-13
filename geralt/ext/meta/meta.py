@@ -14,12 +14,12 @@ from aiogithub.exceptions import HttpException
 from discord import app_commands
 from discord.ext import commands
 
-from ...embed import BaseEmbed
-from ...kernel.help import BaseHelp
 from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
+from ...embed import BaseEmbed
+from ...kernel.help import BaseHelp
 from ...kernel.utilities.crucial import total_lines
-from ...kernel.views.meta import (Confirmation, Info, Feedback, Bug)
+from ...kernel.views.meta import Bug, Confirmation, Feedback, Info
 from ...kernel.views.paginator import Paginator
 
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import datetime
 import imghdr
-import itertools
 import io
-from io import BytesIO
+import itertools
 import traceback
+from io import BytesIO
 from typing import TYPE_CHECKING, Any, Union
 
 import aiohttp

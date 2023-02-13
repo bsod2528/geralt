@@ -19,7 +19,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.en.
 from .bot import BaseBot
 from .context import BaseContext
 from .embed import BaseEmbed
-from .kernel.utilities.crucial import (misc, Plural,
-                                       total_lines,
-                                       TabulateData,
-                                       WebhookManager)
+from .kernel.utilities.crucial import (Plural, TabulateData, WebhookManager,
+                                       misc, total_lines)

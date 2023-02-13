@@ -1,9 +1,10 @@
 from __future__ import annotations
-import discord
 
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
+
+import discord
 from discord.ext import commands
 from discord.utils import MISSING
-from typing import Any, Union, Optional, Sequence, TYPE_CHECKING
 
 from .embed import BaseEmbed
 

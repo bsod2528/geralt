@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import traceback
 from typing import TYPE_CHECKING, Any
 
@@ -11,6 +12,7 @@ from ...embed import BaseEmbed
 if TYPE_CHECKING:
     from ...bot import BaseBot
 
+escape: str = "\x1b"
 
 async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[Any]) -> None:
     print(error)
@@ -64,7 +66,7 @@ class Traceback(discord.ui.View):
         else:
             command_help = BaseEmbed(
                 title=f"<:BaseBotRightArrow:904740634982760459> Command Help : {self.ctx.command}",
-                description=f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.ctx.clean_prefix}{self.ctx.command.qualified_name}\x1b[0m \x1b[0;1;34m{self.ctx.command.signature}\x1b[0m\n```\n"
+                description=f"```ansi\n{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;31mSyntax{escape}[0m {escape}[0;1;37;40m : {escape}[0m {escape}[0;1;37m{self.ctx.clean_prefix}{self.ctx.command.qualified_name}{escape}[0m {escape}[0;1;34m{self.ctx.command.signature}{escape}[0m\n```\n"
                 f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {self.ctx.command.cog_name} \n"
                 f"<:Reply:930634822865547294> ` ─ ` **Description : ** {self.ctx.command.help if self.ctx.command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{self.ctx.command.full_parent_name}`' if self.ctx.command.parent else ' '}",
                 colour=0x2F3136)
@@ -152,7 +154,7 @@ class CommandSyntax(discord.ui.View):
         else:
             command_help = BaseEmbed(
                 title=f"<:BaseBotRightArrow:904740634982760459> Command Help : {self.ctx.command}",
-                description=f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.ctx.clean_prefix}{self.ctx.command.qualified_name}\x1b[0m \x1b[0;1;34m{self.ctx.command.signature}\x1b[0m\n```\n"
+                description=f"```ansi\n{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;31mSyntax{escape}[0m {escape}[0;1;37;40m : {escape}[0m {escape}[0;1;37m{self.ctx.clean_prefix}{self.ctx.command.qualified_name}{escape}[0m {escape}[0;1;34m{self.ctx.command.signature}{escape}[0m\n```\n"
                 f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases : ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {self.ctx.command.cog_name} \n"
                 f"<:Reply:930634822865547294> ` ─ ` **Description : ** {self.ctx.command.help if self.ctx.command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command :** `{self.ctx.command.full_parent_name}`' if self.ctx.command.parent else ' '}",
                 colour=0x2F3136)
@@ -207,12 +209,18 @@ class CommandSyntax(discord.ui.View):
         command_name = f"{self.ctx.clean_prefix}{self.ctx.command} {self.ctx.command.signature}"
         syntax_emb = BaseEmbed(
             title=f"<:BaseBotRightArrow:904740634982760459> Command Errored : {self.ctx.clean_prefix}{self.ctx.command}",
-            description=f"\n```py\nerror: {self.error}\n|\n| Syntax:\n|\n| => {command_name}\n|    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{'^' * (len(self.error.param.name) + 2)}\n| Click on `Command Help` button for more info.```",
             colour=0x2F3136)
         syntax_emb.set_footer(
             text=f"Run {self.ctx.clean_prefix}help {self.ctx.command}for more help",
             icon_url=self.ctx.author.display_avatar.url)
-        self.message = await self.ctx.reply(embed=syntax_emb, view=self, mention_author=False)
+
+        if self.ctx.author.is_on_mobile():
+            syntax_emb.description: str = f"\n```py\nerror: {self.error}\n|\n| Syntax:\n|\n| => {command_name}\n|    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{'^' * (len(self.error.param.name) + 2)}\n| Click on `Command Help` button for more info.```"
+            self.message = await self.ctx.reply(embed=syntax_emb, view=self, mention_author=False)
+        else:
+            up: str = f"{escape}[0;1;30m^{escape}[0m"
+            syntax_emb.description: str = f"\n```ansi\n{escape}[0;1;31merror:{escape}[0m {escape}[0;1;37m{self.error}{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;36mSyntax:{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;30m=>{escape}[0m {escape}[0;1;34m{command_name}{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{up * (len(self.error.param.name) + 2)}\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;37mClick on {escape}[0;1;33m`{escape}[0m{escape}[0;1;36mCommand Help{escape}[0m{escape}[0;1;33m`{escape}[0m{escape}[0;1;37m button for more info.{escape}[0m```"
+            self.message = await self.ctx.reply(embed=syntax_emb, view=self, mention_author=False)
         return self.message
 
     async def on_timeout(self) -> None:

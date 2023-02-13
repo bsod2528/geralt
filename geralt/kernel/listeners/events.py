@@ -2,7 +2,6 @@ import re
 
 import aiohttp
 import discord
-
 from discord.ext import commands
 
 from ...bot import CONFIG, BaseBot

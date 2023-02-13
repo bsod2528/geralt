@@ -4,13 +4,14 @@ import io
 import textwrap
 import time
 import traceback
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 import aiohttp
 import discord
 from discord.ext import commands
 
 import geralt
+
 from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
 from ...embed import BaseEmbed

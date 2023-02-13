@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 import discord
 import humanize
@@ -87,12 +87,12 @@ class Discord(commands.Cog):
                 ping_emb.description = f"""```yaml\n> PostgreSQL     : {round(db_ping, 1)} ms
 > Discord API    : {websocket_ping:,.0f} ms
 > Message Typing : {round(typing_ping, 1)} ms\n```"""
-                await ctx.reply(embed=ping_emb, mention_author=False)
+                return await ctx.reply(embed=ping_emb, mention_author=False)
             else:
                 ping_emb.description = f"""```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mPostgreSQL\x1b[0m     \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(db_ping, 1)} ms\x1b[0m
 \x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mDiscord API\x1b[0m    \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{websocket_ping:,.0f} ms\x1b[0m
 \x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mMessage Typing\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(typing_ping, 1)} ms\x1b[0m\n```"""
-            await ctx.reply(embed=ping_emb, mention_author=False)
+            return await ctx.reply(embed=ping_emb, mention_author=False)
 
     @commands.command(
         name="banner",

@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from typing import Dict, Union
 
 import aiofiles
