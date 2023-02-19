@@ -364,7 +364,7 @@ class Meta(commands.Cog):
 
         url = f"{repo_url}/blob/{branch}/{path}#L{line_beginning}-L{line_beginning + len(lines) - 1}"
 
-        source_emb.description = f"Here is the source for [`{command}`]({url})\n────\nEnsure to comply with [**GNU AGPL v3**](https://github.com/BSOD2528/Geralt/blob/stellar-v2/LICENSE) License"
+        source_emb.description = f"Here is the source for [`{command}`]({url})\n────\nEnsure to comply with [**MPL 2.0**](https://github.com/BSOD2528/Geralt/blob/stellar-v2/LICENSE) License"
         view.add_item(
             discord.ui.Button(
                 label=f"Source for \"{command}\"",

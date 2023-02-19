@@ -121,7 +121,7 @@ class Traceback(discord.ui.View):
         return True
 
 # Error - Handler View for commands.BadArgumemt
-
+# Thank you to LeoCX1000 (Github) for letting me use this.
 
 class CommandSyntax(discord.ui.View):
     def __init__(self, bot: "BaseBot", ctx: BaseContext, error):
