@@ -1,5 +1,4 @@
 import io
-import logging
 import os
 import re
 import sys
@@ -18,10 +17,9 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import dotenv_values
 
-import geralt.kernel.utilities.override_jsk
-
 from .context import BaseContext
 from .embed import BaseEmbed
+from .kernel.utilities import override_jsk
 from .kernel.utilities.crucial import WebhookManager
 from .kernel.utilities.extensions import COGS_EXTENSIONS
 from .kernel.views.meta import Info
@@ -35,7 +33,8 @@ CONFIG = dotenv_values("config.env")
 TOKEN = CONFIG.get("TOKEN")
 DB_URL = CONFIG.get("DB_URL")
 EMOTE_TO_URL = re.compile(
-    r"(https?://)?(media|cdn)\.discord(app)?\.(com|net)/emojis/(?P<id>[0-9]+)\.(?P<fmt>[A-z]+)")
+    r"(https?://)?(media|cdn)\.discord(app)?\.(com|net)/emojis/(?P<id>[0-9]+)\.(?P<fmt>[A-z]+)"
+)
 
 escape: str = "\x1b"
 
@@ -101,16 +100,18 @@ class BaseBot(commands.Bot):
             intents=discord.Intents.all(),
             tree_cls=app_commands.CommandTree,
             activity=discord.Activity(
-                type=discord.ActivityType.playing,
-                name="Waking up to Die"),
+                type=discord.ActivityType.playing, name="Waking up to Die"
+            ),
             command_prefix=self.get_prefix,
             case_insensitive=True,
             strip_after_prefix=True,
             *args,
-            **kwargs)
+            **kwargs,
+        )
 
         self.db: asyncpg.Pool = None
         self.git = None
+        self.config = CONFIG
         self.colour = discord.Colour.from_rgb(170, 179, 253)
         self.mentions = discord.AllowedMentions.none()
         self.no_prefix: bool = False
@@ -131,15 +132,24 @@ class BaseBot(commands.Bot):
         self.verification: Dict[int, List] = {}
         self.ticket_kernel: Dict[int, List] = {}
         self.highlight_blocked: Dict[int, Dict[int, List]] = {}
+        self.guild_snipe_count: Dict[int, int] = {}
         self.locked_objects_ids: List[int] = []
-        self.convert_url_to_webhook: Dict[int, str] = {}
+        self.settings: Dict[int, Dict[str, bool]] = {}
 
     def __repr__(self) -> str:
         return "<geralt.BaseBot>"
 
     # Credits to qt_haskell [ Lia Marie ] - *sobs*
     def generate_dict_cache(
-            self, entries: List[Tuple]) -> Dict[int, Dict[int, List[str]]]:
+        self, entries: List[Tuple]
+    ) -> Dict[int, Dict[int, List[str]]]:
+        """Generates a dict with the following structure:
+
+        x = {
+            int: {
+                int: list[str]
+                }
+            }"""
         cache: Dict = {}
         for entry in entries:
             guild_id, parent, children = entry
@@ -150,55 +160,81 @@ class BaseBot(commands.Bot):
             cache[guild_id][parent].append(children)
         return cache
 
-    async def get_context(self, message: discord.Message, *, cls=BaseContext) -> BaseContext:
+    async def get_context(
+        self, message: discord.Message, *, cls=BaseContext
+    ) -> BaseContext:
         return await super().get_context(message, cls=cls)
 
     async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
         traceback_string = "".join(
-            traceback.format_exception(*(einfo := sys.exc_info())))
+            traceback.format_exception(*(einfo := sys.exc_info()))
+        )
         async with aiohttp.ClientSession() as session:
             webhook = discord.Webhook.partial(
                 id=CONFIG.get("ERROR_ID"),
                 token=CONFIG.get("ERROR_TOKEN"),
-                session=session)
-            await webhook.send(f"An error occurred in an `{event_method}` event", file=discord.File(io.BytesIO(traceback_string.encode()), filename="traceback.py"))
+                session=session,
+            )
+            await webhook.send(
+                f"An error occurred in an `{event_method}` event",
+                file=discord.File(
+                    io.BytesIO(traceback_string.encode()), filename="traceback.py"
+                ),
+            )
             await webhook.send("|| Break Point ||")
         await session.close()
 
     async def get_prefix(self, message: discord.Message):
         if self.no_prefix is True and message.author.id in self.owner_ids:
             return ""
-        cached = self.prefixes.get(
-            (message.guild and message.guild.id),
-            None)
+        cached = self.prefixes.get((message.guild and message.guild.id), None)
         if cached is not None:
             prefix = set(cached)
         else:
-            prefix = {".g", }
+            prefix = {
+                ".g",
+            }
         if not prefix:
             prefix = {".g"}
         return commands.when_mentioned_or(*prefix)(self, message)
 
     # db connection
     async def connect_to_database(self):
+        """Connects to the database."""
         try:
-            print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;36m{time.strftime('%c', time.localtime())}{escape}[0;1;36m ─ Waking up{escape}[0m")
-            print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Establishing connection with my database.{escape}[0m")
+            print(
+                f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;36m{time.strftime('%c', time.localtime())}{escape}[0;1;36m ─ Waking up{escape}[0m"
+            )
+            print(
+                f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Establishing connection with my database.{escape}[0m"
+            )
             self.db = await asyncpg.create_pool(dsn=DB_URL)
-            print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())}{escape}[0;1;32m ─ Connection established successfully.{escape}[0m")
+            print(
+                f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())}{escape}[0;1;32m ─ Connection established successfully.{escape}[0m"
+            )
         except Exception as exception:
-            print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0;1;31m{time.strftime('%c', time.localtime())}{escape}[0;1;31m ─ Couldnt connect due to : {exception}{escape}[0m")
+            print(
+                f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0;1;31m{time.strftime('%c', time.localtime())}{escape}[0;1;31m ─ Couldnt connect due to : {exception}{escape}[0m"
+            )
 
     # load extensions
     async def load_all_extensions(self):
-        print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Loading all Extensions.{escape}[0m")
+        print(
+            f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Loading all Extensions.{escape}[0m"
+        )
         for extensions in COGS_EXTENSIONS:
             try:
                 await self.load_extension(extensions)
-                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;37m└── {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  {escape}[0m{escape}[0;1;37m└── {escape}[0m{escape}[0;1;32mLoaded{escape}[0m{escape}[0;1;37m: {escape}[0m{escape}[0;1;35m{extensions} {escape}[0m")
+                print(
+                    f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;37m└── {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  {escape}[0m{escape}[0;1;37m└── {escape}[0m{escape}[0;1;32mLoaded{escape}[0m{escape}[0;1;37m: {escape}[0m{escape}[0;1;35m{extensions} {escape}[0m"
+                )
             except Exception as exception:
-                print(f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;31m└──{escape}[0m {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  └── Error Loading: {exception} {escape}[0m")
-        print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded.{escape}[0m")
+                print(
+                    f"{escape}[0;1;37;40m > {escape}[0m    {escape}[0;1;31m└──{escape}[0m {escape}[0;1;30m{time.strftime('%c', time.localtime())}{escape}[0;1;31m  └── Error Loading: {exception} {escape}[0m"
+                )
+        print(
+            f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())} ─ Extensions Successfully Loaded.{escape}[0m"
+        )
 
     # load cache from db
     async def load_cache(self):
@@ -211,14 +247,15 @@ class BaseBot(commands.Bot):
         ticket_kernel_data = await self.db.fetch("SELECT * FROM ticket_kernel")
         highlight_blocked_data = await self.db.fetch("SELECT * FROM highlight_blocked")
         locked_objects_ids_data = await self.db.fetch("SELECT * FROM channel_lock")
-        convert_url_to_webhook_data = await self.db.fetch("SELECT * FROM guild_settings")
+        convert_url_to_webhook_data = await self.db.fetch(
+            "SELECT * FROM guild_settings"
+        )
 
         self.afk = {data["user_id"]: data["reason"] for data in afk_data}
         self.meta = {
-            data["guild_id"]: [
-                data["command_name"],
-                data["invoked_at"],
-                data["uses"]] for data in meta_data}
+            data["guild_id"]: [data["command_name"], data["invoked_at"], data["uses"]]
+            for data in meta_data
+        }
         self.ticket_init = {
             data["guild_id"]: [
                 data["category_id"],
@@ -226,48 +263,64 @@ class BaseBot(commands.Bot):
                 data["sent_message_id"],
                 data["jump_url"],
                 data["panel_description"],
-                data["id"]] for data in ticket_init_data}
+                data["id"],
+            ]
+            for data in ticket_init_data
+        }
         self.verification = {
             data["guild_id"]: [
                 data["question"],
                 data["answer"],
                 data["role_id"],
                 data["channel_id"],
-                data["message_id"]] for data in verification_data}
-        self.convert_url_to_webhook = {
-            data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_data}
+                data["message_id"],
+            ]
+            for data in verification_data
+        }
+        self.settings = {
+            data["guild_id"]: {
+                "convert_url_to_webhook": data["convert_url_to_webhook"],
+                "snipe": data["snipe"],
+            }
+            for data in convert_url_to_webhook_data
+        }
+
+        # self.convert_url_to_webhook = {
+        #     data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_data}
 
         if ticket_kernel_data:
             ticket_kernel_list: List[Tuple] = [
-                (data["guild_id"],
-                 data["ticket_id"],
-                    data["invoker_id"]) for data in ticket_kernel_data]
+                (data["guild_id"], data["ticket_id"], data["invoker_id"])
+                for data in ticket_kernel_data
+            ]
             self.ticket_kernel = self.generate_dict_cache(ticket_kernel_list)
 
         if highlight_data:
             highlight_data_list: List[Tuple] = [
-                (data["guild_id"], data["user_id"], data["trigger"]) for data in highlight_data]
+                (data["guild_id"], data["user_id"], data["trigger"])
+                for data in highlight_data
+            ]
             self.highlight = self.generate_dict_cache(highlight_data_list)
 
         if highlight_blocked_data:
             highlight_blocked_data: List[Tuple] = [
-                (data["guild_id"],
-                 data["user_id"],
-                    data["object_id"]) for data in highlight_blocked_data]
-            self.highlight_blocked = self.generate_dict_cache(
-                highlight_blocked_data)
+                (data["guild_id"], data["user_id"], data["object_id"])
+                for data in highlight_blocked_data
+            ]
+            self.highlight_blocked = self.generate_dict_cache(highlight_blocked_data)
 
         self.locked_objects_ids.append(
-            data["object_id"] for data in locked_objects_ids_data)
+            data["object_id"] for data in locked_objects_ids_data
+        )
 
         for guild_id, prefixes in prefix_data:
-            self.prefixes[guild_id] = set(prefixes) or {".g", }
+            self.prefixes[guild_id] = set(prefixes) or {
+                ".g",
+            }
 
     async def setup_hook(self) -> None:
         self.session: aiohttp.ClientSession = aiohttp.ClientSession()
-        self.tree.copy_global_to(
-            guild=discord.Object(
-                id=CONFIG.get("BSODsThings")))
+        self.tree.copy_global_to(guild=discord.Object(id=CONFIG.get("BSODsThings")))
         self.git = GitHub(self.github_token)
 
         await self.connect_to_database()
@@ -277,27 +330,33 @@ class BaseBot(commands.Bot):
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
 
-
     async def on_ready(self):
-
         if not self.add_persistent_views:
             self.add_view(Info(self, BaseContext))
             self.add_persistent_views = True
 
-        fetch_blacklisted_objects = await self.db.fetch("SELECT snowflake FROM blacklist")
+        fetch_blacklisted_objects = await self.db.fetch(
+            "SELECT snowflake FROM blacklist"
+        )
         self.blacklists.add(objects for objects in fetch_blacklisted_objects)
 
         async with aiohttp.ClientSession() as session:
             wbhk = discord.Webhook.partial(
                 id=CONFIG.get("NOTIF_ID"),
                 token=CONFIG.get("NOTIF_TOKEN"),
-                session=session)
+                session=session,
+            )
             await self.change_presence(
                 status=discord.Status.idle,
-                activity=discord.Activity(type=discord.ActivityType.listening, name=f".ghelp"))
-            await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n"
-            f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
-            print(f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;36m{time.strftime('%c', time.localtime())} ─ Awakened{escape}[0m")
+                activity=discord.Activity(
+                    type=discord.ActivityType.listening, name=f".ghelp"
+                ),
+            )
+            # await wbhk.send(f"|| Break Point ||\n───\n<:GeraltRightArrow:904740634982760459> Came alive at ─ {self.timestamp(discord.utils.utcnow(), style = 'F')} Hi <a:Waves:920726389869641748>\n```prolog\n"
+            # f"No. of Users ─ {len(list(self.get_all_members()))}\nNo. of Guilds ─ {len(self.guilds)}\nWoke up at ─ {time.strftime('%c', time.gmtime())}```")
+            print(
+                f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;36m{time.strftime('%c', time.localtime())} ─ Awakened{escape}[0m"
+            )
             await session.close()
 
     async def on_message(self, message: discord.Message):
@@ -333,8 +392,13 @@ class BaseBot(commands.Bot):
                 time = user["time"]
                 reason = user["reason"]
             current_time = discord.utils.utcnow() - time
-            await message.reply(f"Welcome back <a:Waves:920726389869641748>. You were afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : \"**{humanize.naturaldelta(current_time)}**\"\n<:Reply:930634822865547294>` ─ ` reason : {reason}", allowed_mentions=self.mentions)
-            await self.db.execute("DELETE FROM afk WHERE user_id = $1", message.author.id)
+            await message.reply(
+                f'Welcome back <a:Waves:920726389869641748>. You were afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : "**{humanize.naturaldelta(current_time)}**"\n<:Reply:930634822865547294>` ─ ` reason : {reason}',
+                allowed_mentions=self.mentions,
+            )
+            await self.db.execute(
+                "DELETE FROM afk WHERE user_id = $1", message.author.id
+            )
             try:
                 self.afk.pop(message.author.id)
             except KeyError:
@@ -346,15 +410,24 @@ class BaseBot(commands.Bot):
                     time = data["time"]
                     reason = data["reason"]
                     current_time = discord.utils.utcnow() - time
-                await message.reply(f"<:Join:932976724235395072> **{pinged_user}** has been afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : {reason}\n<:Reply:930634822865547294>` ─ ` since : {humanize.naturaldelta(current_time)}")
+                await message.reply(
+                    f"<:Join:932976724235395072> **{pinged_user}** has been afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : {reason}\n<:Reply:930634822865547294>` ─ ` since : {humanize.naturaldelta(current_time)}"
+                )
 
         if message.content in [self.user.mention]:
             prefix_emb = BaseEmbed(
-                description=f"> <:GeraltRightArrow:904740634982760459> " + "\n> <:GeraltRightArrow:904740634982760459> ".join(await self.get_prefix(message)),
-                colour=self.colour)
+                description=f"> <:GeraltRightArrow:904740634982760459> "
+                + "\n> <:GeraltRightArrow:904740634982760459> ".join(
+                    await self.get_prefix(message)
+                ),
+                colour=self.colour,
+            )
             prefix_emb.set_footer(text="Run `@Geralthelp prefix`.")
             if message.guild.icon.url:
-                prefix_emb.set_author(name=f"{len(await self.get_prefix(message))} Prefixes ─ {message.guild}", icon_url=message.guild.icon.url)
+                prefix_emb.set_author(
+                    name=f"{len(await self.get_prefix(message))} Prefixes ─ {message.guild}",
+                    icon_url=message.guild.icon.url,
+                )
             else:
                 prefix_emb.set_author(name=message.guild)
             return await message.reply(embed=prefix_emb, mention_author=False)
@@ -372,5 +445,6 @@ geralts_instance = BaseBot()
 
 
 async def run():
+    """Starts the bot instance!"""
     async with geralts_instance:
         await geralts_instance.start(TOKEN)

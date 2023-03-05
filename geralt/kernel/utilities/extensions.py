@@ -28,7 +28,7 @@ COGS_EXTENSIONS: List = [
     "geralt.ext.developer",
     "geralt.ext.moderation",
     "geralt.kernel.listeners.events",
-    "geralt.kernel.listeners.errorhandler"
+    "geralt.kernel.listeners.errorhandler",
 ]
 
 KERNEL_EXTENSIONS: List = [
@@ -47,5 +47,5 @@ KERNEL_EXTENSIONS: List = [
     extensions,
     verification,
     errorhandler,
-    overidden_jishaku
+    overidden_jishaku,
 ]

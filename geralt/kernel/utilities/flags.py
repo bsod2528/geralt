@@ -61,7 +61,9 @@ def user_badges(user: discord.User):
     flags_emote = ""
 
     if flags["active_developer"] is True:
-        flags_emote = f"{flags_emote} <:ActiveDev:1040484099984474182> `Active Developer`"
+        flags_emote = (
+            f"{flags_emote} <:ActiveDev:1040484099984474182> `Active Developer`"
+        )
     if flags["staff"] is True:
         flags_emote = f"{flags_emote} <:DiscordStaff:905668211163406387> `Staff`"
 
@@ -69,7 +71,9 @@ def user_badges(user: discord.User):
         flags_emote = f"{flags_emote} <a:DiscordPartner:905674460118540308> `Partner`"
 
     if flags["hypesquad"] is True:
-        flags_emote = f"{flags_emote} <a:WumpusHypesquad:905661121501990923> `Hypesquad`"
+        flags_emote = (
+            f"{flags_emote} <a:WumpusHypesquad:905661121501990923> `Hypesquad`"
+        )
 
     if flags["bug_hunter"] is True:
         flags_emote = f"{flags_emote} <:BugHunter:905668417372180540> `Bug Hunter`"
@@ -78,22 +82,30 @@ def user_badges(user: discord.User):
         flags_emote = f"{flags_emote} <:Bravery:905661473940979732> `Hypesquad Bravery`"
 
     if flags["hypesquad_brilliance"] is True:
-        flags_emote = f"{flags_emote} <:Brilliance:905661426373373962> `Hypesquad Brilliance`"
+        flags_emote = (
+            f"{flags_emote} <:Brilliance:905661426373373962> `Hypesquad Brilliance`"
+        )
 
     if flags["hypesquad_balance"] is True:
         flags_emote = f"{flags_emote} <:Balance:932965710337019924> `Hypesquad Balance`"
 
     if flags["early_supporter"] is True:
-        flags_emote = f"{flags_emote} <:EarlySupporter:905674700955467806> `Early Supporter`"
+        flags_emote = (
+            f"{flags_emote} <:EarlySupporter:905674700955467806> `Early Supporter`"
+        )
 
     if user.premium_since:
-        flags_emote = f"{flags_emote} <:WumpusNitro:905674712590454834> `Nitro Subscriber`"
+        flags_emote = (
+            f"{flags_emote} <:WumpusNitro:905674712590454834> `Nitro Subscriber`"
+        )
 
     if user.premium_since:
         flags_emote = f"{flags_emote} <a:Nitro:905661661191479326> `Server Booster`"
 
     if flags["verified_bot_developer"] is True:
-        flags_emote = f"{flags_emote} <:VerifiedDev:905668791831265290> `Early Verified Bot Dev.`"
+        flags_emote = (
+            f"{flags_emote} <:VerifiedDev:905668791831265290> `Early Verified Bot Dev.`"
+        )
 
     if flags_emote == "":
         flags_emote = None
