@@ -1,13 +1,16 @@
 import asyncio
+import imghdr
+import os
+import textwrap
 import time
 from io import BytesIO
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 import discord
 import humanize
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from ...bot import BaseBot
 from ...context import BaseContext
@@ -15,6 +18,10 @@ from ...embed import BaseEmbed
 from ...kernel.utilities.flags import user_badges, user_perms
 from ...kernel.views.meta import PFP
 from ...kernel.views.paginator import Paginator
+from ...kernel.views.snipe import (EditSnipeAttachmentView,
+                                   SnipeAttachmentViewer, SnipeStats)
+
+escape: str = "\x1b"
 
 
 class Discord(commands.Cog):
@@ -22,9 +29,7 @@ class Discord(commands.Cog):
 
     def __init__(self, bot: BaseBot):
         self.bot = bot
-        self.delete: Dict = {}  # -------
-        self.pre_edit: Dict = {}  # |-- > Snipe command related dictionaries
-        self.post_edit: Dict = {}  # --=)
+        self.pic_exts = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "svg"]
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -32,50 +37,220 @@ class Discord(commands.Cog):
             name="Discord", id=930855436670889994, animated=True
         )
 
+    @tasks.loop(minutes=10)
+    async def snipe_purge(self):
+        self.bot.settings.items()
+
+    def return_ext(self, file: discord.File) -> str:
+        filename, ext = os.path.splitext(file.filename)
+        return ext.lower()[1:] if ext else ""
+
+    def colorize(self, value: int, thresholds: Dict[int, int]) -> str:
+        for threshold, color in thresholds.items():
+            if value <= threshold:
+                return f"{escape}[0;1;{color}m{value} ms{escape}[0m"
+
     # Listeners for "snipe" command
-    # @commands.Cog.listener()
-    # async def on_message_delete(self, message: discord.Message):
-    #     query: str = "INSERT INTO snipe (guild_id, d_c_id, d_m_cc, d_m_a_id, d_m_ts) " \
-    #                 "VALUES ($1, $2, $3, $4, $5)"
-    #     if message.attachments:
-    #         _query: str = "INSERT INTO snipe (guild_id, d_c_id, d_m_cc, d_m_a_id, d_m_ts, attachments) " \
-    #                     "VALUES ($1, $2, $3, $4, $5, $6)"
-    #         await self.bot.db.execute(query, message.guild.id, message.channel.id, message.content, message.author.id, message.created_at)
-    #         __query: str = "UPDATE snipe " \
-    #                     "SET attachments = $2 " \
-    #                     "WHERE guild_id = $1 AND d_m_ts = $3"
-    #         webhook_id: int = int(self.bot.config.get("SNIPE_ATTACHMENT_ID"))
-    #         webhook_token: str = self.bot.config.get("SNIPE_ATTACHMENT_TOKEN")
-    #         for file in message.attachments:
-    #             async with aiohttp.ClientSession() as session:
-    #                 webhook = discord.Webhook.partial(
-    #                     id=webhook_id,
-    #                     token=webhook_token,
-    #                     session=session)
-    #                 wbhk_sent_msg: discord.Message = await webhook.send(file=discord.File(BytesIO(file.read())), wait=True)
-    #             await self.bot.db.execute(__query, message.guild.id, wbhk_sent_msg.attachments[0].url, message.created_at)
+    @commands.Cog.listener("on_message")
+    async def on_message(self, message: discord.Message):
+        if message.guild is not None:
+            try:
+                log = self.bot.settings[message.guild.id]["snipe"]
+            except KeyError:
+                log = await self.bot.db.fetch(
+                    "SELECT snipe FROM guild_settings WHERE guild_id = $1",
+                    message.guild.id,
+                )
+            if log == True:
+                self.bot.snipe_counter[message.guild.id]["total_messages"] += 1
 
-    #             await self.bot.db.execute()
+    @commands.Cog.listener("on_message_delete")
+    async def on_message_delete(self, message: discord.Message):
+        if message.guild is not None:
+            try:
+                log = self.bot.settings[message.guild.id]["snipe"]
+            except KeyError:
+                log = await self.bot.db.fetch(
+                    "SELECT snipe FROM guild_settings WHERE guild_id = $1",
+                    message.guild.id,
+                )
+                # don't be a bitch about my column names :moyai:
 
-    #     await self.bot.db.execute(query, message.guild.id, message.channel.id, message.content, message.author.id, message.created_at)
+                if log == True:
+                    if message.author.bot:
+                        return
+                    embeds: List[BaseEmbed] = []
+                    attachment_exts: List[str] = []
+                    attachment_urls: List[str] = []
+                    attachment_names: List[str] = []
+                    attachment_bytes: List[bytes] = []
+                    if message.attachments:
+                        for file in message.attachments:
+                            ext = self.return_ext(file)
+                            if ext in self.pic_exts:
+                                ext = imghdr.what(BytesIO(await file.read()))
+                            attachment_exts.append(ext)
+                            attachment_names.append(file.filename)
+                            attachment_bytes.append(await file.read())
 
-    @commands.Cog.listener()
-    async def on_message_edit(
-        self, pre_edit: discord.Message, post_edit: discord.Message
-    ):
-        self.pre_edit[pre_edit.channel.id] = (
-            pre_edit.jump_url,
-            pre_edit.content,
-            pre_edit.author,
-            pre_edit.channel.id,
-            pre_edit.created_at,
-        )
-        self.post_edit[post_edit.channel.id] = (
-            post_edit.content,
-            post_edit.author,
-            post_edit.channel.id,
-            post_edit.edited_at,
-        )
+                    if len(attachment_names) >= 2:
+                        attachment_bytes.clear()
+                        for attachment in message.attachments:
+                            async with aiohttp.ClientSession() as session:
+                                wbhk = discord.Webhook.partial(
+                                    id=self.bot.config.get("SNIPE_ATTACHMENT_ID"),
+                                    token=self.bot.config.get("SNIPE_ATTACHMENT_TOKEN"),
+                                    session=session,
+                                )
+                                _attachment = await attachment.read()
+                                sent_attachment_message = await wbhk.send(
+                                    file=discord.File(
+                                        BytesIO(_attachment),
+                                        filename=attachment.filename,
+                                    ),
+                                    wait=True,
+                                )
+                                attachment_urls.append(
+                                    sent_attachment_message.attachments[0].url
+                                )
+
+                    if message.embeds:
+                        for embed in message.embeds:
+                            embeds.append(embed.to_dict())
+
+                    query = """
+                    INSERT INTO snipe_delete
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                        """
+
+                    await self.bot.db.execute(
+                        query,
+                        message.guild.id,
+                        message.channel.id,
+                        message.author.id,
+                        message.content,
+                        message.created_at,
+                        embeds,
+                        attachment_names,
+                        attachment_bytes,
+                        attachment_urls,
+                        attachment_exts,
+                    )
+                    try:
+                        self.bot.snipe_counter[message.guild.id]["delete"] += 1
+                    except:
+                        return
+
+    @commands.Cog.listener("on_message_edit")
+    async def on_message_edit(self, pre: discord.Message, post: discord.Message):
+        if pre.guild is not None:
+            try:
+                log = self.bot.settings[pre.guild.id]["snipe"]
+            except KeyError:
+                log = await self.bot.db.fetch(
+                    "SELECT snipe FROM guild_settings WHERE guild_id = $1",
+                    pre.guild.id,
+                )
+
+            if log == True:
+                if pre.author.bot and post.author.bot:
+                    return
+                pre_attachment_exts: List[str] = []
+                pre_attachment_urls: List[str] = []
+                pre_attachment_names: List[str] = []
+                pre_attachment_bytes: List[bytes] = []
+
+                post_attachment_exts: List[str] = []
+                post_attachment_urls: List[str] = []
+                post_attachment_names: List[str] = []
+                post_attachment_bytes: List[bytes] = []
+
+                if pre.attachments:
+                    for file in pre.attachments:
+                        ext = self.return_ext(file)
+                        if ext in self.pic_exts:
+                            ext = imghdr.what(BytesIO(await file.read()))
+                        pre_attachment_exts.append(ext)
+                        pre_attachment_names.append(file.filename)
+                        pre_attachment_bytes.append(await file.read())
+
+                if len([pre_attachment_names]) >= 2:
+                    for attachment in pre.attachments:
+                        async with aiohttp.ClientSession() as session:
+                            wbhk = discord.Webhook.partial(
+                                id=self.bot.config.get("SNIPE_ATTACHMENT_ID"),
+                                token=self.bot.config.get("SNIPE_ATTACHMENT_TOKEN"),
+                                session=session,
+                            )
+
+                            _attachment = await attachment.read()
+                            sent_attachment_message = await wbhk.send(
+                                file=discord.File(
+                                    BytesIO(_attachment), filename=attachment.filename
+                                ),
+                                wait=True,
+                            )
+                            pre_attachment_urls.append(
+                                sent_attachment_message.attachments[0].url
+                            )
+
+                if post.attachments:
+                    for _file in post.attachments:
+                        ext = self.return_ext(_file)
+                        if ext in self.pic_exts:
+                            ext = imghdr.what(BytesIO(await _file.read()))
+                        post_attachment_exts.append(ext)
+                        post_attachment_names.append(_file.filename)
+                        post_attachment_bytes.append(await _file.read())
+
+                if len([post_attachment_names]) >= 2:
+                    for _attachment in post.attachments:
+                        async with aiohttp.ClientSession() as session:
+                            wbhk = discord.Webhook.partial(
+                                id=self.bot.config.get("SNIPE_ATTACHMENT_ID"),
+                                token=self.bot.config.get("SNIPE_ATTACHMENT_TOKEN"),
+                                session=session,
+                            )
+
+                            __attachment = await attachment.read()
+                            _sent_attachment_message = await wbhk.send(
+                                file=discord.File(
+                                    BytesIO(__attachment), filename=_attachment.filename
+                                ),
+                                wait=True,
+                            )
+                            pre_attachment_urls.append(
+                                _sent_attachment_message.attachments[0].url
+                            )
+
+                query: str = """
+                INSERT INTO snipe_edit
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)"""
+
+                await self.bot.db.execute(
+                    query,
+                    pre.guild.id,
+                    pre.channel.id,
+                    pre.id,
+                    pre.author.id,
+                    pre.content,
+                    pre.created_at,
+                    post.content,
+                    post.created_at,
+                    pre_attachment_exts,
+                    pre_attachment_urls,
+                    pre_attachment_names,
+                    pre_attachment_bytes,
+                    post_attachment_names,
+                    post_attachment_urls,
+                    post_attachment_names,
+                    post_attachment_bytes,
+                    post.jump_url,
+                )
+                try:
+                    self.bot.snipe_counter[post.guild.id]["edit"] += 1
+                except:
+                    return
 
     @commands.hybrid_command(name="ping", brief="You ping Me", aliases=["pong"])
     @app_commands.checks.cooldown(2, 10)
@@ -89,41 +264,59 @@ class Discord(commands.Cog):
             await asyncio.sleep(0.5)
         typing_end = time.perf_counter()
         typing_ping = (typing_end - typing_start) * 1000
+        typing_ping = round(typing_ping, 1)
 
         # Latency with the database
         start_db = time.perf_counter()
         await self.bot.db.fetch("SELECT 1")
         end_db = time.perf_counter()
-        db_ping = (end_db - start_db) * 1000
+        db_ping = round((end_db - start_db) * 1000, 1)
 
         # Latency for Discord Api
-        websocket_ping = self.bot.latency * 1000
+        websocket_ping = round(self.bot.latency * 1000, 0)
+
+        mob_type_ping = typing_ping
+        mob_db_ping = db_ping
+        mob_wb_ping = websocket_ping
+
+        typing_threshold: Dict[int, int] = {900: 32, 1000: 33, 1500: 31}
+
+        db_thresholds: Dict[int, int] = {5: 32, 15: 33, 20: 31}
+
+        websocket_thresholds: Dict[int, int] = {
+            350: 32,
+            450: 33,
+            500: 31,
+        }
+        typing_ping = self.colorize(typing_ping, typing_threshold)
+        db_ping = self.colorize(db_ping, db_thresholds)
+        websocket_ping = self.colorize(websocket_ping, websocket_thresholds)
 
         ping_emb = BaseEmbed(title="__ My Latencies : __", colour=0x2F3136)
 
         if ctx.interaction:
             if ctx.author.is_on_mobile():
-                ping_emb.description = f"""```yaml\n> PostgreSQL     : {round(db_ping, 1)} ms
-> Discord API    : {websocket_ping:,.0f} ms\n```"""
+                ping_emb.description = f"""```yaml\n> PostgreSQL     : {mob_db_ping}
+> Discord API    : {mob_wb_ping}\n```"""
                 return await ctx.reply(
                     embed=ping_emb, mention_author=False, ephemeral=True
                 )
             else:
-                ping_emb.description = f"""```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mPostgreSQL\x1b[0m     \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(db_ping, 1)} ms\x1b[0m
-\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mDiscord API\x1b[0m    \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{websocket_ping:,.0f} ms\x1b[0m\n```"""
+                ping_emb.description = f"""```ansi\n{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;34mPostgreSQL{escape}[0m     {escape}[0;1;37;40m : {escape}[0m {db_ping}{escape}[0m
+{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;34mDiscord API{escape}[0m    {escape}[0;1;37;40m : {escape}[0m {escape}[0;1;31m{websocket_ping} {escape}[0m\n```"""
                 return await ctx.reply(
                     embed=ping_emb, mention_author=False, ephemeral=True
                 )
         else:
             if ctx.author.is_on_mobile():
-                ping_emb.description = f"""```yaml\n> PostgreSQL     : {round(db_ping, 1)} ms
-> Discord API    : {websocket_ping:,.0f} ms
-> Message Typing : {round(typing_ping, 1)} ms\n```"""
+                ping_emb.description = f"""```yaml\n> PostgreSQL     : {mob_db_ping} ms
+> Discord API    : {mob_wb_ping} ms
+> Message Typing : {mob_type_ping} ms\n```"""
                 return await ctx.reply(embed=ping_emb, mention_author=False)
             else:
-                ping_emb.description = f"""```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mPostgreSQL\x1b[0m     \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(db_ping, 1)} ms\x1b[0m
-\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mDiscord API\x1b[0m    \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{websocket_ping:,.0f} ms\x1b[0m
-\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;34mMessage Typing\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;31m{round(typing_ping, 1)} ms\x1b[0m\n```"""
+                ping_emb.description = f"""```ansi\n{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;34mPostgreSQL{escape}[0m     {escape}[0;1;37;40m : {escape}[0m {escape}[0;1;31m{db_ping}{escape}[0m
+{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;34mDiscord API{escape}[0m    {escape}[0;1;37;40m : {escape}[0m {escape}[0;1;31m{websocket_ping}{escape}[0m
+{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;34mMessage Typing{escape}[0m {escape}[0;1;37;40m : {escape}[0m {escape}[0;1;31m{typing_ping}{escape}[0m\n```"""
             return await ctx.reply(embed=ping_emb, mention_author=False)
 
     @commands.command(name="banner", brief="View a persons banner")
@@ -198,7 +391,7 @@ class Discord(commands.Cog):
         if permissions:
             perms_ = f"{' **|** '}".join(permissions)
         avatar = user.display_avatar.with_static_format("png")
-        status = user.status
+        status = str(user.status).capitalize()
         colour: discord.colour.Colour = user.colour
         if colour == discord.Colour.from_rgb(0, 0, 0):
             colour = 0x2F3136
@@ -431,6 +624,7 @@ class Discord(commands.Cog):
             await ctx.reply(embed=spotify_emb, mention_author=False, view=view)
 
     # Snipe command as a group
+    # TODO: Finish :meth: ~ snipe_edit(). Too lazy
     @commands.hybrid_group(name="snipe", aliases=["s"], with_app_command=True)
     @commands.cooldown(3, 5, commands.BucketType.user)
     @commands.guild_only()
@@ -447,22 +641,123 @@ class Discord(commands.Cog):
         with_app_command=True,
     )
     @commands.cooldown(3, 5, commands.BucketType.user)
-    async def snipe_delete(self, ctx: BaseContext) -> Optional[discord.Message]:
-        """Get the details of the recently deleted message"""
-        try:
-            message, author, channel, time = self.delete[ctx.channel.id]
-            delete_emb = BaseEmbed(
-                title="Sniped Deleted Message",
-                description=f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Created At :** {self.bot.timestamp(time, style='R')}",
-                colour=0x2F3136,
+    @app_commands.describe(
+        index="The order at which you want to snipe.",
+        channel="The text-channel do you want to snipe.",
+        user="Filter sniped messages according to a user.")
+    async def snipe_delete(
+        self,
+        ctx: BaseContext,
+        index: Optional[int],
+        channel: Optional[discord.TextChannel],
+        user: Optional[Union[discord.User, discord.Member]],
+    ) -> Optional[discord.Message]:
+        """Sends details on recently deleted message."""
+
+        if not index:
+            index = 0
+        if not channel:
+            channel = ctx.channel
+        if not user:
+            query: str = f"SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_c_id = $2 ORDER BY d_m_ts DESC OFFSET {index} LIMIT 1"
+            snipe_records = await self.bot.db.fetch(query, ctx.guild.id, channel.id)
+        else:
+            query: str = f"SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_a_id = $2 AND d_m_c_id = $3 ORDER BY d_m_ts DESC OFFSET {index} LIMIT 1"
+            snipe_records = await self.bot.db.fetch(
+                query, ctx.guild.id, user.id, channel.id
             )
-            delete_emb.add_field(name="Message Content", value=f">>> {message}")
-            await ctx.reply(embed=delete_emb, allowed_mentions=self.bot.mentions)
-        except BaseException:
-            await ctx.reply(
-                "No one has deleted. any messages as of now <a:HumanBro:905748764432662549>",
-                allowed_mentions=self.bot.mentions,
+        if not snipe_records:
+            return await ctx.send(
+                f"**{ctx.guild}** - has no snipes recorded in {channel.mention} <a:IWait:948253556190904371>"
             )
+
+        _embed: BaseEmbed = None
+
+        for record in snipe_records:
+            user = ctx.guild.get_member(record[2])
+            _time = discord.utils.utcnow() - record[4]
+
+            snipe_embed = BaseEmbed(
+                description=record[3] if record[3] else "_No content was present._",
+                color=self.bot.colour,
+            )
+            snipe_embed.set_author(
+                name=f"{user} said in {ctx.guild.get_channel(record[1])} ...",
+                icon_url=user.display_avatar.url,
+            )
+            snipe_embed.set_footer(text=f"Deleted {humanize.precisedelta(_time)} ago")
+
+            file = record[7][0] if record[7] else None
+            file_urls: List[str] = [url for url in record[8] if record[8] >= 2]
+            embeds: List[BaseEmbed] = [snipe_embed]
+
+            if record[5]:
+                for _dict in record[5]:
+                    embeds.append(BaseEmbed().from_dict(dict(_dict)))
+
+            try:
+                for z in record[6]:
+                    if z.split(".")[-1] in self.pic_exts:
+                        snipe_embed.set_image(url=file_urls[0])
+            except IndexError:
+                pass
+
+            serial_no: int = 1
+            for x in file_urls:
+                if x.split(".")[-1] in self.pic_exts:
+                    if x == snipe_embed.image.url:
+                        continue
+                    embed = snipe_embed.copy()
+                    embed.set_image(url=x)
+                    embeds.append(embed)
+                else:
+                    snipe_embed.add_field(
+                        name="Urls for Attachments",
+                        value=f"[Attachment {serial_no}]({x})",
+                        inline=False,
+                    )
+                    serial_no += 1
+
+            if file_urls:
+                for gamma in file_urls:
+                    if gamma.split(".")[-1] in self.pic_exts:
+                        return await Paginator(self.bot, ctx, embeds).send(ctx)
+                else:
+                    await ctx.send(embed=snipe_embed)
+            elif file:
+                if index == 0:
+                    if len(embeds) == 1:
+                        view = SnipeAttachmentViewer(
+                            ctx, file_data=file, filename=record[6][0]
+                        )
+                        view.message = await ctx.send(embeds=embeds, view=view)
+                        return
+                    view = SnipeAttachmentViewer(
+                        ctx, file_data=file, filename=record[6][0]
+                    )
+                    view.message = await ctx.send(embeds=embeds, view=view)
+                else:
+                    if len(embeds) == 1:
+                        view = SnipeAttachmentViewer(
+                            ctx, embeds=embeds, file_data=file, filename=record[6][0]
+                        )
+                        view.message = await ctx.send(embeds=embeds, view=view)
+                        return
+                    view = SnipeAttachmentViewer(
+                        ctx, file_data=file, filename=record[6][0]
+                    )
+                    view.message = await ctx.send(embeds=embeds, view=view)
+            else:
+                if index == 0:
+                    if len(embeds) == 1:
+                        await ctx.send(embed=snipe_embed)
+                    else:
+                        await ctx.send(embeds=embeds)
+                else:
+                    if len(embeds) == 1:
+                        await ctx.send(embed=snipe_embed)
+                    else:
+                        await ctx.send(embeds=embeds)
 
     # Snipes for edited messages
     @snipe.command(
@@ -472,36 +767,112 @@ class Discord(commands.Cog):
         with_app_command=True,
     )
     @commands.cooldown(3, 5, commands.BucketType.user)
-    async def snipe_edit(self, ctx: BaseContext) -> Optional[discord.Message]:
+    @app_commands.describe(
+        channel="The text-channel do you want to snipe.",
+        user="Filter sniped messages according to a user.",
+        index="The order at which you want to snipe.")
+    async def snipe_edit(
+        self,
+        ctx: BaseContext,
+        channel: Optional[discord.TextChannel],
+        user: Optional[Union[discord.Member, discord.User]],
+        index: Optional[int] = 0,
+    ) -> Optional[discord.Message]:
         """Get the details of the recently edited message"""
-        try:
-            url, message, author, channel, pre_time = self.pre_edit[ctx.channel.id]
-            post_message, author, channel, post_time = self.post_edit[ctx.channel.id]
+
+        if not channel:
+            channel = ctx.channel
+
+        if not user:
+            query: str = f"SELECT * FROM snipe_edit WHERE guild_id = $1 AND pre_c_id = $2 ORDER BY post_ts DESC OFFSET {index} LIMIT 1"
+            snipe_records = await self.bot.db.fetch(query, ctx.guild.id, channel.id)
+            if not snipe_records:
+                return await ctx.send(
+                    f"**{ctx.guild}** - has no snipes recorded in {channel.mention} <a:IWait:948253556190904371>"
+                )
+        else:
+            query: str = f"SELECT * FROM snipe_edit WHERE guild_id = $1 AND pre_c_id = $2 AND pre_m_a_id = $3 ORDER BY post_ts DESC OFFSET {index} LIMIT 1"
+            snipe_records = await self.bot.db.fetch(
+                query, ctx.guild.id, channel.id, user.id
+            )
+            if not snipe_records:
+                return await ctx.send(
+                    f"**{ctx.guild}** - has no snipes recorded in {channel.mention} for {user.mention} <a:IWait:948253556190904371>",
+                    allowed_mentions=self.bot.allowed_mentions,
+                )
+
+        _embed: BaseEmbed = None
+
+        for record in snipe_records:
+            user = ctx.guild.get_member(record[3])
+            _time = discord.utils.utcnow() - record[7]
+
+            description: str = f"""
+            **Before Edit:**
+            {record[4] if record[4] else '_No content was present._'}
+
+            **After Edit:**
+            {record[6] if record[6] else '_No content was present._'}"""
+            snipe_embed = BaseEmbed(
+                description=description,
+                colour=self.bot.colour,
+            )
+            snipe_embed.set_author(
+                icon_url=user.display_avatar.url,
+                name=f"{user} edited in {ctx.guild.get_channel(record[1])}",
+            )
             view = discord.ui.View()
             view.add_item(
                 discord.ui.Button(
-                    label="Jump to Message",
-                    style=discord.ButtonStyle.link,
-                    url=url,
+                    label="Jump Url",
+                    style=discord.ButtonStyle.grey,
                     emoji="<a:ChainLink:936158619030941706>",
+                    url=record[16],
                 )
             )
-            edit_emb = BaseEmbed(
-                title="Sniped Edited Message",
-                description=f"**<:ReplyContinued:930634770004725821> - [Message Author :]({author.display_avatar.url})** {author.mention} (`{author.id}`)\n**<:ReplyContinued:930634770004725821> - In Channel :** <#{channel}> (`{channel}`)\n**<:Reply:930634822865547294> - Message Sent At :** {self.bot.timestamp(pre_time, style='R')}",
-                colour=0x2F3136,
+            snipe_embed.set_footer(text=f"Edited {humanize.precisedelta(_time)}")
+
+            # pre_file_names: List[str] = record[10] or []
+            # pre_file_bytes: List[bytes] = record[1] or []
+
+            # post_file_names: List[str] = record[14] or []
+            # post_file_bytes: List[bytes] = record[15] or []
+
+            # if record[10]:
+            #     for name in record[10]:
+            #         pre_file_names.append(name)
+
+            # if post_file_bytes:
+            #     view = EditSnipeAttachmentView(
+            #         ctx,
+            #         pre_file_bytes,
+            #         post_file_bytes,
+            #     )
+            #     view.message = await ctx.send(embed=snipe_embed,view=view)
+            #     return
+
+        await ctx.send(embed=snipe_embed, view=view)
+
+    @snipe.command(name="stats", brief="Stats on snipe", with_app_command=True)
+    async def snipe_stats(self, ctx: BaseContext, flag: Optional[SnipeStats]):
+        """Get guild and global snipe stats
+        ────
+        **Flags Present:**
+        `--globalstats`: Sends global stats for snipe.
+        <:Join:932976724235395072> **Arg Needed**: `True` or `False`
+        **Example:**
+        `.gsnipe stats [--globalstats True]`
+        """
+        time = discord.utils.utcnow() - self.bot.uptime
+        if not flag:
+            counter = self.bot.snipe_counter[ctx.guild.id]
+            description: str = f"Stats from: {humanize.precisedelta(time)}\n<:ReplyContinued:930634770004725821> **Deleted:** `{counter['delete']}` message{'s' if counter['delete'] != 1 else ''}\n<:ReplyContinued:930634770004725821> **Edited:** `{counter['edit']}` message{'s' if counter['edit'] != 1 else ''}\n<:Reply:930634822865547294> **Total Messages:** `{counter['total_messages']}` message{'s' if counter['total_messages'] != 1 else ''}"
+            stats_emb = BaseEmbed(
+                title=f"Snipe Stats in {ctx.guild}",
+                description=textwrap.dedent(description),
+                colour=self.bot.colour,
             )
-            edit_emb.add_field(name="Before Edit", value=f">>> {message}")
-            edit_emb.add_field(
-                name="After Edit",
-                value=f"**<:Reply:930634822865547294> - Message Edited at :** {self.bot.timestamp(post_time, style='R')}\n>>> {post_message}",
-                inline=False,
+            stats_emb.set_footer(
+                icon_url=ctx.author.display_avatar.url, text=f"Invoked By: {ctx.author}"
             )
-            await ctx.reply(
-                embed=edit_emb, allowed_mentions=self.bot.mentions, view=view
-            )
-        except BaseException:
-            await ctx.reply(
-                "No one has edited any messages as of now <a:BotLurk:905749164355379241>",
-                allowed_mentions=self.bot.mentions,
-            )
+            return await ctx.send(embed=stats_emb)
