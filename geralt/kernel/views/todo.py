@@ -8,14 +8,13 @@ from discord.errors import NotFound
 from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
 from ...embed import BaseEmbed
-from ..views.meta import Confirmation
 
 
 class EditTask(discord.ui.Modal, title="Edit Your Task"):
     def __init__(self, bot: BaseBot, ctx: BaseContext, task_id: int):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.task_id: int = task_id
 
     edited_task = discord.ui.TextInput(
@@ -27,11 +26,12 @@ class EditTask(discord.ui.Modal, title="Edit Your Task"):
 
     async def on_submit(self, interaction: discord.Interaction, /) -> None:
         await self.bot.db.execute(
-            "UPDATE todo SET task = $1, url = $2, task_created_at = $3 WHERE task_id = $4",
+            "UPDATE todo SET task = $1, jump_url = $2, created_at = $3 WHERE task_id = $4 AND user_id = $5",
             self.edited_task.value,
             self.ctx.message.jump_url,
             self.ctx.message.created_at,
             self.task_id,
+            self.ctx.author.id,
         )
         task_edited_emb = BaseEmbed(
             title="\U0001f91d Task Edited",
@@ -74,8 +74,8 @@ class EditTask(discord.ui.Modal, title="Edit Your Task"):
 class SeeTask(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext, task_id: int):
         super().__init__(timeout=100)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.task_id: int = task_id
 
     @discord.ui.button(label="Edit Task", style=discord.ButtonStyle.grey)
@@ -89,14 +89,38 @@ class SeeTask(discord.ui.View):
         except Exception as e:
             await interaction.response.send_message(content=e, ephemeral=True)
 
+    @discord.ui.button(label="Compeleted", style=discord.ButtonStyle.green)
+    async def complete_task(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        try:
+            await self.bot.db.execute(
+                f"DELETE FROM todo WHERE task_id = $1 AND user_id = $2",
+                self.task_id,
+                self.ctx.author.id,
+            )
+            button.disabled = True
+            return await interaction.response.edit_message(
+                content=f"Successfully completed Task ID - `{self.task_id}` from your todo list <:RavenPray:914410353155244073>",
+                embed=None,
+                view=self,
+            )
+        except Exception as e:
+            print(e)
+
     @discord.ui.button(label="Delete Task", style=discord.ButtonStyle.red)
     async def delete_task(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await self.bot.db.execute(f"DELETE FROM todo WHERE task_id = $1", self.task_id)
+        await self.bot.db.execute(
+            f"DELETE FROM todo WHERE task_id = $1 AND user_id = $2",
+            self.task_id,
+            self.ctx.author.id,
+        )
         button.disabled = True
         return await interaction.response.edit_message(
             content=f"Successfully deleted Task ID - `{self.task_id}` from your todo list <:RavenPray:914410353155244073>",
+            embed=None,
             view=self,
         )
 

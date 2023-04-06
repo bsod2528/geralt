@@ -40,8 +40,8 @@ async def modal_error(error: Exception):
 class SetupVerificationModal(discord.ui.Modal, title="Setup Verification"):
     def __init__(self, bot: BaseBot, ctx: BaseContext, channel: discord.TextChannel):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.channel = channel
 
     question = discord.ui.TextInput(
@@ -106,8 +106,8 @@ class SetupVerificationModal(discord.ui.Modal, title="Setup Verification"):
 class AnswerVerification(discord.ui.Modal, title="Answer the verification"):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     answer = discord.ui.TextInput(
         label="Answer", required=True, placeholder="Enter the answer."
@@ -162,8 +162,8 @@ class AnswerVerification(discord.ui.Modal, title="Answer the verification"):
 class SetupVerification(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext, channel: discord.TextChannel):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.channel = channel
 
         if ctx.interaction:
@@ -206,8 +206,8 @@ class SetupVerification(discord.ui.View):
 class VerificationCall(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__(timeout=None)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(
         label="Verify Yourself",

@@ -43,8 +43,8 @@ async def modal_error(error: Exception):
 class SetupTicketPanel(discord.ui.Modal, title="Setup Your Panel"):
     def __init__(self, bot: BaseBot, ctx: BaseContext, channel: discord.TextChannel):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.channel = channel
 
     category_id = discord.ui.TextInput(
@@ -64,18 +64,10 @@ class SetupTicketPanel(discord.ui.Modal, title="Setup Your Panel"):
         ticket_emb = BaseEmbed(
             description=self.ticket_emb_description.value, color=self.bot.colour
         )
-        try:
-            ticket_emb.set_thumbnail(url=self.ctx.guild.icon.url)
-        except AttributeError:
-            pass
         ticket_emb.set_author(name=f"{self.ctx.guild}'s Ticket Panel")
 
         try:
-            query = (
-                "INSERT INTO ticket_init (guild_id, category_id, sent_message_id, sent_channel_id, jump_url, panel_description) VALUES ($1, $2, $3, $4, $5, $6) "
-                "ON CONFLICT (id, guild_id) "
-                "DO UPDATE SET category_id = $1, panel_description = $5"
-            )
+            query = "INSERT INTO ticket_init (guild_id, category_id, sent_message_id, sent_channel_id, jump_url, panel_description) VALUES ($1, $2, $3, $4, $5, $6) "
             sent_panel_message = await self.channel.send(
                 embed=ticket_emb, view=CallTicket(self.bot, self.ctx)
             )
@@ -110,8 +102,8 @@ class SetupTicketPanel(discord.ui.Modal, title="Setup Your Panel"):
 class TicketSetup(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext, channel: discord.TextChannel):
         super().__init__(timeout=180)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.channel = channel
 
         if ctx.interaction:
@@ -194,8 +186,8 @@ class CallTicket(discord.ui.View):
 
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__(timeout=None)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(
         label="Open a ticket",

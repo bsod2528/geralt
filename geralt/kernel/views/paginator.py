@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import discord
-from discord import ButtonStyle
-from discord.errors import NotFound
+from discord import ButtonStyle, NotFound
 
 from ...context import BaseContext
 from ...embed import BaseEmbed
@@ -18,12 +17,30 @@ if TYPE_CHECKING:
 
 
 class Paginator(discord.ui.View):
-    def __init__(self, bot: BaseBot, ctx: BaseContext, embeds: list[BaseEmbed]):
+    """A simple paginator by subclass `:class: ~ discord.ui.View`.
+    Thus creating a pagination by switching to different embeds using the buttons
+    created.
+
+    Attributes:
+    -----------
+    self.bot: geralt.BaseBot()
+        Custom commands.Bot subclass
+    self.ctx: geralt.BaseContext()
+        Custom commands.Context subclass
+    self.total: int
+        Total number of embeds
+    self.embeds: List[BaseEmbed]
+        List of embeds to be paginated
+    self.current: int
+        Current embed index
+    """
+
+    def __init__(self, bot: BaseBot, ctx: BaseContext, embeds: List[BaseEmbed]):
         super().__init__(timeout=80)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.total = len(embeds)
-        self.embeds: list[BaseEmbed] = embeds
+        self.embeds = embeds
         self.current = 0
 
         if self.total >= 1:

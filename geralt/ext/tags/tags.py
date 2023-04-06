@@ -1,7 +1,7 @@
 import asyncio
 import io
 import traceback
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import aiohttp
 import asyncpg
@@ -28,7 +28,7 @@ class Tags(commands.Cog):
     """Allows you to tag text for later retrieval."""
 
     def __init__(self, bot: BaseBot):
-        self.bot: BaseBot = bot
+        self.bot = bot
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -41,13 +41,13 @@ class Tags(commands.Cog):
     async def tag_call(self, ctx: BaseContext, tag_name: str):
         """Call a tag"""
         tag_deets = await self.bot.db.fetchval(
-            "SELECT (content) FROM tags WHERE name = $1 AND guild_id = $2",
+            "SELECT (content) FROM tags WHERE tag_name = $1 AND guild_id = $2",
             tag_name,
             ctx.guild.id,
         )
         if not tag_deets:
             return await ctx.send(
-                f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>",
+                f"`{tag_name}` - is not present <:SailuShrug:930394489409896448>",
                 reference=ctx.message.reference if ctx.message.reference else None,
             )
         else:
@@ -56,7 +56,7 @@ class Tags(commands.Cog):
                 reference=ctx.message.reference if ctx.message.reference else None,
             )
             await self.bot.db.execute(
-                "UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3",
+                "UPDATE tags SET uses = uses + 1 WHERE tag_name = $1 AND author_id = $2 AND guild_id = $3",
                 tag_name,
                 ctx.author.id,
                 ctx.guild.id,
@@ -64,23 +64,23 @@ class Tags(commands.Cog):
 
     async def tag_raw(self, ctx: BaseContext, *, tag_name: str = None):
         tag_data = await self.bot.db.fetchval(
-            "SELECT (content) FROM tags WHERE name = $1 AND guild_id = $2",
+            "SELECT (content) FROM tags WHERE tag_name = $1 AND guild_id = $2",
             tag_name,
             ctx.guild.id,
         )
         await self.bot.db.execute(
-            "UPDATE tags SET uses = uses + 1 WHERE name = $1 AND author_id = $2 AND guild_id = $3",
+            "UPDATE tags SET uses = uses + 1 WHERE tag_name = $1 AND author_id = $2 AND guild_id = $3",
             tag_name,
             ctx.author.id,
             ctx.guild.id,
         )
         if tag_name is None:
             return await ctx.reply(
-                f"**{ctx.author}** ─ call a tag by passing in a `tag_name`"
+                f"**{ctx.author}** - call a tag by passing in a `tag_name`"
             )
         if not tag_data:
             return await ctx.reply(
-                f"`{tag_name}` ─ is not present <:SailuShrug:930394489409896448>"
+                f"`{tag_name}` - is not present <:SailuShrug:930394489409896448>"
             )
         else:
             await ctx.reply(discord.utils.escape_markdown(tag_data))
@@ -90,7 +90,7 @@ class Tags(commands.Cog):
     ):
         user = user or ctx.author
         tag_fetch = await self.bot.db.fetch(
-            "SELECT * FROM tags WHERE author_id = $1 AND guild_id = $2 ORDER BY id ASC",
+            "SELECT * FROM tags WHERE author_id = $1 AND guild_id = $2 ORDER BY tag_id ASC",
             user.id,
             ctx.guild.id,
         )
@@ -98,7 +98,7 @@ class Tags(commands.Cog):
         serial_no = 1
         for tags in tag_fetch:
             tag_list.append(
-                f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` ID : `{tags['id']}`\n> │ ` ─ ` Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.timestamp(tags['created_on'], style = 'R')}\n────\n"
+                f"> [**{serial_no})**]({tags['jump_url']}) **{tags['tag_name']}**\n> ` ─ ` ID : `{tags['tag_id']}`\n> ` ─ ` Uses : `{tags['uses']}`\n> ` ─ ` Created : {self.bot.timestamp(tags['created_at'], style = 'R')}\n────\n"
             )
             serial_no += 1
 
@@ -143,13 +143,13 @@ class Tags(commands.Cog):
     async def tag_all(self, ctx: BaseContext):
         user = ctx.author
         tag_fetch = await self.bot.db.fetch(
-            "SELECT * FROM tags WHERE guild_id = $1 ORDER BY name", ctx.guild.id
+            "SELECT * FROM tags WHERE guild_id = $1 ORDER BY tag_name", ctx.guild.id
         )
         tag_list = []
         serial_no = 1
         for tags in tag_fetch:
             tag_list.append(
-                f"> [**{serial_no})**]({tags['jump_url']}) \"**{tags['name']}**\"\n> │ ` ─ ` Owner : <@{tags['author_id']}>\n> │ ` ─ ` ID : `{tags['id']}` │ Uses : `{tags['uses']}`\n> │ ` ─ ` Created : {self.bot.timestamp(tags['created_on'], style = 'R')}\n────\n"
+                f"> [**{serial_no})**]({tags['jump_url']}) **{tags['tag_name']}**\n> ` ─ ` Owner : <@{tags['author_id']}>\n> ` ─ ` ID : `{tags['tag_id']}` Uses : `{tags['uses']}`\n> ` ─ ` Created : {self.bot.timestamp(tags['created_at'], style = 'R')}\n────\n"
             )
             serial_no += 1
 
@@ -189,7 +189,7 @@ class Tags(commands.Cog):
 
     async def tag_info(self, ctx: BaseContext, *, tag_name: commands.clean_content):
         tag_deets = await self.bot.db.fetchval(
-            "SELECT (id, author_id, content, uses, created_on, jump_url) FROM tags WHERE name = $1 AND guild_id = $2",
+            "SELECT (tag_id, author_id, content, uses, created_at, jump_url) FROM tags WHERE tag_name = $1 AND guild_id = $2",
             tag_name,
             ctx.guild.id,
         )
@@ -211,13 +211,11 @@ class Tags(commands.Cog):
         tag_deets_emb = BaseEmbed(
             title=f":scroll: {tag_owner}'s ─ Tag",
             url=tag_deets[5],
-            description=f"The following points showcase full details about the `{tag_name}` tag :\n"
-            f"\n────\n"
-            f'> │ ` ─ ` Name : "**{tag_name}**" (`{tag_deets[0]}`)\n'
-            f"> │ ` ─ ` Owner : {tag_owner.mention} (`{tag_owner.id}`)\n"
-            f"> │ ` ─ ` Created On : {self.bot.timestamp(tag_deets[4], style = 'f')}\n"
-            f"> │ ` ─ ` No. of Times Used : `{tag_deets[3]}`\n"
-            "────",
+            description=f"The following points showcase full details about the `{tag_name}` tag:\n\n"
+            f"> ` ─ ` Name : **{tag_name}** (`{tag_deets[0]}`)\n"
+            f"> ` ─ ` Owner : {tag_owner.mention} (`{tag_owner.id}`)\n"
+            f"> ` ─ ` Created On : {self.bot.timestamp(tag_deets[4], style = 'f')}\n"
+            f"> ` ─ ` No. of Times Used : `{tag_deets[3]}`\n",
             colour=self.bot.colour,
         )
         tag_deets_emb.set_thumbnail(url=tag_owner.display_avatar.url)
@@ -237,15 +235,14 @@ class Tags(commands.Cog):
             return
         else:
             await self.bot.db.execute(
-                "UPDATE tags SET content = $1, author_name = $2 WHERE id = $3 AND author_id = $4 AND guild_id = $5",
+                "UPDATE tags SET content = $1, WHERE id = $2 AND author_id = $3 AND guild_id = $4",
                 edited_content,
-                str(ctx.author),
                 tag_id,
                 ctx.author.id,
                 ctx.guild.id,
             )
             tag_deets = await self.bot.db.fetchval(
-                "SELECT (name, content) FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3",
+                "SELECT (tag_name, content) FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3",
                 tag_id,
                 ctx.author.id,
                 ctx.guild.id,
@@ -303,7 +300,7 @@ class Tags(commands.Cog):
 
     async def tag_remove(self, ctx: BaseContext, name: str):
         tag_deets = await self.bot.db.fetchval(
-            "SELECT (name) FROM tags WHERE name = $1 AND guild_id = $2",
+            "SELECT (tag_name) FROM tags WHERE tag_name = $1 AND guild_id = $2",
             name,
             ctx.guild.id,
         )
@@ -316,7 +313,7 @@ class Tags(commands.Cog):
             for view in ui.children:
                 view.disabled = True
             if id != await self.bot.db.fetchval(
-                "SELECT * FROM tags WHERE name = $1 AND author_id = $2",
+                "SELECT * FROM tags WHERE tag_name = $1 AND author_id = $2",
                 name,
                 ctx.author.id,
             ):
@@ -329,7 +326,7 @@ class Tags(commands.Cog):
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(
-                    "DELETE FROM tags WHERE name = $1 AND guild_id = $2 AND author_id = $3",
+                    "DELETE FROM tags WHERE tag_name = $1 AND guild_id = $2 AND author_id = $3",
                     name,
                     ctx.guild.id,
                     ctx.author.id,
@@ -361,7 +358,7 @@ class Tags(commands.Cog):
 
     async def tag_transfer(self, ctx: BaseContext, tag_id: int, user: discord.Member):
         tag_deets = await self.bot.db.fetchval(
-            "SELECT (name) FROM tags WHERE id = $1 AND guild_id = $2",
+            "SELECT (tag_name) FROM tags WHERE id = $1 AND guild_id = $2",
             tag_id,
             ctx.guild.id,
         )
@@ -390,9 +387,7 @@ class Tags(commands.Cog):
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(
-                    "UPDATE tags SET author_id = $1, author_name = $2, author_id = $3 WHERE id = $4 AND guild_id = $5",
-                    user.id,
-                    user.name,
+                    "UPDATE tags SET author_id = $1, WHERE id = $3 AND guild_id = $4",
                     user.id,
                     tag_id,
                     ctx.guild.id,
@@ -427,7 +422,7 @@ class Tags(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         tag_deets = await self.bot.db.fetch(
-            "SELECT (name) FROM tags WHERE guild_id = $1 ORDER BY name ASC",
+            "SELECT (tag_name) FROM tags WHERE guild_id = $1 ORDER BY tag_name ASC",
             interaction.guild_id,
         )
         names = [f"{deets[0]}" for deets in tag_deets]
@@ -452,7 +447,7 @@ class Tags(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         tag_deets = await self.bot.db.fetch(
-            "SELECT name FROM tags WHERE author_id = $1 AND guild_id = $2 ORDER BY name ASC",
+            "SELECT tag_name FROM tags WHERE author_id = $1 AND guild_id = $2 ORDER BY tag_name ASC",
             interaction.user.id,
             interaction.guild.id,
         )
@@ -589,23 +584,22 @@ class Tags(commands.Cog):
         if flag:
             try:
                 tag_deets = await self.bot.db.fetchval(
-                    "SELECT (name, content) FROM tags WHERE id = $1 AND guild_id = $2",
+                    "SELECT (tag_name, content) FROM tags WHERE id = $1 AND guild_id = $2",
                     flag.tag,
                     flag.guild,
                 )
-                insert_query = "INSERT INTO tags (name, content, author_id, author_name, guild_id, created_on, jump_url) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+                insert_query = "INSERT INTO tags (tag_name, content, author_id, guild_id, created_on, jump_url) VALUES ($1, $2, $3, $4, $5, $6)"
                 await self.bot.db.execute(
                     insert_query,
                     tag_deets[0].strip(),
                     tag_deets[1],
                     ctx.author.id,
-                    ctx.author.name,
                     ctx.guild.id,
                     ctx.message.created_at,
                     ctx.message.jump_url,
                 )
                 id = await self.bot.db.fetchval(
-                    "SELECT (id) FROM tags WHERE guild_id = $1 AND name = $2",
+                    "SELECT (id) FROM tags WHERE guild_id = $1 AND tag_name = $2",
                     ctx.guild.id,
                     tag_deets[0],
                 )

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class Nitro(discord.ui.View):
     def __init__(self, ctx: BaseContext):
         super().__init__()
-        self.ctx: BaseContext = ctx
+        self.ctx = ctx
 
     @discord.ui.button(
         label="Avail Nitro",
@@ -80,7 +80,7 @@ class PopButton(discord.ui.Button):
 class Pop(discord.ui.View):
     def __init__(self, ctx: BaseContext, *, size: Optional[PopSize]):
         super().__init__(timeout=90)
-        self.ctx: BaseContext = ctx
+        self.ctx = ctx
         self.size = size
         self.message: Optional[discord.Message] = None
 
@@ -155,8 +155,8 @@ class ClickButton(discord.ui.Button):
             style=discord.ButtonStyle.grey,
             emoji=random.choice(click_emote_list),
         )
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     async def callback(self, interaction: discord.Interaction):
         pain = f"This view can't be handled by you at the moment, invoke for youself by running `{self.ctx.clean_prefix}{self.ctx.command}` for the `{self.ctx.command}` command <:SarahPray:920484222421045258>"
@@ -165,29 +165,42 @@ class ClickButton(discord.ui.Button):
                 try:
                     await interaction.response.defer()
                     guild_score_query = (
-                        "INSERT INTO click_guild (guild_id, player_id, clicks, player_name)"
-                        "VALUES ($1, $2, 1, $3)"
+                        "INSERT INTO click_guild (guild_id, player_id, clicks)"
+                        "VALUES ($1, $2, 1)"
                         "ON CONFLICT (guild_id, player_id)"
-                        "DO UPDATE SET clicks = click_guild.clicks + 1, player_name = $3"
+                        "DO UPDATE SET clicks = click_guild.clicks + 1"
                     )
                     await self.bot.db.execute(
-                        guild_score_query,
-                        interaction.guild_id,
-                        interaction.user.id,
-                        str(self.ctx.author),
+                        guild_score_query, interaction.guild_id, interaction.user.id
                     )
                     global_score_query = (
-                        "INSERT INTO click_global (player_id, clicks, player_name, player_pfp)"
-                        "VALUES ($1, 1, $2, $3)"
+                        "INSERT INTO click_global (player_id, clicks)"
+                        "VALUES ($1, 1)"
                         "ON CONFLICT (player_id)"
-                        "DO UPDATE SET clicks = click_global.clicks + 1, player_name = $2, player_pfp = $3"
+                        "DO UPDATE SET clicks = click_global.clicks + 1"
                     )
-                    await self.bot.db.execute(
-                        global_score_query,
-                        interaction.user.id,
-                        str(self.ctx.author),
-                        str(self.ctx.author.display_avatar),
-                    )
+                    await self.bot.db.execute(global_score_query, interaction.user.id)
+                    # guild_score_query = (
+                    #     "INSERT INTO click_guild (guild_id, player_id, clicks)"
+                    #     "VALUES ($1, $2, 1) "
+                    #     "ON CONFLICT (guild_id, player_id)"
+                    #     "DO UPDATE SET clicks = click_guild.clicks + 1"
+                    # )
+                    # await self.bot.db.execute(
+                    #     guild_score_query,
+                    #     interaction.guild_id,
+                    #     interaction.user.id,
+                    # )
+                    # global_score_query = (
+                    #     "INSERT INTO click_global (player_id, clicks)"
+                    #     "VALUES ($1, 1) "
+                    #     "ON CONFLICT (player_id)"
+                    #     "DO UPDATE SET clicks = click_global.clicks + 1 WHERE click_global.player_id = $1"
+                    # )
+                    # await self.bot.db.execute(
+                    #     global_score_query,
+                    #     interaction.user.id
+                    # )
                 except NotFound:
                     return
             except Exception as exception:
@@ -209,8 +222,8 @@ class ClickButton(discord.ui.Button):
 class ClickGame(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext, *, size: Optional[int]):
         super().__init__(timeout=60)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.size = size
 
         for button in range(self.size):
@@ -287,8 +300,8 @@ class ClickGame(discord.ui.View):
 class ClickLeaderboard(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__(timeout=60)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(
         label="Global Leaderboard",
@@ -301,45 +314,37 @@ class ClickLeaderboard(discord.ui.View):
         try:
             await interaction.response.defer()
             global_leaderboard_query = await self.bot.db.fetch(
-                "SELECT player_name, clicks, player_pfp FROM click_global ORDER BY clicks DESC LIMIT 10"
+                "SELECT player_id, clicks FROM click_global ORDER BY clicks DESC LIMIT 10"
             )
             serial_no = 1
             leaderboard = []
             for data in global_leaderboard_query:
+                user = await self.bot.fetch_user(data["player_id"])
                 leaderboard.append(
-                    f"> **{serial_no})** [{data['player_name']}]({data['player_pfp']}) \u200b : `{data['clicks']}`\n"
+                    f"> **{serial_no})** {user.display_name} \u200b: `{data['clicks']}`\n"
                 )
                 serial_no += 1
 
-            while leaderboard:
-                global_leaderboard_emb = BaseEmbed(
-                    description=f"The following showcases the top 10 scores for `{self.ctx.clean_prefix}click`",
-                    colour=self.bot.colour,
-                )
-                global_leaderboard_emb.add_field(
-                    name="Top 10 Global Scores", value=f"".join(leaderboard[:10])
-                )
-                global_leaderboard_emb.set_thumbnail(
-                    url="https://discords.com/_next/image?url=https%3A%2F%2Fcdn.discordapp.com%2Femojis%2F929249429486178334.gif%3Fv%3D1&w=64&q=75"
-                )
-                global_leaderboard_emb.set_author(name="Global Click Scores")
-                global_leaderboard_emb.set_footer(
-                    text=f"Run {self.ctx.clean_prefix}click for more sub ─ commands."
-                )
-                leaderboard = leaderboard[10:]
-            try:
-                await interaction.followup.send(
-                    embed=global_leaderboard_emb, ephemeral=True
-                )
-            except NotFound:
-                return
-        except Exception as exception:
-            try:
-                await interaction.response.send_message(
-                    content=f"```py\n{exception}\n```", ephemeral=True
-                )
-            except NotFound:
-                return
+            global_leaderboard_emb = BaseEmbed(
+                description=f"The following showcases the top 10 scores for `{self.ctx.clean_prefix}click`",
+                colour=self.bot.colour,
+            )
+            leaderboard_text = "".join(leaderboard[:10])
+            global_leaderboard_emb.add_field(
+                name="Top 10 Global Scores", value=leaderboard_text
+            )
+            global_leaderboard_emb.set_thumbnail(
+                url="https://discords.com/_next/image?url=https%3A%2F%2Fcdn.discordapp.com%2Femojis%2F929249429486178334.gif%3Fv%3D1&w=64&q=75"
+            )
+            global_leaderboard_emb.set_author(name="Global Click Scores")
+            global_leaderboard_emb.set_footer(
+                text=f"Run {self.ctx.clean_prefix}click for more sub ─ commands."
+            )
+            await interaction.followup.send(
+                embed=global_leaderboard_emb, ephemeral=True
+            )
+        except Exception as e:
+            print(e)
 
     async def send(self):
         guild_score_query = await self.bot.db.fetch(

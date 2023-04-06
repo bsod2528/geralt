@@ -3,7 +3,7 @@ import traceback
 
 import aiohttp
 import discord
-from discord.errors import NotFound
+from discord import NotFound
 
 from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
@@ -31,8 +31,8 @@ async def modal_error(self, interaction: discord.Interaction, error: Exception) 
 class AddPrefix(discord.ui.Modal, title="Add a Prefix"):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     prefix = discord.ui.TextInput(
         label="Prefix",
@@ -43,8 +43,13 @@ class AddPrefix(discord.ui.Modal, title="Add a Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         try:
+            if self.prefix.value.strip() == ".g":
+                return await interaction.response.send_message(
+                    f"**{self.ctx.author}** - `.g` is the default prefix! It cannot be removed.",
+                    ephemeral=True,
+                )
             fetched_data = await self.bot.db.fetch(
-                "SELECT UNNEST(guild_prefix) FROM prefix WHERE guild_id = $1",
+                "SELECT UNNEST(prefixes) FROM prefix WHERE guild_id = $1",
                 interaction.guild.id,
             )
             for present_prefixes in fetched_data:
@@ -55,12 +60,12 @@ class AddPrefix(discord.ui.Modal, title="Add a Prefix"):
                     )
             query = (
                 "INSERT INTO prefix VALUES ($1, ARRAY [$2, '.g']) ON CONFLICT (guild_id) "
-                "DO UPDATE SET guild_prefix = ARRAY_APPEND(prefix.guild_prefix, $2) WHERE prefix.guild_id = $1"
+                "DO UPDATE SET prefixes = ARRAY_APPEND(prefix.prefixes, $2) WHERE prefix.guild_id = $1"
             )
             await self.bot.db.execute(
                 query, interaction.guild.id, self.prefix.value.strip()
             )
-            data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+            data = await self.bot.db.fetch("SELECT guild_id, prefixes FROM prefix")
             for guild_id, prefixes in data:
                 self.bot.prefixes[guild_id] = set(prefixes)
             await interaction.response.send_message(
@@ -102,8 +107,8 @@ class AddPrefix(discord.ui.Modal, title="Add a Prefix"):
 class RemovePrefix(discord.ui.Modal, title="Remove a Prefix"):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     prefix = discord.ui.TextInput(
         label="Prefix",
@@ -114,11 +119,16 @@ class RemovePrefix(discord.ui.Modal, title="Remove a Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         try:
-            query = "UPDATE prefix SET guild_prefix = ARRAY_REMOVE(prefix.guild_prefix, $2) WHERE guild_id = $1"
+            if self.prefix.value.strip() == ".g":
+                return await interaction.response.send_message(
+                    f"**{self.ctx.author}** - `.g` is the default prefix! It cannot be removed.",
+                    ephemeral=True,
+                )
+            query = "UPDATE prefix SET prefixes = ARRAY_REMOVE(prefix.prefixes, $2) WHERE guild_id = $1"
             await self.bot.db.execute(
                 query, interaction.guild.id, self.prefix.value.strip()
             )
-            data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+            data = await self.bot.db.fetch("SELECT guild_id, prefixes FROM prefix")
             for guild_id, prefixes in data:
                 self.bot.prefixes[guild_id] = set(prefixes)
             await interaction.response.send_message(
@@ -159,8 +169,8 @@ class RemovePrefix(discord.ui.Modal, title="Remove a Prefix"):
 class Prefix(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__(timeout=100)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(label="Add Prefix", style=discord.ButtonStyle.green)
     async def add_prefix(

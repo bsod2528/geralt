@@ -57,7 +57,7 @@ class Guild(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         tag_deets = await self.bot.db.fetch(
-            "SELECT UNNEST(guild_prefix) FROM prefix WHERE guild_id = $1",
+            "SELECT UNNEST(prefixes) FROM prefix WHERE guild_id = $1",
             interaction.guild_id,
         )
         names = [f"{deets[0]}" for deets in tag_deets]
@@ -171,7 +171,7 @@ class Guild(commands.Cog):
             )
         try:
             fetched_data = await self.bot.db.fetch(
-                "SELECT UNNEST(guild_prefix) FROM prefix WHERE guild_id = $1",
+                "SELECT UNNEST(prefixes) FROM prefix WHERE guild_id = $1",
                 ctx.guild.id,
             )
             for present_prefixes in fetched_data:
@@ -179,10 +179,10 @@ class Guild(commands.Cog):
                     return await ctx.send(f"{prefix} is already present")
             query = (
                 "INSERT INTO prefix VALUES ($1, ARRAY [$2, '.g']) ON CONFLICT (guild_id) "
-                "DO UPDATE SET guild_prefix = ARRAY_APPEND(prefix.guild_prefix, $2) WHERE prefix.guild_id = $1"
+                "DO UPDATE SET prefixes = ARRAY_APPEND(prefix.prefixes, $2) WHERE prefix.guild_id = $1"
             )
             await self.bot.db.execute(query, ctx.guild.id, prefix)
-            data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+            data = await self.bot.db.fetch("SELECT guild_id, prefixes FROM prefix")
             for guild_id, prefixes in data:
                 self.bot.prefixes[guild_id] = set(prefixes)
             await ctx.reply(
@@ -217,9 +217,9 @@ class Guild(commands.Cog):
                 return await ctx.reply(
                     f"`{prefix}` - is not in the guild's prefix list for **{ctx.guild}** <:SarahPout:989816223544012801>"
                 )
-            query = "UPDATE prefix SET guild_prefix = ARRAY_REMOVE(prefix.guild_prefix, $2) WHERE guild_id = $1"
+            query = "UPDATE prefix SET prefixes = ARRAY_REMOVE(prefix.prefixes, $2) WHERE guild_id = $1"
             await self.bot.db.execute(query, ctx.guild.id, prefix)
-            data = await self.bot.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+            data = await self.bot.db.fetch("SELECT guild_id, prefixes FROM prefix")
             for guild_id, prefixes in data:
                 self.bot.prefixes[guild_id] = set(prefixes)
             await ctx.add_nanotick()
@@ -237,7 +237,7 @@ class Guild(commands.Cog):
     async def prefix_reset(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Reset all the prefixes back to `.g`"""
         data = await self.bot.db.fetch(
-            "SELECT UNNEST(guild_prefix) FROM prefix WHERE guild_id = $1", ctx.guild.id
+            "SELECT UNNEST(prefixes) FROM prefix WHERE guild_id = $1", ctx.guild.id
         )
         self.bot.prefixes[ctx.guild.id] = {
             ".g",
@@ -748,7 +748,7 @@ class Guild(commands.Cog):
     async def guild_snipe(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Opt - in/out for sniping messages!"""
         query: str = (
-            "INSERT INTO guild_settings VALUES ($1, $2) "
+            "INSERT INTO guild_settings (guild_id, snipe) VALUES ($1, $2) "
             "ON CONFLICT (guild_id) "
             "DO UPDATE SET snipe = $2 WHERE guild_settings.guild_id = $1"
         )
@@ -760,14 +760,27 @@ class Guild(commands.Cog):
                 f"I will hereby `not snipe` all edited & deleted messages in **{ctx.guild.name}** \U0001f91d"
             )
             await ctx.add_nanotick()
-            self.bot.settings[ctx.guild.id]["snipe"] = False
+            try:
+                self.bot.settings[ctx.guild.id]["snipe"] = False
+            except KeyError:
+                self.bot.settings[ctx.guild.id] = {
+                    "convert_url_to_webhook": False,
+                    "snipe": False,
+                }
             return await self.bot.db.execute(query, ctx.guild.id, False)
 
         await ctx.reply(
             f"I will hereby `snipe` all edited & deleted messages in **{ctx.guild.name}** \U0001f91d"
         )
         await ctx.add_nanotick()
-        self.bot.settings[ctx.guild.id]["snipe"] = True
+        try:
+            self.bot.settings[ctx.guild.id]["snipe"] = True
+        except KeyError:
+            self.bot.settings[ctx.guild.id] = {
+                "convert_url_to_webhook": False,
+                "snipe": True,
+            }
+        self.bot.snipe_counter.update({"delete": 0, "edit": 0, "total_messages": 0})
         return await self.bot.db.execute(query, ctx.guild.id, True)
 
     @guild.command(
@@ -818,7 +831,7 @@ class Guild(commands.Cog):
     async def guild_convertemote(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Enable to convert emote urls to webhooks."""
         query: str = (
-            "INSERT INTO guild_settings VALUES ($1, $2) "
+            "INSERT INTO guild_settings (guild_id, convert_url_to_webhook) VALUES ($1, $2) "
             "ON CONFLICT (guild_id) "
             "DO UPDATE SET convert_url_to_webhook = $2 WHERE guild_settings.guild_id = $1"
         )
@@ -831,14 +844,26 @@ class Guild(commands.Cog):
                 f"I will hereby `not convert` emote urls sent to webhook messages in **{ctx.guild}** \U0001f91d"
             )
             await ctx.add_nanotick()
-            self.bot.settings[ctx.guild.id]["convert_url_to_webhook"] = False
+            try:
+                self.bot.settings[ctx.guild.id]["convert_url_to_webhook"] = False
+            except KeyError:
+                self.bot.settings[ctx.guild.id] = {
+                    "convert_url_to_webhook": False,
+                    "snipe": False,
+                }
             return await self.bot.db.execute(query, ctx.guild.id, False)
 
         await ctx.reply(
             f"I will hereby `convert` emote urls sent to webhook messages in **{ctx.guild}** \U0001f91d"
         )
         await ctx.add_nanotick()
-        self.bot.settings[ctx.guild.id]["convert_url_to_webhook"] = True
+        try:
+            self.bot.settings[ctx.guild.id]["convert_url_to_webhook"] = True
+        except KeyError:
+            self.bot.settings[ctx.guild.id] = {
+                "convert_url_to_webhook": True,
+                "snipe": False,
+            }
         await self.bot.db.execute(query, ctx.guild.id, True)
 
     @commands.hybrid_group(

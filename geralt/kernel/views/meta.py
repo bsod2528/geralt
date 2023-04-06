@@ -82,20 +82,20 @@ def latest_commit(max: int = 5):
 class Info(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__(timeout=None)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.add_item(
             discord.ui.Button(
                 label="Dashboard",
                 emoji="<:AkkoComfy:907104936368685106>",
-                url="https://bsod2528.github.io/Posts/Geralt",
+                url="https://bsod2528.me/pages/projects/geralt/geralt.html",
             )
         )
         self.add_item(
             discord.ui.Button(
                 label="Support",
                 emoji="<a:Comfort:918844984621428787>",
-                url="https://discord.gg/JXEu2AcV5Y",
+                url="https://discord.com/invite/QGxetszZPh",
             )
         )
 
@@ -186,7 +186,7 @@ class Confirmation(discord.ui.View):
     def __init__(self, ctx: BaseContext, yes, no):
         super().__init__(timeout=None)
         self.no: Any = no
-        self.ctx: BaseContext = ctx
+        self.ctx = ctx
         self.yes: Any = yes
 
     @discord.ui.button(
@@ -229,8 +229,8 @@ class PFP(discord.ui.View):
         self, bot: BaseBot, ctx: BaseContext, user: Union[discord.User, discord.Member]
     ):
         super().__init__(timeout=60)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.user = user
 
         if user.id != ctx.author.id:
@@ -364,16 +364,6 @@ class PFP(discord.ui.View):
         )
         pfp_emb.set_image(url=self.user.display_avatar.with_static_format("png"))
 
-        # log_avatar = await self.bot.db.fetchval("SELECT avatar FROM user_settings WHERE user_id = $1", self.ctx.author.id)
-        # if log_avatar:
-        #    fetch_all_pfps = await self.bot.db.fetch("SELECT * FROM avatar_history WHERE user_id = $1", self.ctx.author.id)
-        #    current_pfp = await self.ctx.author.display_avatar.read()
-        #    for data in fetch_all_pfps:
-        #        if current_pfp != data[4]:
-        #            self.save.disabled = True
-        #        if current_pfp == data[4]:
-        #            self.save.disabled = False
-
         self.message = await self.ctx.reply(
             embed=pfp_emb, view=self, mention_author=False
         )
@@ -446,8 +436,8 @@ class Leave(discord.ui.View):
 class FeedbackModal(discord.ui.Modal, title="Feedback Form"):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     feedback_title = discord.ui.TextInput(
         label="Subject",
@@ -518,8 +508,8 @@ class FeedbackModal(discord.ui.Modal, title="Feedback Form"):
 class BugModal(discord.ui.Modal, title="Bug Form"):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     bug_title = discord.ui.TextInput(
         label="Subject",
@@ -590,8 +580,8 @@ class BugModal(discord.ui.Modal, title="Bug Form"):
 class Feedback(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(
         label="Feedback",
@@ -626,8 +616,8 @@ class Feedback(discord.ui.View):
 class Bug(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(
         label="Bug",

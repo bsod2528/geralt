@@ -4,8 +4,10 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Group, HelpCommand
 
-from ..context import BaseContext
-from ..embed import BaseEmbed
+from geralt import BaseContext, BaseEmbed
+
+# from ..context import BaseContext
+# from ..embed import BaseEmbed
 from .views.help import GroupAndCommandView, HelpView
 from .views.paginator import Paginator
 

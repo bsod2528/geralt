@@ -83,10 +83,14 @@ class Fun(commands.Cog):
                 colour=0x2F3136,
             )
             nitro_emb.set_thumbnail(url="https://i.imgur.com/w9aiD6F.png")
-
             if user is None:
                 nitro_emb.description = f">>> {ctx.author.mention} has been gifted nitro classic by {ctx.guild.me.mention} <a:WumpusHypesquad:905661121501990923>.\n**{ctx.author}** click on the button below to avail the nitro."
-                await ctx.send(embed=nitro_emb, view=Nitro(ctx))
+                return await ctx.send(embed=nitro_emb, view=Nitro(ctx))
+            if user.id == ctx.author.id:
+                return await ctx.reply(
+                    f"**{ctx.author}** - you cannot gift nitro to yourself <:Okay:913796811737686086>",
+                    mention_author=False,
+                )
             else:
                 nitro_emb.description = f">>> <@{user.id}> has been gifted nitro classic by {ctx.author.mention} <a:WumpusHypesquad:905661121501990923>.\n**{user}** click on the button below to avail the nitro."
                 await ctx.send(embed=nitro_emb, view=Nitro(ctx))
@@ -104,9 +108,9 @@ class Fun(commands.Cog):
     ) -> Optional[discord.Message]:
         """Fidget with the buttons by popping them!
         ────
-        **Flags Present :**
-        `--size` : Sends that many number of buttons to pop.
-        **Example :**
+        **Flags Present:**
+        `--size`: Sends that many number of buttons to pop.
+        **Example:**
         `.gpop [--size 10]` Max size is `25` \U0001f44d
         ────"""
         if not flag:
@@ -137,10 +141,10 @@ class Fun(commands.Cog):
     ) -> Optional[discord.Message]:
         """Start a game of click.
         ────
-        **Flags Present :**
-        `--size` : Sends that many number of buttons to click.
-        <:Join:932976724235395072> **Size Limit :** `10` \U0001f44d
-        **Example :**
+        **Flags Present:**
+        `--size`: Sends that many number of buttons to click.
+        <:Join:932976724235395072> **Size Limit:** `10` \U0001f44d
+        **Example:**
         `.gclick start [--size 10]`
         ────"""
         if not flag:
@@ -160,6 +164,7 @@ class Fun(commands.Cog):
     )
     @commands.cooldown(3, 5, commands.BucketType.user)
     async def click_score(self, ctx: BaseContext) -> Optional[discord.Message]:
+        """Check the leaderboard on a guild & global level."""
         await ClickLeaderboard(self.bot, ctx).send()
 
     @commands.hybrid_command(

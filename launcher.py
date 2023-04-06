@@ -7,4 +7,3 @@ os.system("cls")
 
 if __name__ == "__main__":
     asyncio.run(run())
-    

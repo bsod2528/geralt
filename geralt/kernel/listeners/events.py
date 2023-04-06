@@ -134,13 +134,13 @@ class Events(commands.Cog):
         else:
             query = (
                 "INSERT INTO meta ("
-                "command_name, guild_id, invoked_at, uses)"
-                "VALUES ($1, $2, $3, 1)"
+                "guild_id, command_name, uses, invoked_at)"
+                "VALUES ($1, $2, 1, $3)"
                 "ON CONFLICT(command_name, guild_id)"
-                "DO UPDATE SET uses = meta.uses + 1, invoked_at = $3, command_name = $1"
+                "DO UPDATE SET uses = meta.uses + 1, invoked_at = $3, command_name = $2"
             )
             await self.bot.db.execute(
-                query, str(command_name), ctx.guild.id, ctx.message.created_at
+                query, ctx.guild.id, str(command_name), ctx.message.created_at
             )
 
     @commands.Cog.listener()

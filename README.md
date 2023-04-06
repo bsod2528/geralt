@@ -19,18 +19,17 @@ A simple discord bot based on [**discord.py**](https://github.com/Rapptz/discord
 
 ## Documentation
 
-The website provides full details from A to Z regarding the bot. [**Click here**](https://bsod2528.github.io/Posts/Geralt/) to access it. All the commands, how to use them, how to setup the bot, etc. have been documented.
+The website provides full details from A to Z regarding the bot. [**Click here**](https://bsod2528.me/pages/projects/geralt/geralt.html) to access it. All the commands, how to use them, how to setup the bot, etc. have been documented.
 
 ## Setup
 
 An `.env` file has to be there for storing the keys. An `example_config.env` has been provided for reference. You can use any other method too like a json lmao. Just saying. Set up a venv too.
 
-Ensure all tables are present in your [**postgresql**](https://www.postgresql.org/download/) server. Check out `Schema` folder for all the tables you need.
+Ensure all tables are present in your [**postgresql**](https://www.postgresql.org/download/) server. Check out `tables.sql` file for all the tables you need.
 ```py
 pip install -r requirements.txt
 ```
 Run the above command to install the packages you need for running Geralt's instance.
-The [**website**](https://bsod2528.github.io/Posts/Geralt) provided above provides all necessary details for setting up and running your very own instance of Geralt.
 
 ---
 

@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 class UserHistory(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext, user: Optional[discord.User]):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.user = user
 
     @discord.ui.button(
@@ -103,8 +103,8 @@ class UserHistory(discord.ui.View):
 class SelectUserLogEvents(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__()
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
     @discord.ui.button(label="Avatar", style=discord.ButtonStyle.blurple)
     async def opt_avatar(

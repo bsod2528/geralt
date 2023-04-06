@@ -6,11 +6,9 @@ import discord
 from discord.errors import NotFound
 from discord.ext.commands import Cog, Command, Group
 
-from ...context import BaseContext
 from ...embed import BaseEmbed
 
 if TYPE_CHECKING:
-    from ...bot import BaseBot
     from ..help import BaseHelp
 
 
@@ -50,9 +48,9 @@ class HelpMenu(discord.ui.Select):
         super().__init__(
             options=options, min_values=1, max_values=1, placeholder="Choose a cog"
         )
-        self.bot: BaseBot = help.context.bot
-        self.ctx: BaseContext = help.context
-        self.help: BaseHelp = help
+        self.bot = help.context.bot
+        self.ctx = help.context
+        self.help = help
         self.mapping = mapping
 
     async def callback(self, interaction: discord.Interaction):
@@ -110,7 +108,7 @@ class HelpView(discord.ui.View):
 
     def __init__(self, mapping, help: BaseHelp, cog_list):
         super().__init__(timeout=100)
-        self.help: BaseHelp = help
+        self.help = help
         self.mapping = mapping
         self.ctx = help.context
         self.add_item(HelpMenu(mapping, help, cog_list))
@@ -127,7 +125,7 @@ class HelpView(discord.ui.View):
     async def home(self, interaction: discord.Interaction, button: discord.ui.Button):
         help_emb = BaseEmbed(
             title=f"\U00002728 {self.ctx.author}'s Help",
-            description=f"────\nHi! I am [**BaseBot**](https://github.com/BSOD2528/BaseBot) and open source Discord Bot made for fun.\n────",
+            description=f"────\nHi! I am [**BaseBot**](https://github.com/BSOD2528/Geralt) and open source Discord Bot made for fun.\n────",
             colour=self.ctx.bot.colour,
         )
 
@@ -164,10 +162,10 @@ class HelpView(discord.ui.View):
         )
         updates_emb.add_field(
             name="Updates :",
-            value=f">>> <:One:989876071052750868> <t:1673797463:D> ─ <:Emote:1044584258578157588> Added `{self.ctx.clean_prefix}emote delete/rename`.\n"
-            f"<:Two:989876145291948122> <t:1673797463:D> ─ General Patch.\n"
-            f"<:Three:989876184420610099> <t:1669255064:D> ─ <:Server:1044584714331242496> Added `{self.ctx.clean_prefix}guild auditlog` - </guild auditlog:1003921251238166589>\n"
-            f"<:Four:1002832347240083486> <t:1644587100:D> ─ <:SarahPray:920484222421045258> Added `{self.ctx.clean_prefix}urban - </urban:1037360284655964292>",
+            value=f">>> <:One:989876071052750868> <t:1680789372:D> ─ <:Emote:1044584258578157588> Added `{self.ctx.clean_prefix}snipe edit/delete`.\n"
+            f"<:Two:989876145291948122> <t:1673797463:D> ─ <:Emote:1044584258578157588> Added `{self.ctx.clean_prefix}emote delete/rename`.\n"
+            f"<:Three:989876184420610099> <t:1673797463:D> ─ General Patch.\n"
+            f"<:Four:1002832347240083486> <t:1669255064:D> ─ <:Server:1044584714331242496> Added `{self.ctx.clean_prefix}guild auditlog` - </guild auditlog:1003921251238166589>",
         )
         updates_emb.set_footer(
             text=self.help.main_footer(), icon_url=self.ctx.author.display_avatar.url
@@ -271,7 +269,7 @@ class GroupAndCommandView(discord.ui.View):
     async def home(self, interaction: discord.Interaction, button: discord.ui.Button):
         help_emb = BaseEmbed(
             title=f"\U00002728 {self.help.context.author}'s Help",
-            description=f"────\nHi! I am [**BaseBot**](https://github.com/BSOD2528/BaseBot) and open source Discord Bot made for fun.\n────",
+            description=f"────\nHi! I am [**Geralt**](https://github.com/BSOD2528/Geralt) and open source Discord Bot made for fun.\n────",
             colour=self.help.context.bot.colour,
         )
         cog_list: List[commands.Cog] = []

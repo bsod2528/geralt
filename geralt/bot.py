@@ -38,7 +38,7 @@ EMOTE_TO_URL = re.compile(
 
 escape: str = "\x1b"
 
-# BSOD#0067 [ME]      SID#1380 [Zeus432]
+# BSOD#0067 [ME], SID#1380 [Zeus432]]
 DEVELOPER_IDS: List[int] = [750979369001811982, 760823877034573864]
 
 
@@ -118,6 +118,7 @@ class BaseBot(commands.Bot):
         self.timestamp = discord.utils.format_dt
         self.owner_ids: List = DEVELOPER_IDS
         self.github_token: str = CONFIG.get("GITHUB_TOKEN")
+        self.snipe_counter: Dict[int, Dict[str, int]] = {}
         self.webhook_manager = WebhookManager()
         self.developer_mode: bool = False
         self.add_persistent_views = False
@@ -132,12 +133,11 @@ class BaseBot(commands.Bot):
         self.verification: Dict[int, List] = {}
         self.ticket_kernel: Dict[int, List] = {}
         self.highlight_blocked: Dict[int, Dict[int, List]] = {}
-        self.guild_snipe_count: Dict[int, int] = {}
         self.locked_objects_ids: List[int] = []
         self.settings: Dict[int, Dict[str, bool]] = {}
 
     def __repr__(self) -> str:
-        return "<geralt.BaseBot>"
+        return "BaseBot"
 
     # Credits to qt_haskell [ Lia Marie ] - *sobs*
     def generate_dict_cache(
@@ -208,12 +208,38 @@ class BaseBot(commands.Bot):
             print(
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Establishing connection with my database.{escape}[0m"
             )
-            self.db = await asyncpg.create_pool(dsn=DB_URL)
+
+            # Thank you LeoCx1000 for this :D
+            def _encode_jsonb(value: Any) -> Any:
+                return discord.utils._to_json(value)
+
+            def _decode_jsonb(value: Any) -> Any:
+                return discord.utils._from_json(value)
+
+            async def init(connection: Any):
+                await connection.set_type_codec(
+                    "jsonb",
+                    schema="pg_catalog",
+                    encoder=_encode_jsonb,
+                    decoder=_decode_jsonb,
+                    format="text",
+                )
+
+            self.db = await asyncpg.create_pool(
+                DB_URL,
+                init=init,
+            )
             print(
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())}{escape}[0;1;32m ─ Connection established successfully.{escape}[0m"
             )
         except Exception as exception:
-            print(
+            i = "".join(
+                traceback.format_exception(
+                    type(exception), exception, exception.__traceback__
+                )
+            )
+            return print(i)
+            return print(
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0;1;31m{time.strftime('%c', time.localtime())}{escape}[0;1;31m ─ Couldnt connect due to : {exception}{escape}[0m"
             )
 
@@ -240,16 +266,18 @@ class BaseBot(commands.Bot):
     async def load_cache(self):
         afk_data = await self.db.fetch("SELECT * FROM afk")
         meta_data = await self.db.fetch("SELECT * FROM meta")
-        prefix_data = await self.db.fetch("SELECT guild_id, guild_prefix FROM prefix")
+        snipe_data = await self.db.fetch(
+            "SELECT * FROM guild_settings WHERE snipe = True"
+        )
+        prefix_data = await self.db.fetch("SELECT guild_id, prefixes FROM prefix")
+        guild_settings = await self.db.fetch("SELECT * FROM guild_settings")
         highlight_data = await self.db.fetch("SELECT * FROM highlight")
         ticket_init_data = await self.db.fetch("SELECT * FROM ticket_init")
         verification_data = await self.db.fetch("SELECT * FROM verification")
+        blacklisted_objects = await self.db.fetch("SELECT snowflake_id FROM blacklist")
         ticket_kernel_data = await self.db.fetch("SELECT * FROM ticket_kernel")
         highlight_blocked_data = await self.db.fetch("SELECT * FROM highlight_blocked")
         locked_objects_ids_data = await self.db.fetch("SELECT * FROM channel_lock")
-        convert_url_to_webhook_data = await self.db.fetch(
-            "SELECT * FROM guild_settings"
-        )
 
         self.afk = {data["user_id"]: data["reason"] for data in afk_data}
         self.meta = {
@@ -282,11 +310,15 @@ class BaseBot(commands.Bot):
                 "convert_url_to_webhook": data["convert_url_to_webhook"],
                 "snipe": data["snipe"],
             }
-            for data in convert_url_to_webhook_data
+            for data in guild_settings
         }
 
-        # self.convert_url_to_webhook = {
-        #     data["guild_id"]: data["convert_url_to_webhook"] for data in convert_url_to_webhook_data}
+        self.snipe_counter = {
+            data["guild_id"]: {"delete": 0, "edit": 0, "total_messages": 0}
+            for data in snipe_data
+        }
+
+        self.blacklists.add(objects for objects in blacklisted_objects)
 
         if ticket_kernel_data:
             ticket_kernel_list: List[Tuple] = [
@@ -334,11 +366,6 @@ class BaseBot(commands.Bot):
         if not self.add_persistent_views:
             self.add_view(Info(self, BaseContext))
             self.add_persistent_views = True
-
-        fetch_blacklisted_objects = await self.db.fetch(
-            "SELECT snowflake FROM blacklist"
-        )
-        self.blacklists.add(objects for objects in fetch_blacklisted_objects)
 
         async with aiohttp.ClientSession() as session:
             wbhk = discord.Webhook.partial(
@@ -389,7 +416,7 @@ class BaseBot(commands.Bot):
 
         if message.author.id in self.afk:
             for user in afk_data:
-                time = user["time"]
+                time = user["queried_at"]
                 reason = user["reason"]
             current_time = discord.utils.utcnow() - time
             await message.reply(
@@ -407,7 +434,7 @@ class BaseBot(commands.Bot):
         for pinged_user in message.mentions:
             if pinged_user.id in self.afk:
                 for data in afk_data:
-                    time = data["time"]
+                    time = data["queried_at"]
                     reason = data["reason"]
                     current_time = discord.utils.utcnow() - time
                 await message.reply(

@@ -23,153 +23,153 @@ CONFIG = dotenv_values("config.env")
 # Views for Tags
 
 
+class CreateTagModal(discord.ui.Modal, title="Create a Tag !"):
+    def __init__(self, bot: BaseBot, ctx: BaseContext):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+
+    tag_name = discord.ui.TextInput(
+        label="Name", required=True, placeholder="Please enter the name of the tag."
+    )
+
+    tag_content = discord.ui.TextInput(
+        label="Content",
+        style=discord.TextStyle.paragraph,
+        required=True,
+        placeholder="Enter the content of the tag.",
+    )
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        try:
+            blacklisted_words = (
+                "make",
+                "raw",
+                "info",
+                "transfer",
+                "delete",
+                "edit",
+                "list",
+                "all",
+            )
+            if self.tag_name.value.startswith(blacklisted_words):
+                return await interaction.response.send_message(
+                    content=f"{interaction.user.mention} ─ `{self.tag_name.value.split()[0].strip()}` is a reserved keyword. Please try again using another word",
+                    ephemeral=True,
+                )
+            if not self.tag_name.value.strip():
+                return await interaction.response.send_message(
+                    content=f"You do realise you have to give the tag a name right?",
+                    ephemeral=True,
+                )
+            else:
+                await self.bot.db.execute(
+                    f"INSERT INTO tags (guild_id, tag_name, content, author_id, jump_url, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
+                    self.ctx.guild.id,
+                    self.tag_name.value.strip(),
+                    self.tag_content.value,
+                    self.ctx.author.id,
+                    self.ctx.message.jump_url,
+                    self.ctx.message.created_at,
+                )
+                id = await self.bot.db.fetchval(
+                    "SELECT tag_id FROM tags WHERE tag_name = $1 AND content = $2",
+                    self.tag_name.value,
+                    self.tag_content.value,
+                )
+
+                class TagContent(discord.ui.View):
+                    def __init__(self, bot, ctx):
+                        super().__init__()
+                        self.bot = bot
+                        self.ctx = ctx
+
+                    @discord.ui.button(
+                        label="Content",
+                        style=discord.ButtonStyle.grey,
+                        emoji="<:NanoTick:925271358735257651>",
+                    )
+                    async def on_tag_make_content_view(
+                        self,
+                        interaction: discord.Interaction,
+                        button: discord.ui.Button,
+                    ):
+                        try:
+                            content = await self.bot.db.fetchval(
+                                "SELECT content FROM tags WHERE guild_id = $1 AND tag_id = $2 AND author_id = $3",
+                                self.ctx.guild.id,
+                                id,
+                                self.ctx.author.id,
+                            )
+                            try:
+                                await interaction.response.send_message(
+                                    content=f'"{content}"', ephemeral=True
+                                )
+                            except NotFound:
+                                return
+                        except Exception as exception:
+                            try:
+                                await interaction.response.send_message(
+                                    content=f"```py\n{exception}\n```",
+                                    ephemeral=True,
+                                )
+                            except NotFound:
+                                return
+
+                await interaction.response.send_message(
+                    content=f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n>>> ────\n` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n` ─ ` Created On : {self.bot.timestamp(interaction.created_at, style = 'f')}\n────",
+                    ephemeral=False,
+                    view=TagContent(self.bot, self.ctx),
+                )
+
+        except asyncpg.UniqueViolationError:
+            try:
+                return await interaction.response.send_message(
+                    content=f"`{self.tag_name.value}` ─ is a tag which is already present. Please try again with another with another name",
+                    ephemeral=True,
+                )
+            except NotFound:
+                return
+        except Exception as exception:
+            try:
+                return await interaction.response.send_message(
+                    content=f"```py\n{exception}\n```", ephemeral=True
+                )
+            except NotFound:
+                return
+
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception
+    ) -> None:
+        async with aiohttp.ClientSession() as session:
+            modal_webhook = discord.Webhook.partial(
+                id=CONFIG.get("ERROR_ID"),
+                token=CONFIG.get("ERROR_TOKEN"),
+                session=session,
+            )
+            data = "".join(
+                traceback.format_exception(type(error), error, error.__traceback__)
+            )
+            try:
+                await modal_webhook.send(
+                    content=f"```py\n{data}\n```\n|| Break Point ||"
+                )
+            except (discord.HTTPException, discord.Forbidden):
+                await modal_webhook.send(
+                    file=discord.File(io.StringIO(data), filename="Traceback.py")
+                )
+                await modal_webhook.send(content="|| Break Point ||")
+            await session.close()
+
+
 class TagView(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext):
         super().__init__(timeout=100)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
 
         if ctx.interaction:
             self.remove_item(self.exit_tag_creation)
-
-    class CreateTagModal(discord.ui.Modal, title="Create a Tag !"):
-        def __init__(self, bot: BaseBot, ctx: BaseContext):
-            super().__init__()
-            self.bot: BaseBot = bot
-            self.ctx: BaseContext = ctx
-
-        tag_name = discord.ui.TextInput(
-            label="Name", required=True, placeholder="Please enter the name of the tag."
-        )
-
-        tag_content = discord.ui.TextInput(
-            label="Content",
-            style=discord.TextStyle.paragraph,
-            required=True,
-            placeholder="Enter the content of the tag.",
-        )
-
-        async def on_submit(self, interaction: discord.Interaction) -> None:
-            try:
-                blacklisted_words = [
-                    "make",
-                    "raw",
-                    "info",
-                    "transfer",
-                    "delete",
-                    "edit",
-                    "list",
-                    "all",
-                ]
-                if self.tag_name.value.strip() in blacklisted_words:
-                    return await interaction.response.send_message(
-                        content=f"{interaction.user.mention} ─ `make` is a reserved keyword. Please try again using another word",
-                        ephemeral=True,
-                    )
-                if not self.tag_name.value.strip():
-                    return await interaction.response.send_message(
-                        content=f"You do realise you have to give the tag a name right?",
-                        ephemeral=True,
-                    )
-                else:
-                    await self.bot.db.execute(
-                        f"INSERT INTO tags (name, content, author_id, author_name, guild_id, created_on, jump_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                        self.tag_name.value.strip(),
-                        self.tag_content.value,
-                        self.ctx.author.id,
-                        str(self.ctx.author),
-                        self.ctx.guild.id,
-                        self.ctx.message.created_at,
-                        self.ctx.message.jump_url,
-                    )
-                    id = await self.bot.db.fetchval(
-                        "SELECT id FROM tags WHERE name = $1 AND content = $2",
-                        self.tag_name.value,
-                        self.tag_content.value,
-                    )
-
-                    class TagContent(discord.ui.View):
-                        def __init__(self, bot, ctx):
-                            super().__init__()
-                            self.bot = bot
-                            self.ctx = ctx
-
-                        @discord.ui.button(
-                            label="Content",
-                            style=discord.ButtonStyle.grey,
-                            emoji="<:NanoTick:925271358735257651>",
-                        )
-                        async def on_tag_make_content_view(
-                            self,
-                            interaction: discord.Interaction,
-                            button: discord.ui.Button,
-                        ):
-                            try:
-                                content = await self.bot.db.fetchval(
-                                    "SELECT content FROM tags WHERE guild_id = $1 AND id = $2 AND author_id = $3",
-                                    self.ctx.guild.id,
-                                    id,
-                                    self.ctx.author.id,
-                                )
-                                try:
-                                    await interaction.response.send_message(
-                                        content=f'"{content}"', ephemeral=True
-                                    )
-                                except NotFound:
-                                    return
-                            except Exception as exception:
-                                try:
-                                    await interaction.response.send_message(
-                                        content=f"```py\n{exception}\n```",
-                                        ephemeral=True,
-                                    )
-                                except NotFound:
-                                    return
-
-                    await interaction.response.send_message(
-                        content=f"`{self.tag_name.value}` ─ tag has been created by {interaction.user.mention}. The following points showcase the entire details of the tag :\n\n>>> ────\n` ─ ` Name : \"{self.tag_name.value}\" ─ (`{id}`)\n` ─ ` Created On : {self.bot.timestamp(interaction.created_at, style = 'f')}\n────",
-                        ephemeral=False,
-                        view=TagContent(self.bot, self.ctx),
-                    )
-
-            except asyncpg.UniqueViolationError:
-                try:
-                    return await interaction.response.send_message(
-                        content=f"`{self.tag_name.value}` ─ is a tag which is already present. Please try again with another with another name",
-                        ephemeral=True,
-                    )
-                except NotFound:
-                    return
-            except Exception as exception:
-                try:
-                    return await interaction.response.send_message(
-                        content=f"```py\n{exception}\n```", ephemeral=True
-                    )
-                except NotFound:
-                    return
-
-        async def on_error(
-            self, interaction: discord.Interaction, error: Exception
-        ) -> None:
-            async with aiohttp.ClientSession() as session:
-                modal_webhook = discord.Webhook.partial(
-                    id=CONFIG.get("ERROR_ID"),
-                    token=CONFIG.get("ERROR_TOKEN"),
-                    session=session,
-                )
-                data = "".join(
-                    traceback.format_exception(type(error), error, error.__traceback__)
-                )
-                try:
-                    await modal_webhook.send(
-                        content=f"```py\n{data}\n```\n|| Break Point ||"
-                    )
-                except (discord.HTTPException, discord.Forbidden):
-                    await modal_webhook.send(
-                        file=discord.File(io.StringIO(data), filename="Traceback.py")
-                    )
-                    await modal_webhook.send(content="|| Break Point ||")
-                await session.close()
 
     @discord.ui.button(
         label="Create Tag",
@@ -185,7 +185,7 @@ class TagView(discord.ui.View):
             try:
                 await interaction.message.edit(view=self)
                 await interaction.response.send_modal(
-                    self.CreateTagModal(self.bot, self.ctx)
+                    CreateTagModal(self.bot, self.ctx)
                 )
             except NotFound:
                 return
@@ -216,7 +216,7 @@ class TagView(discord.ui.View):
             ):
                 try:
                     await interaction.response.send_message(
-                        content=f"{interaction.user.mention}\n\n>>> ────\n<:GeraltRightArrow:904740634982760459> The following list shows what arguments can be inputted inside the tag :\n │ ` ─ ` Text : Just regular test lol <a:RooSitComfortPatAnotherRoo:916125535015419954>\n │ ` ─ ` Emotes : Emote IDs have to be sent for **custom emotes**. [**Click here to know how to get the custom emote ID**](<https://docs.parent.gg/how-to-obtain-emoji-ids/>). For **default emotes** just do `:<emote>:`\n │ ` ─ ` Codeblocks : A code snippet can be sent by using \\`\\`\\`<language>new line<code>\\`\\`\\` \n │ ` ─ ` Multimedia [ Image & Videos ] : Files which have been sent in discord can be used. Ensure to right click on `video/image` and copy the **link** and paste it.\n────",
+                        content=f"{interaction.user.mention}\n\n>>> ────\n<:GeraltRightArrow:904740634982760459> The following list shows what arguments can be inputted inside the tag :\n ` ─ ` Text : Just regular test lol <a:RooSitComfortPatAnotherRoo:916125535015419954>\n ` ─ ` Emotes : Emote IDs have to be sent for **custom emotes**. [**Click here to know how to get the custom emote ID**](<https://docs.parent.gg/how-to-obtain-emoji-ids/>). For **default emotes** just do `:<emote>:`\n ` ─ ` Codeblocks : A code snippet can be sent by using \\`\\`\\`<language>new line<code>\\`\\`\\` \n ` ─ ` Multimedia [ Image & Videos ] : Files which have been sent in discord can be used. Ensure to right click on `video/image` and copy the **link** and paste it.\n────",
                         ephemeral=True,
                     )
                 except NotFound:
@@ -224,7 +224,7 @@ class TagView(discord.ui.View):
 
         try:
             await interaction.response.send_message(
-                content=f'{interaction.user.mention}\n\n────\n**Click on the `Arguments Taken` Button for a list of arguments allowed.**\n\nA modal will pop open for you. The following points give a small gist :\n> │ ` ─ ` "Name" : Where you\'re supposed to enter the name of the tag you would like to create.\n> │ ` ─ ` "Content" : Where you enter the content for that tag which will be sent upon invoked.\n────\nhttps://i.imgur.com/yAp0dWy.gif',
+                content=f'{interaction.user.mention}\n\n────\n**Click on the `Arguments Taken` Button for a list of arguments allowed.**\n\nA modal will pop open for you. The following points give a small gist :\n> ` ─ ` "Name" : Where you\'re supposed to enter the name of the tag you would like to create.\n> ` ─ ` "Content" : Where you enter the content for that tag which will be sent upon invoked.\n────\nhttps://i.imgur.com/yAp0dWy.gif',
                 ephemeral=True,
                 view=TagMakeArgHelpButton(),
             )

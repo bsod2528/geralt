@@ -98,7 +98,7 @@ class Meta(commands.Cog):
     async def info(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Receive full information regarding me."""
         description: str = (
-            f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/Posts/Geralt) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. "
+            f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.me/pages/projects/geralt/geralt.html) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. "
             f"Since I'm locally hosted, I suck. Made with love by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D"
         )
         info_emb = BaseEmbed(
@@ -263,10 +263,10 @@ class Meta(commands.Cog):
     async def invite(self, ctx: BaseContext) -> Optional[discord.Message]:
         invite_emb = BaseEmbed(colour=self.bot.colour)
         invite_emb.add_field(
-            name="Permissions :",
-            value=f"────\n> │ ` - ` <a:WumpusVibe:905457020575031358> [**Regular Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=67420289&scope=bot+applications.commands)\n"
-            f"> │ ` - ` <:ModBadge:904765450066473031> [**Moderator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=1116922503303&scope=bot+applications.commands)\n"
-            f"> │ ` - ` <a:Owner:905750348457738291> [**Administrator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=8&scope=bot+applications.commands)\n────",
+            name="Permissions:",
+            value=f"> <:ReplyContinued:930634770004725821> <a:WumpusVibe:905457020575031358> [**Regular Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=67420289&scope=bot+applications.commands)\n"
+            f"> <:ReplyContinued:930634770004725821> <:ModBadge:904765450066473031> [**Moderator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=1116922503303&scope=bot+applications.commands)\n"
+            f"> <:Reply:930634822865547294> <a:Owner:905750348457738291> [**Administrator Permissions**](https://discord.com/api/oauth2/authorize?client_id=873204919593730119&permissions=8&scope=bot+applications.commands)",
         )
         invite_emb.set_thumbnail(url=ctx.me.display_avatar)
         invite_emb.set_author(
@@ -283,7 +283,7 @@ class Meta(commands.Cog):
             "SELECT * FROM meta WHERE guild_id = $1 ORDER BY uses DESC", ctx.guild.id
         )
         cmd_usage = [
-            f"> │ ` - ` \"**{data['command_name']}**\" : `{data['uses']}` Times\n> │ ` - ` Last Used : {self.bot.timestamp(data['invoked_at'], style = 'R')}\n────\n"
+            f"> ` - ` **{data['command_name']}**: `{data['uses']}` time{'s' if data['uses'] != 1 else ''}\n> ` - ` Last Used: {self.bot.timestamp(data['invoked_at'], style = 'R')}\n<:Line:1086821779193995295><:Line:1086821779193995295><:Line:1086821779193995295><:Line:1086821779193995295>\n"
             for data in fetch_usage
         ]
         if not cmd_usage:
@@ -291,18 +291,27 @@ class Meta(commands.Cog):
                 f'No one has invoked any command in "**{ctx.guild}**" still. Be the first one \N{HANDSHAKE}'
             )
 
-        embed_list = []
-        while cmd_usage:
-            cmd_usage_emb = BaseEmbed(
-                title=f"Commands Used in {ctx.guild}",
-                description="".join(cmd_usage[:5]),
-                colour=self.bot.colour,
-            )
-            cmd_usage_emb.set_footer(text="Shows from most used to least used commands")
-            cmd_usage_emb.set_thumbnail(url=ctx.guild.icon.url)
-            cmd_usage = cmd_usage[5:]
-            embed_list.append(cmd_usage_emb)
-        await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+        if len(cmd_usage) > 5:
+            embed_list = []
+            while cmd_usage:
+                cmd_usage_emb = BaseEmbed(
+                    title=f"Commands Used in {ctx.guild}",
+                    description="".join(cmd_usage[:5]),
+                    colour=self.bot.colour,
+                )
+                cmd_usage_emb.set_footer(
+                    text="Shows from most used to least used commands"
+                )
+                cmd_usage = cmd_usage[5:]
+                embed_list.append(cmd_usage_emb)
+            return await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+
+        _cmd_usage_emb = BaseEmbed(
+            title=f"Commands Used in {ctx.guild}",
+            description="".join(cmd_usage),
+            colour=self.bot.colour,
+        )
+        await ctx.send(embed=_cmd_usage_emb)
 
     @commands.hybrid_command(name="source", brief="Returns Source", aliases=["src"])
     @app_commands.checks.cooldown(2, 5)
@@ -364,7 +373,7 @@ class Meta(commands.Cog):
                 discord.ui.Button(
                     label="Dashboard",
                     emoji="<:AkkoComfy:907104936368685106>",
-                    url="https://bsod2528.github.io/Posts/Geralt",
+                    url="https://bsod2528.me/pages/projects/geralt/geralt.html",
                 )
             )
             return await ctx.reply(embed=source_emb, mention_author=False, view=view)
@@ -390,7 +399,7 @@ class Meta(commands.Cog):
                     discord.ui.Button(
                         label="Dashboard",
                         emoji="<:AkkoComfy:907104936368685106>",
-                        url="https://bsod2528.github.io/Posts/Geralt",
+                        url="https://bsod2528.me/pages/projects/geralt/geralt.html",
                     )
                 )
                 return await ctx.reply(
@@ -422,7 +431,7 @@ class Meta(commands.Cog):
             discord.ui.Button(
                 label="Dashboard",
                 emoji="<:AkkoComfy:907104936368685106>",
-                url="https://bsod2528.github.io/Posts/Geralt",
+                url="https://bsod2528.me/pages/projects/geralt/geralt.html",
             )
         )
         await ctx.reply(embed=source_emb, mention_author=False, view=view)

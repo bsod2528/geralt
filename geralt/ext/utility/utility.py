@@ -38,11 +38,6 @@ class Utility(commands.Cog):
     async def highlight_block_context_menu(
         self, interaction: discord.Interaction, member: discord.Member
     ):
-        if member.bot:
-            return await interaction.response.send_message(
-                content=f"{member.mention} is a bot <a:IPat:933295620834336819> Please choose a human this time.",
-                ephemeral=True,
-            )
         query: str = "INSERT INTO highlight_blocked VALUES ($1, $2, $3, $4, $5)"
         try:
             await self.bot.db.execute(
@@ -53,6 +48,24 @@ class Utility(commands.Cog):
                 "member",
                 discord.utils.utcnow(),
             )
+
+            # Regenerate the cache after the insert
+            highlight_blocked_data = await self.bot.db.fetch(
+                "SELECT * FROM highlight_blocked WHERE user_id = $1 AND guild_id = $2",
+                interaction.user.id,
+                interaction.guild.id,
+            )
+            if highlight_blocked_data:
+                highlight_blocked_data_list: List[Tuple] = [
+                    (data["guild_id"], data["user_id"], data["object_id"])
+                    for data in highlight_blocked_data
+                ]
+                self.bot.highlight_blocked = self.bot.generate_dict_cache(
+                    highlight_blocked_data_list
+                )
+            else:
+                self.bot.highlight_blocked = {}
+
             await interaction.response.send_message(
                 f"**{member.mention}** - Has now been blocked from highlighting you in **{interaction.guild}** <:SarahPray:907109950248067154>",
                 allowed_mentions=self.bot.mentions,
@@ -65,24 +78,29 @@ class Utility(commands.Cog):
                 interaction.guild.id,
                 member.id,
             )
+
+            # Regenerate the cache after the delete
+            highlight_blocked_data = await self.bot.db.fetch(
+                "SELECT * FROM highlight_blocked WHERE user_id = $1 AND guild_id = $2",
+                interaction.user.id,
+                interaction.guild.id,
+            )
+            if highlight_blocked_data:
+                highlight_blocked_data_list: List[Tuple] = [
+                    (data["guild_id"], data["user_id"], data["object_id"])
+                    for data in highlight_blocked_data
+                ]
+                self.bot.highlight_blocked = self.bot.generate_dict_cache(
+                    highlight_blocked_data_list
+                )
+            else:
+                self.bot.highlight_blocked = {}
+
             return await interaction.response.send_message(
                 content=f"Successfully removed {member.mention} from your `highlight blocked` list. {member.mention} will now be able to highlight you <:RavenPray:914410353155244073>",
                 allowed_mentions=self.bot.mentions,
                 ephemeral=True,
             )
-        highlight_blocked_data = await self.bot.db.fetch(
-            "SELECT * FROM highlight_blocked"
-        )
-        if highlight_blocked_data:
-            highlight_blocked_data_list: List = [
-                (data["guild_id"], data["user_id"], data["object_id"])
-                for data in highlight_blocked_data
-            ]
-            self.bot.highlight_blocked = self.bot.generate_dict_cache(
-                highlight_blocked_data_list
-            )
-        else:
-            self.bot.highlight_blocked = {}
 
     async def generate_highlight_emb(self, message: discord.Message, user_id: str):
         message_history: List[str] = []
@@ -149,18 +167,21 @@ class Utility(commands.Cog):
             return
 
         # Could it be any better :troll:
-        author_id = str(message.author.id)
-        role_list = message.author.roles
-        for key, value in self.bot.highlight_blocked.items():
-            for user_id, object_id in value.items():
-                for objects in object_id:
-                    stringed_objects = str(objects)
-                    if author_id in stringed_objects:
-                        return
-                    for roles in role_list:
-                        role = str(roles.id)
-                        if stringed_objects in role:
+        try:
+            author_id = str(message.author.id)
+            role_list = message.author.roles
+            for key, value in self.bot.highlight_blocked.items():
+                for user_id, object_id in value.items():
+                    for objects in object_id:
+                        stringed_objects = str(objects)
+                        if author_id in stringed_objects:
                             return
+                        for roles in role_list:
+                            role = str(roles.id)
+                            if stringed_objects in role:
+                                return
+        except:
+            pass
 
         if self.bot.highlight:
             for key, value in self.bot.highlight.items():
@@ -298,9 +319,7 @@ class Utility(commands.Cog):
     )
     @app_commands.checks.cooldown(2, 5)
     @commands.cooldown(2, 5, commands.BucketType.user)
-    async def todo(
-        self, ctx: BaseContext, *, task_id: Optional[int]
-    ) -> Optional[discord.Message]:
+    async def todo(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Sends Todo sub - commands"""
         if ctx.invoked_subcommand is None:
             return await ctx.command_help()
@@ -325,7 +344,7 @@ class Utility(commands.Cog):
             )
         else:
             await self.bot.db.execute(
-                f"INSERT INTO todo (user_id, task, task_created_at, url) VALUES ($1, $2, $3, $4) RETURNING task_id",
+                f"INSERT INTO todo (user_id, task, created_at, jump_url) VALUES ($1, $2, $3, $4) RETURNING task_id",
                 ctx.author.id,
                 task.strip(),
                 ctx.message.created_at,
@@ -337,7 +356,7 @@ class Utility(commands.Cog):
             )
             todo_add_emb = BaseEmbed(
                 title=f"\U00002728 Todo Added",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{task_id}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(ctx.message.created_at, style='D')}",
+                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{task_id}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(ctx.message.created_at, style='D')}",
                 colour=self.bot.colour,
             )
             todo_add_emb.add_field(name="Task :", value=f">>> {task}")
@@ -405,11 +424,11 @@ class Utility(commands.Cog):
             for alpha in fetch_tasks:
                 todo_show_emb = BaseEmbed(
                     title=f"\U0001f4dc {ctx.author}'s Task Info",
-                    description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{alpha[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url** : [**Click Here**]({alpha[4]})\n<:Reply:930634822865547294> **Noted On** : {self.bot.timestamp(alpha[3], style='D')}\n────",
+                    description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{alpha[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url**: [**Click Here**]({alpha[4]})\n<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(alpha[3], style='D')}\n────",
                     colour=self.bot.colour,
                 )
                 todo_show_emb.add_field(
-                    name="<:Join:932976724235395072> Task :", value=f">>> {alpha[2]}"
+                    name="<:Join:932976724235395072> Task:", value=f">>> {alpha[2]}"
                 )
                 todo_show_emb.set_thumbnail(url=ctx.author.display_avatar.url)
             return await ctx.reply(embed=todo_show_emb, mention_author=False)
@@ -420,7 +439,7 @@ class Utility(commands.Cog):
             serial_no += 1
             todo_embs = BaseEmbed(
                 title=f"\U0001f4dc {ctx.author}'s Todo List",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{beta[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url** : [**Click Here**]({beta[4]})\n<:Reply:930634822865547294> **Noted On** : {self.bot.timestamp(beta[3], style='D')}\n────",
+                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{beta[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url**: [**Click Here**]({beta[4]})\n<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(beta[3], style='D')}\n────",
                 colour=self.bot.colour,
             )
             todo_embs.add_field(name="Task :", value=f">>> {beta[2]}")
@@ -449,16 +468,16 @@ class Utility(commands.Cog):
                 f"Please make sure that the `edited content` is below 200 characters."
             )
         if task_id != await self.bot.db.fetchval(
-            f"SELECT * FROM todo WHERE task_id = $1 AND user_name = $2",
+            f"SELECT * FROM todo WHERE task_id = $1 AND user_id = $2",
             task_id,
-            ctx.author.name,
+            ctx.author.id,
         ):
             await ctx.reply(
                 f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{task_id}` - is a task either which you do not own or is not present in the database <:DutchySMH:930620665139191839>"
             )
         else:
             await self.bot.db.execute(
-                f"UPDATE todo SET task = $1, url = $2, task_created_at = $3 WHERE task_id = $4",
+                f"UPDATE todo SET task = $1, jump_url = $2, created_at = $3 WHERE task_id = $4",
                 edited.strip(),
                 ctx.message.jump_url,
                 ctx.message.created_at,
@@ -969,8 +988,10 @@ class Utility(commands.Cog):
                     return await ctx.reply(
                         f"**{trigger}** - is a word which is not present in your `highlight trigger list`. Run `{ctx.clean_prefix}highlight list` to check triggers present <:KeanuCool:910026122383728671>"
                     )
-            query = "DELETE FROM highlight WHERE user_id = $1 AND trigger = $2"
-            await self.bot.db.execute(query, ctx.author.id, trigger.strip().lower())
+            query = "DELETE FROM highlight WHERE user_id = $1 AND guild_id = $2 AND trigger = $3"
+            await self.bot.db.execute(
+                query, ctx.author.id, ctx.guild.id, trigger.strip().lower()
+            )
             await ctx.reply(
                 f"**{ctx.author}** - Removed `{trigger}` from your list <a:IEat:940413722537644033>",
                 delete_after=5,
@@ -1145,7 +1166,7 @@ class Utility(commands.Cog):
                 highlight_blocked_data_list
             )
         else:
-            self.bot.highlight_blocked: Dict = {}
+            self.bot.highlight_blocked = {}
 
     @highlight.command(
         name="blacklisted",
@@ -1171,11 +1192,11 @@ class Utility(commands.Cog):
             serial_no += 1
             if ctx.guild.get_role(data[2]):
                 blacklisted.append(
-                    f"> **{serial_no}.** Object : <@&{data[2]}>\n> Queried At : {self.bot.timestamp(data[4], style='R')}\n────\n"
+                    f"> **{serial_no}.** Object: <@&{data[2]}>\n> Queried At: {self.bot.timestamp(data[4], style='R')}\n────\n"
                 )
             if ctx.guild.get_member(data[2]):
                 blacklisted.append(
-                    f"> **{serial_no}.** Object : <@{data[2]}>\n> Queried At : {self.bot.timestamp(data[4], style='R')}\n────\n"
+                    f"> **{serial_no}.** Object: <@{data[2]}>\n> Queried At: {self.bot.timestamp(data[4], style='R')}\n────\n"
                 )
 
         if serial_no <= 3:

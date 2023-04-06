@@ -27,8 +27,8 @@ async def on_error(
 class Traceback(discord.ui.View):
     def __init__(self, bot: BaseBot, ctx: BaseContext, error):
         super().__init__(timeout=60)
-        self.bot: BaseBot = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.error = error
 
         if ctx.interaction:
@@ -155,8 +155,8 @@ class Traceback(discord.ui.View):
 class CommandSyntax(discord.ui.View):
     def __init__(self, bot: "BaseBot", ctx: BaseContext, error):
         super().__init__(timeout=60)
-        self.bot: "BaseBot" = bot
-        self.ctx: BaseContext = ctx
+        self.bot = bot
+        self.ctx = ctx
         self.error = error
 
         if ctx.interaction:

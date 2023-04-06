@@ -91,7 +91,7 @@ class Developer(commands.Cog):
                 return await ctx.send(f"```py\n{exception}\n```")
 
     async def remove_from_blacklist(self, ctx: BaseContext, snowflake: discord.Object):
-        query = "DELETE FROM blacklist WHERE snowflake = $1"
+        query = "DELETE FROM blacklist WHERE snowflake_id = $1"
 
         if self.bot.get_user(snowflake.id):
             user = self.bot.get_user(snowflake.id)
@@ -559,7 +559,9 @@ class Developer(commands.Cog):
     @commands.cooldown(2, 5, commands.BucketType.user)
     async def blacklisted_all(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Get a list of blacklisted objects."""
-        query = "SELECT snowflake, object, reason, queried_at, jump_url FROM blacklist"
+        query = (
+            "SELECT snowflake_id, object, reason, queried_at, jump_url FROM blacklist"
+        )
         fetched_blacklisted_objects = await self.bot.db.fetch(query)
         blacklisted_objects = []
         serial_no = 1
