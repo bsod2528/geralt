@@ -18,8 +18,11 @@ from ...embed import BaseEmbed
 from ...kernel.utilities.flags import user_badges, user_perms
 from ...kernel.views.meta import PFP
 from ...kernel.views.paginator import Paginator
-from ...kernel.views.snipe import (EditSnipeAttachmentView,
-                                   SnipeAttachmentViewer, SnipeStats)
+from ...kernel.views.snipe import (
+    EditSnipeAttachmentView,
+    SnipeAttachmentViewer,
+    SnipeStats,
+)
 
 escape: str = "\x1b"
 
@@ -644,7 +647,8 @@ class Discord(commands.Cog):
     @app_commands.describe(
         index="The order at which you want to snipe.",
         channel="The text-channel do you want to snipe.",
-        user="Filter sniped messages according to a user.")
+        user="Filter sniped messages according to a user.",
+    )
     async def snipe_delete(
         self,
         ctx: BaseContext,
@@ -770,7 +774,8 @@ class Discord(commands.Cog):
     @app_commands.describe(
         channel="The text-channel do you want to snipe.",
         user="Filter sniped messages according to a user.",
-        index="The order at which you want to snipe.")
+        index="The order at which you want to snipe.",
+    )
     async def snipe_edit(
         self,
         ctx: BaseContext,

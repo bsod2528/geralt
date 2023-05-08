@@ -16,6 +16,7 @@ from ...kernel.views.fun import (
     Pop,
     PopSize,
 )
+from ...kernel.views.meta import Spoiler
 from ...kernel.views.paginator import Paginator
 
 
@@ -28,6 +29,15 @@ class Fun(commands.Cog):
     @property
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name="Fun", id=905754435379163176, animated=True)
+
+    async def handle_spoiler(
+        self,
+        ctx: BaseContext,
+        message: Optional[str],
+    ) -> Optional[discord.Message]:
+        """Handles when an attachment is present."""
+        await ctx.message.delete(delay=0)
+        await Spoiler(ctx, message=message).send()
 
     # Mimics a user by sending a webhook as them.
     @commands.hybrid_command(name="as", brief="Send a Webhook", with_app_command=True)
@@ -230,3 +240,18 @@ class Fun(commands.Cog):
             return await ctx.reply(
                 f"I wasn't able to connect to **Urban Dictionary** due to poor network. Please try again later <:YunoPensive:975215987542593556>"
             )
+
+    # command inspired from Rapptz Danny's
+    @commands.command(name="spoiler", brief="Spoil a message!", aliases=["spoil"])
+    async def spoiler(
+        self,
+        ctx: BaseContext,
+        *,
+        message: Optional[str],
+    ) -> Optional[discord.Message]:
+        """Send a spoiler message!"""
+        if not (message):
+            return await ctx.send(
+                f"**{ctx.author}** - remember to pass at least one argument in order to execute this command."
+            )
+        await self.handle_spoiler(ctx, message)

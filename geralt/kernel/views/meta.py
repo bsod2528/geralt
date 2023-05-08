@@ -6,7 +6,7 @@ import io
 import itertools
 import traceback
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import aiohttp
 import discord
@@ -645,3 +645,39 @@ class Bug(discord.ui.View):
         for view in self.children:
             view.disabled = True
         return await self.message.edit(view=self)
+
+
+class Spoiler(discord.ui.View):
+    def __init__(
+        self,
+        ctx: BaseContext,
+        message: Optional[str],
+    ):
+        super().__init__(timeout=180)
+        self.ctx = ctx
+        self.message = message
+
+    @discord.ui.button(
+        label="Reveal Spoiler",
+        style=discord.ButtonStyle.grey,
+        emoji="<:Warning:1105130317553074327>",
+    )
+    async def reveal_spoiler(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        content = f"**{self.ctx.author}** said - " + "".join(
+            f"||{var}||" for var in self.message
+        )
+        await interaction.response.send_message(content=content, ephemeral=True)
+
+    async def on_timeout(self) -> None:
+        try:
+            for view in self.children:
+                view.disabled = True
+                await self.msg.edit(view=self)
+        except NotFound:
+            return
+
+    async def send(self):
+        self.msg = await self.ctx.send(f"Spoiler message!", view=self)
+        return self.msg
