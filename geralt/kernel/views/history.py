@@ -28,7 +28,7 @@ class UserHistory(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         usernames = await self.bot.db.fetch(
-            "SELECT username, timestamp FROM username_history WHERE user_id = $1",
+            "SELECT user_name, changed_at FROM username_history WHERE user_id = $1",
             self.user.id,
         )
         data = [
@@ -47,43 +47,45 @@ class UserHistory(discord.ui.View):
         )
         try:
             await interaction.response.send_message(embed=username_emb, ephemeral=True)
-        except NotFound:
-            return
+        except Exception as error:
+            return print(error)
 
-    @discord.ui.button(
-        label="Discriminator(s)",
-        style=discord.ButtonStyle.grey,
-        emoji="<:Channel:905674680436944906>",
-    )
-    async def see_discriminator_history(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        discriminators = await self.bot.db.fetch(
-            "SELECT discriminator, timestamp FROM discriminator_history WHERE user_id = $1",
-            self.user.id,
-        )
-        data = [
-            f"<:Join:932976724235395072> {deets[0]} ─ ({self.bot.timestamp(deets[1], style = 'R')})"
-            for deets in discriminators
-        ]
-        if not discriminators:
-            return await interaction.response.send_message(
-                content=f"{self.user.mention} ─ Has no records for changes in discriminator logged in <:EyesGoBrr:965662700627710032>. To start logging, run `{self.ctx.clean_prefix}log discriminator`",
-                ephemeral=True,
-            )
-        discriminator_emb = BaseEmbed(
-            description="\n".join(data), colour=self.bot.colour
-        )
-        discriminator_emb.set_author(
-            name=f"\U0001f4dc {self.user}'s Discriminator History",
-            url=self.user.display_avatar,
-        )
-        try:
-            await interaction.response.send_message(
-                embed=discriminator_emb, ephemeral=True
-            )
-        except NotFound:
-            return
+    # Discord removed discriminators long back.
+
+    # @discord.ui.button(
+    #     label="Discriminator(s)",
+    #     style=discord.ButtonStyle.grey,
+    #     emoji="<:Channel:905674680436944906>",
+    # )
+    # async def see_discriminator_history(
+    #     self, interaction: discord.Interaction, button: discord.ui.Button
+    # ):
+    #     discriminators = await self.bot.db.fetch(
+    #         "SELECT discriminator, timestamp FROM discriminator_history WHERE user_id = $1",
+    #         self.user.id,
+    #     )
+    #     data = [
+    #         f"<:Join:932976724235395072> {deets[0]} ─ ({self.bot.timestamp(deets[1], style = 'R')})"
+    #         for deets in discriminators
+    #     ]
+    #     if not discriminators:
+    #         return await interaction.response.send_message(
+    #             content=f"{self.user.mention} ─ Has no records for changes in discriminator logged in <:EyesGoBrr:965662700627710032>. To start logging, run `{self.ctx.clean_prefix}log discriminator`",
+    #             ephemeral=True,
+    #         )
+    #     discriminator_emb = BaseEmbed(
+    #         description="\n".join(data), colour=self.bot.colour
+    #     )
+    #     discriminator_emb.set_author(
+    #         name=f"\U0001f4dc {self.user}'s Discriminator History",
+    #         url=self.user.display_avatar,
+    #     )
+    #     try:
+    #         await interaction.response.send_message(
+    #             embed=discriminator_emb, ephemeral=True
+    #         )
+    #     except NotFound:
+    #         return
 
     @discord.ui.button(
         label="Delete",
@@ -156,28 +158,29 @@ class SelectUserLogEvents(discord.ui.View):
             ephemeral=True,
         )
 
-    @discord.ui.button(label="Discriminator", style=discord.ButtonStyle.blurple)
-    async def opt_discriminator(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
-        query = (
-            "INSERT INTO user_settings (user_id, discriminator) VALUES ($1, $2) "
-            "ON CONFLICT (user_id) "
-            "DO UPDATE SET discriminator = $2"
-        )
-        data = await self.bot.db.fetchval(
-            "SELECT discriminator FROM user_settings WHERE user_id = $1",
-            interaction.user.id,
-        )
-        if data:
-            await self.bot.db.execute(query, interaction.user.id, False)
-            return await interaction.response.send_message(
-                content=f"**{interaction.user}** ─ Successfully `opted out` from discriminator logging <:TokoOkay:898611996163985410>",
-                ephemeral=True,
-            )
+    # Discord stopped discriminators.
+    # @discord.ui.button(label="Discriminator", style=discord.ButtonStyle.blurple)
+    # async def opt_discriminator(
+    #     self, interaction: discord.Interaction, button: discord.ui.Button
+    # ):
+    #     query = (
+    #         "INSERT INTO user_settings (user_id, discriminator) VALUES ($1, $2) "
+    #         "ON CONFLICT (user_id) "
+    #         "DO UPDATE SET discriminator = $2"
+    #     )
+    #     data = await self.bot.db.fetchval(
+    #         "SELECT discriminator FROM user_settings WHERE user_id = $1",
+    #         interaction.user.id,
+    #     )
+    #     if data:
+    #         await self.bot.db.execute(query, interaction.user.id, False)
+    #         return await interaction.response.send_message(
+    #             content=f"**{interaction.user}** ─ Successfully `opted out` from discriminator logging <:TokoOkay:898611996163985410>",
+    #             ephemeral=True,
+    #         )
 
-        await self.bot.db.execute(query, interaction.user.id, True)
-        await interaction.response.send_message(
-            content=f"**{interaction.user}** ─ Successfully `opted in` from discriminator logging <:DuckThumbsUp:917007413259956254>",
-            ephemeral=True,
-        )
+    #     await self.bot.db.execute(query, interaction.user.id, True)
+    #     await interaction.response.send_message(
+    #         content=f"**{interaction.user}** ─ Successfully `opted in` from discriminator logging <:DuckThumbsUp:917007413259956254>",
+    #         ephemeral=True,
+    #     )

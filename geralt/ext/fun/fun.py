@@ -68,9 +68,9 @@ class Fun(commands.Cog):
                 message,
                 avatar_url=user.display_avatar.url,
                 username=user.display_name,
-                file=await attachment.to_file()
-                if attachment
-                else discord.utils.MISSING,
+                file=(
+                    await attachment.to_file() if attachment else discord.utils.MISSING
+                ),
                 thread=thread,
             )
             if ctx.interaction:

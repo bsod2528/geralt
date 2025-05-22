@@ -19,24 +19,14 @@ A simple discord bot based on [**discord.py**](https://github.com/Rapptz/discord
 
 ## Documentation
 
-The website provides full details from A to Z regarding the bot. [**Click here**](https://bsod2528.me/pages/projects/geralt/geralt.html) to access it. All the commands, how to use them, how to setup the bot, etc. have been documented.
+The website provides full details from A to Z regarding the bot. [**Click here**](https://bsod2528.github.io/pages/projects/geralt.html) to access it. All the commands, how to use them, how to setup the bot, etc. have been documented.
 
 ## Setup
 
 An `.env` file has to be there for storing the keys. An `example_config.env` has been provided for reference. You can use any other method too like a json lmao. Just saying. Set up a venv too.
 
-Ensure all tables are present in your [**postgresql**](https://www.postgresql.org/download/) server. Check out `tables.sql` file for all the tables you need.
+Ensure all tables are present in your [**postgresql**](https://www.postgresql.org/download/) server. Check out `db` file and use that to restore the database, as it is a backup file of the etnire database.
 ```py
 pip install -r requirements.txt
 ```
 Run the above command to install the packages you need for running Geralt's instance.
-
----
-
-### Contact
-
-<a href = "discord.gg/JXEu2AcV5Y">
-    <img src =  "https://img.shields.io/badge/-Discord-0D1117?style=for-the-badge&logo=discord&labelColor=0D1117" />&nbsp;&nbsp;
-<a href = "bsod2528@proton.me" >
-    <img src="https://img.shields.io/badge/ProtonMail-8B89CC?style=for-the-badge&logo=protonmail&logoColor=white" />
-  </a>&nbsp;&nbsp;

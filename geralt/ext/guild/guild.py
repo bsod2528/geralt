@@ -90,7 +90,7 @@ class Guild(commands.Cog):
     async def emote_name_autocomplete(
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
-        names: List[discord.Emoji.name] = []
+        names: List[discord.Emoji.name] = []  # type: ignore
         for emote in interaction.guild.emojis:
             if emote.animated:
                 names.append(emote.name)
@@ -909,7 +909,7 @@ class Guild(commands.Cog):
         if emote:
             emote_emb = BaseEmbed(
                 title="\U0001f4dc Emote Info",
-                description=f"<:ReplyContinued:930634770004725821> **Emote Name :** `{emote.name}`\n<:ReplyContinued:930634770004725821> **From Guild :** `{emote.guild.name}`\n<:ReplyContinued:930634770004725821> **Emote ID :** [`{emote.id}`]({emote.url})\n<:Reply:930634822865547294> **Created On :**{self.bot.timestamp(emote.created_at, style='d')}",
+                description=f"<:ReplyContinued:930634770004725821> **Emote Name:** `{emote.name}`\n<:ReplyContinued:930634770004725821> **From Guild:** `{emote.guild.name}`\n<:ReplyContinued:930634770004725821> **Emote ID:** [`{emote.id}`]({emote.url})\n<:Reply:930634822865547294> **Created On:** {self.bot.timestamp(emote.created_at, style='d')}",
                 colour=self.bot.colour,
             )
             emote_emb.set_image(url=emote.url)
@@ -1038,12 +1038,12 @@ class Guild(commands.Cog):
                 )
             referenced_sticker_emb = BaseEmbed(
                 title=f"\U0001f4dc {ctx.guild}'s Sticker Info",
-                description=f"<:ReplyContinued:930634770004725821> **ID** : [`{sticker.id}`]({sticker.url})\n<:ReplyContinued:930634770004725821> **Name** : `{sticker.name}`\n<:ReplyContinued:930634770004725821> **Created At** : {self.bot.timestamp(sticker.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote** : :{sticker.emoji}:",
+                description=f"<:ReplyContinued:930634770004725821> **ID**: [`{sticker.id}`]({sticker.url})\n<:ReplyContinued:930634770004725821> **Name**: `{sticker.name}`\n<:ReplyContinued:930634770004725821> **Created At**: {self.bot.timestamp(sticker.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote**: :{sticker.emoji}:",
                 colour=self.bot.colour,
             )
             referenced_sticker_emb.set_image(url=sticker.url)
             referenced_sticker_emb.set_footer(
-                text=f"Invoked By : {ctx.author}", icon_url=ctx.author.display_avatar
+                text=f"Invoked By: {ctx.author}", icon_url=ctx.author.display_avatar
             )
             if sticker.description:
                 referenced_sticker_emb.add_field(
@@ -1058,7 +1058,7 @@ class Guild(commands.Cog):
             for alpha in ctx.guild.stickers:
                 single_sticker_emb = BaseEmbed(
                     title=f"\U0001f4dc {ctx.guild}'s Sticker Info",
-                    description=f"<:ReplyContinued:930634770004725821> **ID** : [`{alpha.id}`]({alpha.url})\n<:ReplyContinued:930634770004725821> **Name** : `{alpha.name}`\n<:ReplyContinued:930634770004725821> **Created At** : {self.bot.timestamp(alpha.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote** : :{alpha.emoji}:",
+                    description=f"<:ReplyContinued:930634770004725821> **ID** : [`{alpha.id}`]({alpha.url})\n<:ReplyContinued:930634770004725821> **Name** : `{alpha.name}`\n<:ReplyContinued:930634770004725821> **Created At** : {self.bot.timestamp(alpha.created_at, style='R')}\n<:Reply:930634822865547294> **Trigger Emote**: :{alpha.emoji}:",
                     colour=self.bot.colour,
                 )
                 single_sticker_emb.set_image(url=alpha.url)

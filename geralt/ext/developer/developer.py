@@ -4,6 +4,7 @@ import io
 import textwrap
 import time
 import traceback
+import random
 from typing import Dict, Optional
 
 import aiohttp
@@ -119,6 +120,34 @@ class Developer(commands.Cog):
             await ctx.reply(f"```py\n{exception}\n```")
             await ctx.add_nanocross()
 
+    @commands.command(name="fban", brief="To troll my friends", aliases=["fb"])
+    @commands.is_owner()
+    async def fake_ban(
+        self, ctx: BaseContext, user: discord.User, *, reason: Optional[str]
+    ) -> Optional[discord.Message]:
+        """Bans a member."""
+        ban_gif_list: str = [
+            "https://tenor.com/view/discord-mod-moderation-ban-mod-ban-gif-9351874248631360646",
+            "https://tenor.com/view/trump-donaldtrump-interview-banned-cnn-gif-7677105",
+            "https://tenor.com/view/i-want-u-to-be-banned-gif-13051109547748519557",
+            "https://tenor.com/view/minions-banned-gif-25694197",
+            "https://tenor.com/view/bane-no-banned-and-you-are-explode-gif-16047504",
+            "https://tenor.com/view/ur-banned-lil-bro-gif-17281694379108569987"
+            "https://tenor.com/view/c00kie-get-banned-gif-24947485",
+            "https://tenor.com/view/good-argument-you-are-banned-gif-24468307",
+            "https://tenor.com/view/ur-banned-gif-23742768",
+        ]
+
+        if reason:
+            return await ctx.send(
+                f"<@{user.id}> - you're **banned** cause: **{reason}**\n\n{random.choice(ban_gif_list)}"
+            )
+
+        await ctx.send(
+            f"<@{user.id}> - you're **banned**!\n\n{random.choice(ban_gif_list)}"
+        )
+        # await ctx.send(f"")
+
     # Shuts the bot down in a friendly manner.
     @commands.command(name="die", brief="Eternal Sleep", aliases=["snap", "sleep"])
     @commands.is_owner()
@@ -191,18 +220,19 @@ class Developer(commands.Cog):
     ) -> Optional[discord.Message]:
         """DM a particular user."""
         try:
-            view = discord.ui.View()
-            view.add_item(
-                discord.ui.Button(
-                    label="Support",
-                    style=discord.ButtonStyle.link,
-                    url="https://discord.gg/JXEu2AcV5Y",
-                    emoji="<a:BotLurk:905749164355379241>",
-                )
-            )
+            # Deleted the server.
+            # view = discord.ui.View()
+            # view.add_item(
+            #     discord.ui.Button(
+            #         label="Support",
+            #         style=discord.ButtonStyle.link,
+            #         url="https://discord.gg/JXEu2AcV5Y",
+            #         emoji="<a:BotLurk:905749164355379241>",
+            #     )
+            # )
             await user.send(
-                f"<:GeraltRightArrow:904740634982760459> You have received a DM from **{ctx.author}**. If you have any queries, join our support server :\n\n>>> ─────\n{message}\n─────",
-                view=view,
+                f"<:GeraltRightArrow:904740634982760459> You have received a DM from **{ctx.author}**:\n{message}",
+                # view=view,
             )
             await ctx.add_nanotick()
         except Exception as exception:
@@ -247,11 +277,11 @@ class Developer(commands.Cog):
         except Exception as exception:
             value = stdout.getvalue()
             message = await ctx.send(f"```py\n{value} {traceback.format_exc()}\n```")
-            await ctx.message.add_reaction("<:WinUnheck:898572376147623956>")
+            await ctx.message.add_reaction("<:WinUncheck:1370115584494141602>")
         else:
             value = stdout.getvalue()
             try:
-                await ctx.message.add_reaction("<:WinCheck:898572324490604605>")
+                await ctx.message.add_reaction("<:WinCheck:1370115629507416114>")
             except BaseException:
                 pass
             if returned_value is None:

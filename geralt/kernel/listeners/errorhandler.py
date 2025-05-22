@@ -88,7 +88,7 @@ class ErrorHandler(commands.Cog):
                     traceback.format_exception(type(error), error, error.__traceback__)
                 )
                 error_emb = BaseEmbed(
-                    title="Error Boi <:Pain:911261018582306867>",
+                    title="Error Boi <:Pain:1370121948096630844>",
                     description=f"[**Jump Url**]({ctx.message.jump_url})```prolog\n{command_data} \n```\n```py\n {error_str}\n```",
                     colour=0x2F3136,
                 )

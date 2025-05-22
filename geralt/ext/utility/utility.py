@@ -288,18 +288,21 @@ class Utility(commands.Cog):
                     discord.utils.utcnow(),
                 )
                 return
-        if before.discriminator != after.discriminator:
-            log_discriminator = await self.bot.db.fetchval(
-                "SELECT discriminator FROM user_settings WHERE user_id = $1", after.id
-            )
-            if log_discriminator:
-                await self.bot.db.execute(
-                    "INSERT INTO discriminator_history VALUES ($1, $2, $3)",
-                    after.id,
-                    after.discriminator,
-                    discord.utils.utcnow(),
-                )
-                return
+
+        # Discord removed discriminators.
+
+        # if before.discriminator != after.discriminator:
+        #     log_discriminator = await self.bot.db.fetchval(
+        #         "SELECT discriminator FROM user_settings WHERE user_id = $1", after.id
+        #     )
+        #     if log_discriminator:
+        #         await self.bot.db.execute(
+        #             "INSERT INTO discriminator_history VALUES ($1, $2, $3)",
+        #             after.id,
+        #             after.discriminator,
+        #             discord.utils.utcnow(),
+        #         )
+        #         return
 
     @commands.Cog.listener("on_message")
     async def highlight_on_message(self, message: discord.Message):
@@ -573,9 +576,9 @@ class Utility(commands.Cog):
             async def yes(
                 ui: discord.ui.View,
                 interaction: discord.Interaction,
-                button: discord.ui.button,
+                button: discord.ui.Button,
             ):
-                if button.user != ctx.author:
+                if interaction.user != ctx.author:
                     return await interaction.response.send_message(
                         content=f"{pain}", ephemeral=True
                     )
@@ -602,7 +605,7 @@ class Utility(commands.Cog):
                 interaction: discord.Interaction,
                 button: discord.ui.button,
             ):
-                if button.user != ctx.author:
+                if interaction.user != ctx.author:
                     return await interaction.response.send_message(
                         content=f"{pain}", ephemeral=True
                     )
@@ -730,34 +733,35 @@ class Utility(commands.Cog):
         )
         return await ctx.add_nanotick()
 
-    @userlog.command(
-        name="discriminator",
-        brief="Opt - in/out for discriminator logging.",
-        with_app_command=True,
-    )
-    @commands.cooldown(2, 15, commands.BucketType.user)
-    async def userlog_discriminator(self, ctx: BaseContext):
-        """Opt - in/out for discriminator logging."""
-        query = (
-            "INSERT INTO user_settings (user_id, discriminator) VALUES ($1, $2) "
-            "ON CONFLICT (user_id) "
-            "DO UPDATE SET discriminator = $2"
-        )
-        data = await self.bot.db.fetchval(
-            "SELECT discriminator FROM user_settings WHERE user_id = $1", ctx.author.id
-        )
-        if data:
-            await self.bot.db.execute(query, ctx.author.id, False)
-            await ctx.reply(
-                f"**{ctx.author}** - Successfully `opted out` from discriminator logging <:TokoOkay:898611996163985410>"
-            )
-            return await ctx.add_nanotick()
+    # Again discord removed discriminators
+    # @userlog.command(
+    #     name="discriminator",
+    #     brief="Opt - in/out for discriminator logging.",
+    #     with_app_command=True,
+    # )
+    # @commands.cooldown(2, 15, commands.BucketType.user)
+    # async def userlog_discriminator(self, ctx: BaseContext):
+    #     """Opt - in/out for discriminator logging."""
+    #     query = (
+    #         "INSERT INTO user_settings (user_id, discriminator) VALUES ($1, $2) "
+    #         "ON CONFLICT (user_id) "
+    #         "DO UPDATE SET discriminator = $2"
+    #     )
+    #     data = await self.bot.db.fetchval(
+    #         "SELECT discriminator FROM user_settings WHERE user_id = $1", ctx.author.id
+    #     )
+    #     if data:
+    #         await self.bot.db.execute(query, ctx.author.id, False)
+    #         await ctx.reply(
+    #             f"**{ctx.author}** - Successfully `opted out` from discriminator logging <:TokoOkay:898611996163985410>"
+    #         )
+    #         return await ctx.add_nanotick()
 
-        await self.bot.db.execute(query, ctx.author.id, True)
-        await ctx.reply(
-            f"**{ctx.author}** - Successfully `opted in` for discriminator logging <:DuckThumbsUp:917007413259956254>"
-        )
-        return await ctx.add_nanotick()
+    #     await self.bot.db.execute(query, ctx.author.id, True)
+    #     await ctx.reply(
+    #         f"**{ctx.author}** - Successfully `opted in` for discriminator logging <:DuckThumbsUp:917007413259956254>"
+    #     )
+    #     return await ctx.add_nanotick()
 
     @userlog.command(name="status", brief="Shows your settings", with_app_command=True)
     @commands.cooldown(2, 15, commands.BucketType.user)

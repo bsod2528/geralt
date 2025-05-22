@@ -60,9 +60,11 @@ class HelpMenu(discord.ui.Select):
                 if self.values[0] == cog.qualified_name:
                     callback_emb = BaseEmbed(
                         title=f"{cog.qualified_name} Commands",
-                        description=f"{cog.description} {emote}"
-                        if cog and cog.description
-                        else "Description Yet to be Given",
+                        description=(
+                            f"{cog.description} {emote}"
+                            if cog and cog.description
+                            else "Description Yet to be Given"
+                        ),
                         colour=self.bot.colour,
                     )
                     filtered_commands = await self.help.filter_commands(

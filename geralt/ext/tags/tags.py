@@ -223,7 +223,7 @@ class Tags(commands.Cog):
 
     async def tag_edit(self, ctx: BaseContext, tag_id: int, *, edited_content: str):
         if tag_id != await self.bot.db.fetchval(
-            "SELECT * FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3",
+            "SELECT * FROM tags WHERE tag_id = $1 AND author_id = $2 AND guild_id = $3",
             tag_id,
             ctx.author.id,
             ctx.guild.id,
@@ -235,14 +235,14 @@ class Tags(commands.Cog):
             return
         else:
             await self.bot.db.execute(
-                "UPDATE tags SET content = $1, WHERE id = $2 AND author_id = $3 AND guild_id = $4",
+                "UPDATE tags SET content = $1 WHERE tag_id = $2 AND author_id = $3 AND guild_id = $4",
                 edited_content,
                 tag_id,
                 ctx.author.id,
                 ctx.guild.id,
             )
             tag_deets = await self.bot.db.fetchval(
-                "SELECT (tag_name, content) FROM tags WHERE id = $1 AND author_id = $2 AND guild_id = $3",
+                "SELECT (tag_name, content) FROM tags WHERE tag_id = $1 AND author_id = $2 AND guild_id = $3",
                 tag_id,
                 ctx.author.id,
                 ctx.guild.id,
@@ -584,11 +584,11 @@ class Tags(commands.Cog):
         if flag:
             try:
                 tag_deets = await self.bot.db.fetchval(
-                    "SELECT (tag_name, content) FROM tags WHERE id = $1 AND guild_id = $2",
+                    "SELECT (tag_name, content) FROM tags WHERE tag_id = $1 AND guild_id = $2",
                     flag.tag,
                     flag.guild,
                 )
-                insert_query = "INSERT INTO tags (tag_name, content, author_id, guild_id, created_on, jump_url) VALUES ($1, $2, $3, $4, $5, $6)"
+                insert_query = "INSERT INTO tags (tag_name, content, author_id, guild_id, created_at, jump_url) VALUES ($1, $2, $3, $4, $5, $6)"
                 await self.bot.db.execute(
                     insert_query,
                     tag_deets[0].strip(),
@@ -599,7 +599,7 @@ class Tags(commands.Cog):
                     ctx.message.jump_url,
                 )
                 id = await self.bot.db.fetchval(
-                    "SELECT (id) FROM tags WHERE guild_id = $1 AND tag_name = $2",
+                    "SELECT (tag_id) FROM tags WHERE guild_id = $1 AND tag_name = $2",
                     ctx.guild.id,
                     tag_deets[0],
                 )

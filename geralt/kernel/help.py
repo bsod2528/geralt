@@ -39,14 +39,14 @@ class BaseHelp(commands.HelpCommand):
             alias = "`Nil`"
 
         yaml_signature: str = (
-            f"```yaml\n> Syntax : {self.context.clean_prefix}{group_or_command.qualified_name} {group_or_command.signature}\n```\n"
-            f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases: ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {group_or_command.cog_name} \n"
+            f"```yaml\n> Syntax: {self.context.clean_prefix}{group_or_command.qualified_name} {group_or_command.signature}\n```\n"
+            f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases: ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category:** {group_or_command.cog_name} \n"
             f"<:Reply:930634822865547294> ` ─ ` **Description: ** {group_or_command.help if group_or_command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command:** `{group_or_command.full_parent_name}`' if group_or_command.parent else ' '}"
         )
 
         ansi_signature: str = (
             f"```ansi\n\x1b[0;1;37;40m > \x1b[0m \x1b[0;1;31mSyntax\x1b[0m \x1b[0;1;37;40m : \x1b[0m \x1b[0;1;37m{self.context.clean_prefix}{group_or_command.qualified_name}\x1b[0m \x1b[0;1;34m{group_or_command.signature}\x1b[0m\n```\n"
-            f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases: ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category :** {group_or_command.cog_name} \n"
+            f">>> <:ReplyContinued:930634770004725821> ` ─ ` **Aliases: ** [{alias}]\n<:ReplyContinued:930634770004725821> ` ─ ` **Category:** {group_or_command.cog_name} \n"
             f"<:Reply:930634822865547294> ` ─ ` **Description: ** {group_or_command.help if group_or_command.help else '`. . .`'}\n{f'<:Join:932976724235395072> ` ─ ` **Parent Command:** `{group_or_command.full_parent_name}`' if group_or_command.parent else ' '}"
         )
 
@@ -56,10 +56,10 @@ class BaseHelp(commands.HelpCommand):
             return ansi_signature
 
     async def send_bot_help(self, mapping) -> Optional[discord.Message]:
-        cog_list: List[commands.Cog] = []
+        cog_list: List[commands.Cog] = []  # type: ignore
         help_emb = BaseEmbed(
             title=f"\U00002728 {self.context.author}'s Help",
-            description=f"────\nHi! I am [**Geralt**](https://github.com/BSOD2528/Geralt) and open source Discord Bot made for fun.\n────",
+            description=f"────\nHi! I am [**Geralt**](https://github.com/bsod2528/Geralt) and open source Discord Bot made for fun.\n────",
             colour=self.context.bot.colour,
         )
 
@@ -81,7 +81,7 @@ class BaseHelp(commands.HelpCommand):
                 )
 
         main_help_view: discord.ui.View = HelpView(mapping, self, cog_list)
-        main_help_view.message: discord.Message = await self.context.reply(
+        main_help_view.message: discord.Message = await self.context.reply(  # type: ignore
             embed=help_emb, mention_author=False, view=main_help_view
         )
         await main_help_view.wait()
@@ -91,9 +91,11 @@ class BaseHelp(commands.HelpCommand):
         emote = getattr(cog, "emote", None)
         cog_emb = BaseEmbed(
             title=f"{cog.qualified_name} Commands",
-            description=f"{cog.description} {emote}\n"
-            if cog and cog.description
-            else "Description Yet to be Given",
+            description=(
+                f"{cog.description} {emote}\n"
+                if cog and cog.description
+                else "Description Yet to be Given"
+            ),
             colour=self.context.bot.colour,
         )
 
@@ -110,7 +112,7 @@ class BaseHelp(commands.HelpCommand):
                 text=self.main_footer(), icon_url=self.context.author.display_avatar
             )
             if self.context.author.id in self.context.bot.owner_ids:
-                cog_list: List[commands.Cog] = [
+                cog_list: List[commands.Cog] = [  # type: ignore
                     cogs
                     for cogs in HelpCommand.get_bot_mapping(self)
                     if cogs is not None
@@ -118,7 +120,7 @@ class BaseHelp(commands.HelpCommand):
                     not in ["ErrorHandler", "Jishaku", "Events", "Help"]
                 ]
             else:
-                cog_list: List[commands.Cog] = [
+                cog_list: List[commands.Cog] = [  # type: ignore
                     cogs
                     for cogs in HelpCommand.get_bot_mapping(self)
                     if cogs is not None

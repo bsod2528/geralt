@@ -98,8 +98,8 @@ class Meta(commands.Cog):
     async def info(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Receive full information regarding me."""
         description: str = (
-            f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.me/pages/projects/geralt/geralt.html) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. "
-            f"Since I'm locally hosted, I suck. Made with love by **BSOD#0067**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D"
+            f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/pages/projects/geralt/geralt.html) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. "
+            f"Since I'm locally hosted, I suck. Made with love by **thebluescreenofdeath**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D"
         )
         info_emb = BaseEmbed(
             title="<:WinGIT:898591166864441345> __Geralt : Da Bot__",
@@ -324,12 +324,12 @@ class Meta(commands.Cog):
         """Returns source for a command"""
         view = discord.ui.View()
         branch: str = "stellar-v2"
-        repo_url: str = "https://github.com/BSOD2528/Geralt"
+        repo_url: str = "https://github.com/bsod2528/Geralt"
         try:
-            repository = await self.bot.git.get_repo("BSOD2528", "Geralt")
+            repository = await self.bot.git.get_repo("bsod2528", "Geralt")
         except HttpException:
             return await ctx.reply(
-                f"**BSOD#0067** - has to change his `GitHub` Personalised Token. Please ping him at my support server <a:AwkwardDoggo:1027813617015455774>"
+                f"**thebluescreenofdeath** - has to change his `GitHub` Personalised Token. Please ping him at my support server <a:AwkwardDoggo:1027813617015455774>"
             )
         line_count: int = await total_lines("./", ".py")
 
@@ -355,7 +355,7 @@ class Meta(commands.Cog):
             text=f"Invoked by {ctx.author}", icon_url=ctx.author.display_avatar.url
         )
         source_emb.set_author(
-            name=f"\U00002728 Made with love by BSOD2528",
+            name=f"\U00002728 Made with love by bsod2528",
             icon_url=repository.owner.avatar_url,
             url=repository.owner.html_url,
         )
@@ -418,7 +418,7 @@ class Meta(commands.Cog):
 
         url = f"{repo_url}/blob/{branch}/{path}#L{line_beginning}-L{line_beginning + len(lines) - 1}"
 
-        source_emb.description = f"Here is the source for [`{command}`]({url})\n────\nEnsure to comply with [**MPL 2.0**](https://github.com/BSOD2528/Geralt/blob/stellar-v2/LICENSE) License"
+        source_emb.description = f"Here is the source for [`{command}`]({url})\n────\nEnsure to comply with [**MPL 2.0**](https://github.com/bsod2528/Geralt/blob/stellar-v2/LICENSE) License"
         view.add_item(
             discord.ui.Button(
                 label=f'Source for "{command}"',
@@ -431,7 +431,7 @@ class Meta(commands.Cog):
             discord.ui.Button(
                 label="Dashboard",
                 emoji="<:AkkoComfy:907104936368685106>",
-                url="https://bsod2528.me/pages/projects/geralt/geralt.html",
+                url="https://bsod2528.github.io/pages/projects/geralt/geralt.html",
             )
         )
         await ctx.reply(embed=source_emb, mention_author=False, view=view)

@@ -82,9 +82,9 @@ class BaseContext(commands.Context["BaseBot"]):
             "embeds": MISSING if embeds is None else embeds,
             "file": MISSING if file is None else file,
             "files": MISSING if files is None else files,
-            "allowed_mentions": MISSING
-            if allowed_mentions is None
-            else allowed_mentions,
+            "allowed_mentions": (
+                MISSING if allowed_mentions is None else allowed_mentions
+            ),
             "view": MISSING if view is None else view,
             "suppress_embeds": suppress_embeds,
             "ephemeral": ephemeral,

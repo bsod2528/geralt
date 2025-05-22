@@ -192,7 +192,7 @@ class Confirmation(discord.ui.View):
     @discord.ui.button(
         label="Yes",
         style=discord.ButtonStyle.blurple,
-        emoji="<:WinCheck:898572324490604605>",
+        emoji="<:WinCheck:1370115629507416114>",
     )
     async def confirmed(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -202,7 +202,7 @@ class Confirmation(discord.ui.View):
     @discord.ui.button(
         label="No",
         style=discord.ButtonStyle.danger,
-        emoji="<:WinUncheck:898572376147623956>",
+        emoji="<:WinUncheck:1370115584494141602>",
     )
     async def cancelled(
         self, interaction: discord.Interaction, button: discord.ui.Button

@@ -37,7 +37,7 @@ class Traceback(discord.ui.View):
     @discord.ui.button(
         label="Traceback",
         style=discord.ButtonStyle.grey,
-        emoji="<:WinTerminal:898609124982554635>",
+        # emoji="<:WinTerminal:898609124982554635>",
     )
     async def traceback(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -215,7 +215,7 @@ class CommandSyntax(discord.ui.View):
     @discord.ui.button(
         label="Traceback",
         style=discord.ButtonStyle.grey,
-        emoji="<:WinTerminal:898609124982554635>",
+        # emoji="<:WinTerminal:898609124982554635>",
     )
     async def traceback(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -267,13 +267,17 @@ class CommandSyntax(discord.ui.View):
         )
 
         if self.ctx.author.is_on_mobile():
-            syntax_emb.description: str = f"\n```py\nerror: {self.error}\n|\n| Syntax:\n|\n| => {command_name}\n|    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{'^' * (len(self.error.param.name) + 2)}\n| Click on `Command Help` button for more info.```"
+            syntax_emb.description: str = (
+                f"\n```py\nerror: {self.error}\n|\n| Syntax:\n|\n| => {command_name}\n|    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{'^' * (len(self.error.param.name) + 2)}\n| Click on `Command Help` button for more info.```"
+            )
             self.message = await self.ctx.reply(
                 embed=syntax_emb, view=self, mention_author=False
             )
         else:
             up: str = f"{escape}[0;1;30m^{escape}[0m"
-            syntax_emb.description: str = f"\n```ansi\n{escape}[0;1;31merror:{escape}[0m {escape}[0;1;37m{self.error}{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;36mSyntax:{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;30m=>{escape}[0m {escape}[0;1;34m{command_name}{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{up * (len(self.error.param.name) + 2)}\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;37mClick on {escape}[0;1;33m`{escape}[0m{escape}[0;1;36mCommand Help{escape}[0m{escape}[0;1;33m`{escape}[0m{escape}[0;1;37m button for more info.{escape}[0m```"
+            syntax_emb.description: str = (
+                f"\n```ansi\n{escape}[0;1;31merror:{escape}[0m {escape}[0;1;37m{self.error}{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;36mSyntax:{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;30m=>{escape}[0m {escape}[0;1;34m{command_name}{escape}[0m\n{escape}[0;1;37;40m | {escape}[0m    {' ' * (len([item[::-1] for item in command_name[::-1].split(self.error.param.name[::-1], 1)][::-1][0]) - 1)}{up * (len(self.error.param.name) + 2)}\n{escape}[0;1;37;40m | {escape}[0m {escape}[0;1;37mClick on {escape}[0;1;33m`{escape}[0m{escape}[0;1;36mCommand Help{escape}[0m{escape}[0;1;33m`{escape}[0m{escape}[0;1;37m button for more info.{escape}[0m```"
+            )
             self.message = await self.ctx.reply(
                 embed=syntax_emb, view=self, mention_author=False
             )

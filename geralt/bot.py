@@ -127,7 +127,7 @@ class BaseBot(commands.Bot):
         self.afk: Dict[int, str] = {}
         self.meta: Dict[int, List[int]] = {}
         self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
-        self.blacklists: Set[discord.Object.id] = set()
+        self.blacklists: Set[discord.Object.id] = set()  # type: ignore
         self.highlight: Dict[int, Dict[int, List[str]]] = {}
         self.ticket_init: Dict[int, List[Any]] = {}
         self.verification: Dict[int, List] = {}
@@ -154,9 +154,9 @@ class BaseBot(commands.Bot):
         for entry in entries:
             guild_id, parent, children = entry
             if guild_id not in cache:
-                cache[guild_id]: Dict = {}
+                cache[guild_id]: Dict = {}  # type: ignore
             if parent not in cache[guild_id]:
-                cache[guild_id][parent]: List = []
+                cache[guild_id][parent]: List = []  # type: ignore
             cache[guild_id][parent].append(children)
         return cache
 
@@ -420,7 +420,7 @@ class BaseBot(commands.Bot):
                 reason = user["reason"]
             current_time = discord.utils.utcnow() - time
             await message.reply(
-                f'Welcome back <a:Waves:920726389869641748>. You were afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : "**{humanize.naturaldelta(current_time)}**"\n<:Reply:930634822865547294>` ─ ` reason : {reason}',
+                f'Welcome back <a:Waves:920726389869641748>. You were afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: "**{humanize.naturaldelta(current_time)}**"\n<:Reply:930634822865547294>` ─ ` reason: {reason}',
                 allowed_mentions=self.mentions,
             )
             await self.db.execute(
@@ -438,7 +438,7 @@ class BaseBot(commands.Bot):
                     reason = data["reason"]
                     current_time = discord.utils.utcnow() - time
                 await message.reply(
-                    f"<:Join:932976724235395072> **{pinged_user}** has been afk :\n>>> <:ReplyContinued:930634770004725821>` ─ ` for : {reason}\n<:Reply:930634822865547294>` ─ ` since : {humanize.naturaldelta(current_time)}"
+                    f"<:Join:932976724235395072> **{pinged_user}** has been afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: {reason}\n<:Reply:930634822865547294>` ─ ` since: {humanize.naturaldelta(current_time)}"
                 )
 
         if message.content in [self.user.mention]:
@@ -469,6 +469,8 @@ class BaseBot(commands.Bot):
 
 
 geralts_instance = BaseBot()
+
+discord.utils.setup_logging()
 
 
 async def run():

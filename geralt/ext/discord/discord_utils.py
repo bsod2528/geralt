@@ -12,7 +12,7 @@ import humanize
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from ...bot import BaseBot
+from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
 from ...embed import BaseEmbed
 from ...kernel.utilities.flags import user_badges, user_perms
@@ -65,11 +65,19 @@ class Discord(commands.Cog):
                     message.guild.id,
                 )
             if log == True:
+                if message.guild.id not in self.bot.snipe_counter:
+                    self.bot.snipe_counter[message.guild.id] = {  # type: ignore
+                        "delete": 0,
+                        "edit": 0,
+                        "total_messages": 0,
+                    }
                 self.bot.snipe_counter[message.guild.id]["total_messages"] += 1
 
     @commands.Cog.listener("on_message_delete")
     async def on_message_delete(self, message: discord.Message):
-        if message.guild is not None:
+        if message.guild is None:
+            return
+        try:
             try:
                 log = self.bot.settings[message.guild.id]["snipe"]
             except KeyError:
@@ -77,27 +85,38 @@ class Discord(commands.Cog):
                     "SELECT snipe FROM guild_settings WHERE guild_id = $1",
                     message.guild.id,
                 )
-                # don't be a bitch about my column names :moyai:
 
-                if log == True:
-                    if message.author.bot:
-                        return
-                    embeds: List[BaseEmbed] = []
-                    attachment_exts: List[str] = []
-                    attachment_urls: List[str] = []
-                    attachment_names: List[str] = []
-                    attachment_bytes: List[bytes] = []
-                    if message.attachments:
-                        for file in message.attachments:
+                if isinstance(log, list) and log:
+                    log = log[0]["snipe"]
+
+            if log is True:
+                if message.author.bot:
+                    return
+
+                embeds = []
+                attachment_exts = []
+                attachment_urls = []
+                attachment_names = []
+                attachment_bytes = []
+
+                if message.attachments:
+                    for file in message.attachments:
+                        try:
                             ext = self.return_ext(file)
                             if ext in self.pic_exts:
-                                ext = imghdr.what(BytesIO(await file.read()))
+                                file_bytes = await file.read()
+                                ext = imghdr.what(BytesIO(file_bytes))
+                                await file.save(BytesIO())
+
                             attachment_exts.append(ext)
                             attachment_names.append(file.filename)
                             attachment_bytes.append(await file.read())
+                        except Exception as e:
+                            print(e)
 
-                    if len(attachment_names) >= 2:
-                        attachment_bytes.clear()
+                if len(attachment_names) >= 2:
+                    attachment_bytes.clear()
+                    try:
                         for attachment in message.attachments:
                             async with aiohttp.ClientSession() as session:
                                 wbhk = discord.Webhook.partial(
@@ -116,15 +135,20 @@ class Discord(commands.Cog):
                                 attachment_urls.append(
                                     sent_attachment_message.attachments[0].url
                                 )
+                    except Exception as e:
+                        print(f"Error with webhook for attachments: {e}")
 
-                    if message.embeds:
-                        for embed in message.embeds:
-                            embeds.append(embed.to_dict())
+                # Process embeds
+                if message.embeds:
+                    for embed in message.embeds:
+                        embeds.append(embed.to_dict())
 
+                # Insert into database
+                try:
                     query = """
                     INSERT INTO snipe_delete
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                        """
+                    """
 
                     await self.bot.db.execute(
                         query,
@@ -139,10 +163,26 @@ class Discord(commands.Cog):
                         attachment_urls,
                         attachment_exts,
                     )
+
+                    # Update counter
                     try:
                         self.bot.snipe_counter[message.guild.id]["delete"] += 1
-                    except:
-                        return
+                    except KeyError:
+                        # Initialize counter if it doesn't exist
+                        if message.guild.id not in self.bot.snipe_counter:
+                            self.bot.snipe_counter[message.guild.id] = {
+                                "delete": 1,
+                                "edit": 0,
+                                "total_messages": 0,
+                            }
+                        else:
+                            self.bot.snipe_counter[message.guild.id]["delete"] = 1
+
+                except Exception as e:
+                    print(f"Error inserting into snipe_delete: {e}")
+
+        except Exception as e:
+            print(f"Error in on_message_delete: {e}")
 
     @commands.Cog.listener("on_message_edit")
     async def on_message_edit(self, pre: discord.Message, post: discord.Message):
@@ -391,6 +431,7 @@ class Discord(commands.Cog):
             roles = f"{roles}"
         fetched_user = await ctx.bot.fetch_user(user.id)
         permissions = user_perms(user.guild_permissions)
+        perms_: None = "None"
         if permissions:
             perms_ = f"{' **|** '}".join(permissions)
         avatar = user.display_avatar.with_static_format("png")
@@ -404,7 +445,7 @@ class Discord(commands.Cog):
             name="<:GeraltRightArrow:904740634982760459> General Info :",
             value=f"> <:ReplyContinued:930634770004725821> Name: {user.mention} \n"
             f"> <:ReplyContinued:930634770004725821> Nickname: {(user.nick) or 'No nickname set'} \n"
-            f"> <:ReplyContinued:930634770004725821> Discriminator: `#{user.discriminator}` \n"
+            # f"> <:ReplyContinued:930634770004725821> Discriminator: `#{user.discriminator}` \n" No discriminators
             f"> <:Reply:930634822865547294> Identification No.: `{user.id}` \n────",
         )
         general_emb.add_field(
@@ -663,10 +704,14 @@ class Discord(commands.Cog):
         if not channel:
             channel = ctx.channel
         if not user:
-            query: str = f"SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_c_id = $2 ORDER BY d_m_ts DESC OFFSET {index} LIMIT 1"
+            query: str = (
+                f"SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_c_id = $2 ORDER BY d_m_ts DESC OFFSET {index} LIMIT 1"
+            )
             snipe_records = await self.bot.db.fetch(query, ctx.guild.id, channel.id)
         else:
-            query: str = f"SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_a_id = $2 AND d_m_c_id = $3 ORDER BY d_m_ts DESC OFFSET {index} LIMIT 1"
+            query: str = (
+                f"SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_a_id = $2 AND d_m_c_id = $3 ORDER BY d_m_ts DESC OFFSET {index} LIMIT 1"
+            )
             snipe_records = await self.bot.db.fetch(
                 query, ctx.guild.id, user.id, channel.id
             )
@@ -789,14 +834,18 @@ class Discord(commands.Cog):
             channel = ctx.channel
 
         if not user:
-            query: str = f"SELECT * FROM snipe_edit WHERE guild_id = $1 AND pre_c_id = $2 ORDER BY post_ts DESC OFFSET {index} LIMIT 1"
+            query: str = (
+                f"SELECT * FROM snipe_edit WHERE guild_id = $1 AND pre_c_id = $2 ORDER BY post_ts DESC OFFSET {index} LIMIT 1"
+            )
             snipe_records = await self.bot.db.fetch(query, ctx.guild.id, channel.id)
             if not snipe_records:
                 return await ctx.send(
                     f"**{ctx.guild}** - has no snipes recorded in {channel.mention} <a:IWait:948253556190904371>"
                 )
         else:
-            query: str = f"SELECT * FROM snipe_edit WHERE guild_id = $1 AND pre_c_id = $2 AND pre_m_a_id = $3 ORDER BY post_ts DESC OFFSET {index} LIMIT 1"
+            query: str = (
+                f"SELECT * FROM snipe_edit WHERE guild_id = $1 AND pre_c_id = $2 AND pre_m_a_id = $3 ORDER BY post_ts DESC OFFSET {index} LIMIT 1"
+            )
             snipe_records = await self.bot.db.fetch(
                 query, ctx.guild.id, channel.id, user.id
             )
@@ -871,7 +920,9 @@ class Discord(commands.Cog):
         time = discord.utils.utcnow() - self.bot.uptime
         if not flag:
             counter = self.bot.snipe_counter[ctx.guild.id]
-            description: str = f"Stats from: {humanize.precisedelta(time)}\n<:ReplyContinued:930634770004725821> **Deleted:** `{counter['delete']}` message{'s' if counter['delete'] != 1 else ''}\n<:ReplyContinued:930634770004725821> **Edited:** `{counter['edit']}` message{'s' if counter['edit'] != 1 else ''}\n<:Reply:930634822865547294> **Total Messages:** `{counter['total_messages']}` message{'s' if counter['total_messages'] != 1 else ''}"
+            description: str = (
+                f"Stats from: {humanize.precisedelta(time)}\n<:ReplyContinued:930634770004725821> **Deleted:** `{counter['delete']}` message{'s' if counter['delete'] != 1 else ''}\n<:ReplyContinued:930634770004725821> **Edited:** `{counter['edit']}` message{'s' if counter['edit'] != 1 else ''}\n<:Reply:930634822865547294> **Total Messages:** `{counter['total_messages']}` message{'s' if counter['total_messages'] != 1 else ''}"
+            )
             stats_emb = BaseEmbed(
                 title=f"Snipe Stats in {ctx.guild}",
                 description=textwrap.dedent(description),
