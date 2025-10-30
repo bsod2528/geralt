@@ -631,13 +631,18 @@ class Utility(commands.Cog):
         if not reason:
             reason = "Not Specified . . ."
         query = "INSERT INTO afk VALUES ($1, $2, $3)"
+        timestamp = discord.utils.utcnow()
         try:
-            await self.bot.db.execute(
-                query, ctx.author.id, reason, ctx.message.created_at
-            )
-            self.bot.afk[ctx.author.id] = reason
+            await self.bot.db.execute(query, ctx.author.id, reason, timestamp)
         except asyncpg.UniqueViolationError:
-            return
+            await self.bot.db.execute(
+                "UPDATE afk SET reason = $2, queried_at = $3 WHERE user_id = $1",
+                ctx.author.id,
+                reason,
+                timestamp,
+            )
+
+        self.bot.afk[ctx.author.id] = (reason, timestamp)
 
     @commands.hybrid_group(
         name="userlog",
