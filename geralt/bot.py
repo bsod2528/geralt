@@ -318,7 +318,9 @@ class BaseBot(commands.Bot):
             for data in snipe_data
         }
 
-        self.blacklists.add(objects for objects in blacklisted_objects)
+        self.blacklists.update(
+            int(record["snowflake_id"]) for record in blacklisted_objects
+        )
 
         if ticket_kernel_data:
             ticket_kernel_list: List[Tuple] = [
@@ -341,8 +343,8 @@ class BaseBot(commands.Bot):
             ]
             self.highlight_blocked = self.generate_dict_cache(highlight_blocked_data)
 
-        self.locked_objects_ids.append(
-            data["object_id"] for data in locked_objects_ids_data
+        self.locked_objects_ids.extend(
+            int(data["object_id"]) for data in locked_objects_ids_data
         )
 
         for guild_id, prefixes in prefix_data:
