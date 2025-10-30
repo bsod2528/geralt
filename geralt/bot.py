@@ -417,28 +417,45 @@ class BaseBot(commands.Bot):
             return
 
         if message.author.id in self.afk:
-            for user in afk_data:
-                time = user["queried_at"]
-                reason = user["reason"]
-            current_time = discord.utils.utcnow() - time
-            await message.reply(
-                f'Welcome back <a:Waves:920726389869641748>. You were afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: "**{humanize.naturaldelta(current_time)}**"\n<:Reply:930634822865547294>` ─ ` reason: {reason}',
-                allowed_mentions=self.mentions,
+            author_afk_entry = next(
+                (
+                    row
+                    for row in afk_data
+                    if row["user_id"] == message.author.id
+                ),
+                None,
             )
-            await self.db.execute(
-                "DELETE FROM afk WHERE user_id = $1", message.author.id
-            )
-            try:
-                self.afk.pop(message.author.id)
-            except KeyError:
-                return
+
+            if author_afk_entry is not None:
+                time = author_afk_entry["queried_at"]
+                reason = author_afk_entry["reason"]
+                current_time = discord.utils.utcnow() - time
+                await message.reply(
+                    f'Welcome back <a:Waves:920726389869641748>. You were afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: "**{humanize.naturaldelta(current_time)}**"\n<:Reply:930634822865547294>` ─ ` reason: {reason}',
+                    allowed_mentions=self.mentions,
+                )
+                await self.db.execute(
+                    "DELETE FROM afk WHERE user_id = $1", message.author.id
+                )
+            self.afk.pop(message.author.id, None)
 
         for pinged_user in message.mentions:
             if pinged_user.id in self.afk:
-                for data in afk_data:
-                    time = data["queried_at"]
-                    reason = data["reason"]
-                    current_time = discord.utils.utcnow() - time
+                pinged_afk_entry = next(
+                    (
+                        row
+                        for row in afk_data
+                        if row["user_id"] == pinged_user.id
+                    ),
+                    None,
+                )
+
+                if pinged_afk_entry is None:
+                    continue
+
+                time = pinged_afk_entry["queried_at"]
+                reason = pinged_afk_entry["reason"]
+                current_time = discord.utils.utcnow() - time
                 await message.reply(
                     f"<:Join:932976724235395072> **{pinged_user}** has been afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: {reason}\n<:Reply:930634822865547294>` ─ ` since: {humanize.naturaldelta(current_time)}"
                 )
