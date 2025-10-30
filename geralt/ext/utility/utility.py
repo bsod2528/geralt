@@ -169,18 +169,20 @@ class Utility(commands.Cog):
         # Could it be any better :troll:
         try:
             author_id = str(message.author.id)
-            role_list = message.author.roles
-            for key, value in self.bot.highlight_blocked.items():
-                for user_id, object_id in value.items():
-                    for objects in object_id:
-                        stringed_objects = str(objects)
-                        if author_id in stringed_objects:
-                            return
-                        for roles in role_list:
-                            role = str(roles.id)
-                            if stringed_objects in role:
-                                return
-        except:
+            role_ids = {str(role.id) for role in getattr(message.author, "roles", [])}
+            guild_highlight_block = self.bot.highlight_blocked.get(message.guild.id, {})
+            blocked_objects = {
+                str(obj)
+                for objects in guild_highlight_block.values()
+                for obj in objects
+            }
+
+            if author_id in blocked_objects:
+                return
+
+            if role_ids.intersection(blocked_objects):
+                return
+        except Exception:
             pass
 
         if self.bot.highlight:
@@ -190,10 +192,8 @@ class Utility(commands.Cog):
                         for trigger in trigger_list:
                             if trigger in message.content.lower():
                                 user = message.guild.get_member(user_id)
-                                if user.id not in message.guild._members:
-                                    return
-                                if message.author.id == user.id:
-                                    return
+                                if user is None or message.author.id == user.id:
+                                    continue
                                 highlight_emb = await self.generate_highlight_emb(
                                     message, str(user.id)
                                 )
@@ -346,23 +346,21 @@ class Utility(commands.Cog):
                 f"Please make sure that the `task` is below 400 characters."
             )
         else:
-            await self.bot.db.execute(
-                f"INSERT INTO todo (user_id, task, created_at, jump_url) VALUES ($1, $2, $3, $4) RETURNING task_id",
+            cleaned_task = task.strip()
+            inserted_row = await self.bot.db.fetchrow(
+                "INSERT INTO todo (user_id, task, created_at, jump_url) VALUES ($1, $2, $3, $4) "
+                "RETURNING task_id, created_at",
                 ctx.author.id,
-                task.strip(),
+                cleaned_task,
                 ctx.message.created_at,
                 ctx.message.jump_url,
             )
-            task_id = await self.bot.db.fetchval(
-                f"SELECT task_id FROM todo WHERE task = $1 ORDER BY task_id DESC LIMIT 1",
-                task.strip(),
-            )
             todo_add_emb = BaseEmbed(
                 title=f"\U00002728 Todo Added",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{task_id}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(ctx.message.created_at, style='D')}",
+                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{inserted_row['task_id']}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(inserted_row['created_at'], style='D')}",
                 colour=self.bot.colour,
             )
-            todo_add_emb.add_field(name="Task :", value=f">>> {task}")
+            todo_add_emb.add_field(name="Task :", value=f">>> {cleaned_task}")
             todo_add_emb.set_thumbnail(url=ctx.author.display_avatar.url)
 
             await ctx.reply(embed=todo_add_emb)
@@ -470,21 +468,24 @@ class Utility(commands.Cog):
             return await ctx.reply(
                 f"Please make sure that the `edited content` is below 200 characters."
             )
-        if task_id != await self.bot.db.fetchval(
-            f"SELECT * FROM todo WHERE task_id = $1 AND user_id = $2",
+        owned_task_id = await self.bot.db.fetchval(
+            "SELECT task_id FROM todo WHERE task_id = $1 AND user_id = $2",
             task_id,
             ctx.author.id,
-        ):
+        )
+        if owned_task_id is None:
             await ctx.reply(
                 f"<:GeraltRightArrow:904740634982760459> **Task ID -** `{task_id}` - is a task either which you do not own or is not present in the database <:DutchySMH:930620665139191839>"
             )
         else:
+            cleaned_edited = edited.strip()
             await self.bot.db.execute(
-                f"UPDATE todo SET task = $1, jump_url = $2, created_at = $3 WHERE task_id = $4",
-                edited.strip(),
+                "UPDATE todo SET task = $1, jump_url = $2, created_at = $3 WHERE task_id = $4 AND user_id = $5",
+                cleaned_edited,
                 ctx.message.jump_url,
                 ctx.message.created_at,
                 task_id,
+                ctx.author.id,
             )
             await ctx.reply(f"Successfully edited **Task ID -** `{task_id}`")
 
@@ -515,11 +516,12 @@ class Utility(commands.Cog):
                 )
             for view in ui.children:
                 view.disabled = True
-            if task_id != await self.bot.db.fetchval(
-                f"SELECT * FROM todo WHERE task_id = $1 AND user_id = $2",
+            owned_task_id = await self.bot.db.fetchval(
+                "SELECT task_id FROM todo WHERE task_id = $1 AND user_id = $2",
                 task_id,
                 ctx.author.id,
-            ):
+            )
+            if owned_task_id is None:
                 await interaction.response.defer()
                 return await ui.response.edit(
                     content=f"<:GeraltRightArrow:904740634982760459> Task ID - `{task_id}` : is a task either which you do not own or is not present in the database <a:IPat:933295620834336819>",
@@ -528,7 +530,9 @@ class Utility(commands.Cog):
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(
-                    f"DELETE FROM todo WHERE task_id = $1", task_id
+                    "DELETE FROM todo WHERE task_id = $1 AND user_id = $2",
+                    task_id,
+                    ctx.author.id,
                 )
                 await ui.response.edit(
                     content=f"Successfully removed Task ID - `{task_id}` <:HaroldSaysOkay:907110916104007681>",
@@ -631,13 +635,18 @@ class Utility(commands.Cog):
         if not reason:
             reason = "Not Specified . . ."
         query = "INSERT INTO afk VALUES ($1, $2, $3)"
+        timestamp = discord.utils.utcnow()
         try:
-            await self.bot.db.execute(
-                query, ctx.author.id, reason, ctx.message.created_at
-            )
-            self.bot.afk[ctx.author.id] = reason
+            await self.bot.db.execute(query, ctx.author.id, reason, timestamp)
         except asyncpg.UniqueViolationError:
-            return
+            await self.bot.db.execute(
+                "UPDATE afk SET reason = $2, queried_at = $3 WHERE user_id = $1",
+                ctx.author.id,
+                reason,
+                timestamp,
+            )
+
+        self.bot.afk[ctx.author.id] = (reason, timestamp)
 
     @commands.hybrid_group(
         name="userlog",

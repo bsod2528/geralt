@@ -1,3 +1,4 @@
+import datetime
 import io
 import os
 import re
@@ -70,8 +71,8 @@ class BaseBot(commands.Bot):
 
     Caching Attributes:
     -------------------
-    afk: `Dict[int, str]`
-        Stores user ids and the reason for afk.
+    afk: `Dict[int, Tuple[str, datetime.datetime]]`
+        Stores user ids mapped to their afk reason and the timestamp it was set.
     meta: `Dict[int, List[int]]`
         Stores number of what commands have been used in a guild.
     prefixes: DefaultDict[int, typing.Set[str]]
@@ -124,7 +125,7 @@ class BaseBot(commands.Bot):
         self.add_persistent_views = False
 
         # Attributes for caching.
-        self.afk: Dict[int, str] = {}
+        self.afk: Dict[int, Tuple[str, datetime.datetime]] = {}
         self.meta: Dict[int, List[int]] = {}
         self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
         self.blacklists: Set[discord.Object.id] = set()  # type: ignore
@@ -279,7 +280,10 @@ class BaseBot(commands.Bot):
         highlight_blocked_data = await self.db.fetch("SELECT * FROM highlight_blocked")
         locked_objects_ids_data = await self.db.fetch("SELECT * FROM channel_lock")
 
-        self.afk = {data["user_id"]: data["reason"] for data in afk_data}
+        self.afk = {
+            data["user_id"]: (data["reason"], data["queried_at"])
+            for data in afk_data
+        }
         self.meta = {
             data["guild_id"]: [data["command_name"], data["invoked_at"], data["uses"]]
             for data in meta_data
@@ -318,7 +322,9 @@ class BaseBot(commands.Bot):
             for data in snipe_data
         }
 
-        self.blacklists.add(objects for objects in blacklisted_objects)
+        self.blacklists.update(
+            int(record["snowflake_id"]) for record in blacklisted_objects
+        )
 
         if ticket_kernel_data:
             ticket_kernel_list: List[Tuple] = [
@@ -341,8 +347,8 @@ class BaseBot(commands.Bot):
             ]
             self.highlight_blocked = self.generate_dict_cache(highlight_blocked_data)
 
-        self.locked_objects_ids.append(
-            data["object_id"] for data in locked_objects_ids_data
+        self.locked_objects_ids.extend(
+            int(data["object_id"]) for data in locked_objects_ids_data
         )
 
         for guild_id, prefixes in prefix_data:
@@ -388,7 +394,6 @@ class BaseBot(commands.Bot):
 
     async def on_message(self, message: discord.Message):
         await self.wait_until_ready()
-        afk_data = await self.db.fetch("SELECT * FROM afk")
 
         try:
             if message.author.id in self.blacklists:
@@ -415,10 +420,13 @@ class BaseBot(commands.Bot):
             return
 
         if message.author.id in self.afk:
-            for user in afk_data:
-                time = user["queried_at"]
-                reason = user["reason"]
-            current_time = discord.utils.utcnow() - time
+            reason, timestamp = self.afk.get(message.author.id, (None, None))
+            if reason is None:
+                reason = "Not Specified . . ."
+            if timestamp is None:
+                timestamp = discord.utils.utcnow()
+
+            current_time = discord.utils.utcnow() - timestamp
             await message.reply(
                 f'Welcome back <a:Waves:920726389869641748>. You were afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: "**{humanize.naturaldelta(current_time)}**"\n<:Reply:930634822865547294>` ─ ` reason: {reason}',
                 allowed_mentions=self.mentions,
@@ -426,17 +434,18 @@ class BaseBot(commands.Bot):
             await self.db.execute(
                 "DELETE FROM afk WHERE user_id = $1", message.author.id
             )
-            try:
-                self.afk.pop(message.author.id)
-            except KeyError:
-                return
+            self.afk.pop(message.author.id, None)
 
         for pinged_user in message.mentions:
             if pinged_user.id in self.afk:
-                for data in afk_data:
-                    time = data["queried_at"]
-                    reason = data["reason"]
-                    current_time = discord.utils.utcnow() - time
+                reason, timestamp = self.afk.get(pinged_user.id, (None, None))
+
+                if reason is None:
+                    reason = "Not Specified . . ."
+                if timestamp is None:
+                    timestamp = discord.utils.utcnow()
+
+                current_time = discord.utils.utcnow() - timestamp
                 await message.reply(
                     f"<:Join:932976724235395072> **{pinged_user}** has been afk:\n>>> <:ReplyContinued:930634770004725821>` ─ ` for: {reason}\n<:Reply:930634822865547294>` ─ ` since: {humanize.naturaldelta(current_time)}"
                 )
