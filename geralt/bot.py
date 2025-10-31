@@ -164,9 +164,13 @@ class BaseBot(commands.Bot):
     async def get_context(
         self, message: discord.Message, *, cls=BaseContext
     ) -> BaseContext:
+        """Return the custom :class:`~geralt.context.BaseContext` type."""
+
         return await super().get_context(message, cls=cls)
 
     async def on_error(self, event_method: str, *args: Any, **kwargs: Any) -> None:
+        """Post traceback details to the configured error webhook."""
+
         traceback_string = "".join(
             traceback.format_exception(*(einfo := sys.exc_info()))
         )
@@ -186,6 +190,8 @@ class BaseBot(commands.Bot):
         await session.close()
 
     async def get_prefix(self, message: discord.Message):
+        """Determine the prefixes applicable for the supplied message."""
+
         if self.no_prefix is True and message.author.id in self.owner_ids:
             return ""
         cached = self.prefixes.get((message.guild and message.guild.id), None)
@@ -246,6 +252,8 @@ class BaseBot(commands.Bot):
 
     # load extensions
     async def load_all_extensions(self):
+        """Load every extension listed in :data:`COGS_EXTENSIONS`."""
+
         print(
             f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;34m{time.strftime('%c', time.localtime())}{escape}[0;1;34m ─ Loading all Extensions.{escape}[0m"
         )
@@ -265,6 +273,8 @@ class BaseBot(commands.Bot):
 
     # load cache from db
     async def load_cache(self):
+        """Hydrate in-memory caches from the persistent database."""
+
         afk_data = await self.db.fetch("SELECT * FROM afk")
         meta_data = await self.db.fetch("SELECT * FROM meta")
         snipe_data = await self.db.fetch(
@@ -352,11 +362,15 @@ class BaseBot(commands.Bot):
         )
 
         for guild_id, prefixes in prefix_data:
+            # Normalise the stored prefixes so downstream consumers always
+            # receive at least the default prefix.
             self.prefixes[guild_id] = set(prefixes) or {
                 ".g",
             }
 
     async def setup_hook(self) -> None:
+        """Run post-login setup tasks prior to connecting the websocket."""
+
         self.session: aiohttp.ClientSession = aiohttp.ClientSession()
         self.tree.copy_global_to(guild=discord.Object(id=CONFIG.get("BSODsThings")))
         self.git = GitHub(self.github_token)
@@ -369,6 +383,8 @@ class BaseBot(commands.Bot):
             self.uptime = discord.utils.utcnow()
 
     async def on_ready(self):
+        """Prepare persistent UI views and broadcast startup presence."""
+
         if not self.add_persistent_views:
             self.add_view(Info(self, BaseContext))
             self.add_persistent_views = True
@@ -393,6 +409,8 @@ class BaseBot(commands.Bot):
             await session.close()
 
     async def on_message(self, message: discord.Message):
+        """Handle bookkeeping for AFK reminders and developer-only mode."""
+
         await self.wait_until_ready()
 
         try:
