@@ -111,11 +111,11 @@ class Developer(commands.Cog):
             except Exception:
                 return
             await self.bot.db.execute(query, snowflake.id)
-            return self.bot.blacklists.remove(snowflake)
+            return self.bot.blacklists.discard(snowflake.id)
 
         try:
             await self.bot.db.execute(query, snowflake.id)
-            return self.bot.blacklists.remove(snowflake)
+            return self.bot.blacklists.discard(snowflake.id)
         except Exception as exception:
             await ctx.reply(f"```py\n{exception}\n```")
             await ctx.add_nanocross()
