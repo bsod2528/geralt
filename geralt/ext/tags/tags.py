@@ -358,7 +358,7 @@ class Tags(commands.Cog):
 
     async def tag_transfer(self, ctx: BaseContext, tag_id: int, user: discord.Member):
         tag_deets = await self.bot.db.fetchval(
-            "SELECT (tag_name) FROM tags WHERE id = $1 AND guild_id = $2",
+            "SELECT (tag_name) FROM tags WHERE tag_id = $1 AND guild_id = $2",
             tag_id,
             ctx.guild.id,
         )
@@ -374,11 +374,12 @@ class Tags(commands.Cog):
         ):
             for view in ui.children:
                 view.disabled = True
-            if id != await self.bot.db.fetchval(
-                "SELECT * FROM tags WHERE id = $1 AND author_id = $2",
+            tag_author_id = await self.bot.db.fetchval(
+                "SELECT author_id FROM tags WHERE tag_id = $1 AND guild_id = $2",
                 tag_id,
-                ctx.author.id,
-            ):
+                ctx.guild.id,
+            )
+            if tag_author_id != ctx.author.id:
                 await interaction.response.defer()
                 return await ui.response.edit(
                     content=f'"**{tag_deets}**" (`{tag_id}`) ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>',
@@ -387,7 +388,7 @@ class Tags(commands.Cog):
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(
-                    "UPDATE tags SET author_id = $1, WHERE id = $3 AND guild_id = $4",
+                    "UPDATE tags SET author_id = $1 WHERE tag_id = $2 AND guild_id = $3",
                     user.id,
                     tag_id,
                     ctx.guild.id,
