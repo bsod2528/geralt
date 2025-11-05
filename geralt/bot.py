@@ -23,6 +23,7 @@ from .embed import BaseEmbed
 from .kernel.utilities import override_jsk
 from .kernel.utilities.crucial import WebhookManager
 from .kernel.utilities.extensions import COGS_EXTENSIONS
+from .kernel.utilities.reports import ensure_report_tables
 from .kernel.views.meta import Info
 
 dotenv.load_dotenv()
@@ -129,13 +130,16 @@ class BaseBot(commands.Bot):
         self.meta: Dict[int, List[int]] = {}
         self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
         self.blacklists: Set[discord.Object.id] = set()  # type: ignore
-        self.highlight: Dict[int, Dict[int, List[str]]] = {}
+        self.highlight: Dict[int, Dict[int, List[Dict[str, Any]]]] = {}
         self.ticket_init: Dict[int, List[Any]] = {}
         self.verification: Dict[int, List] = {}
         self.ticket_kernel: Dict[int, List] = {}
         self.highlight_blocked: Dict[int, Dict[int, List]] = {}
         self.locked_objects_ids: List[int] = []
         self.settings: Dict[int, Dict[str, bool]] = {}
+        self.highlight_preferences: Dict[int, Dict[int, Dict[str, Any]]] = {}
+        self.highlight_digest_cache: Dict[int, Dict[int, List[Dict[str, Any]]]] = {}
+        self.snipe_retention_settings: Dict[int, Dict[str, Any]] = {}
 
     def __repr__(self) -> str:
         return "BaseBot"
@@ -143,12 +147,12 @@ class BaseBot(commands.Bot):
     # Credits to qt_haskell [ Lia Marie ] - *sobs*
     def generate_dict_cache(
         self, entries: List[Tuple]
-    ) -> Dict[int, Dict[int, List[str]]]:
+    ) -> Dict[int, Dict[int, List[Any]]]:
         """Generates a dict with the following structure:
 
         x = {
             int: {
-                int: list[str]
+                int: list[Any]
                 }
             }"""
         cache: Dict = {}
@@ -236,6 +240,7 @@ class BaseBot(commands.Bot):
                 DB_URL,
                 init=init,
             )
+            await ensure_report_tables(self.db)
             print(
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())}{escape}[0;1;32m ─ Connection established successfully.{escape}[0m"
             )
@@ -249,6 +254,33 @@ class BaseBot(commands.Bot):
             return print(
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0;1;31m{time.strftime('%c', time.localtime())}{escape}[0;1;31m ─ Couldnt connect due to : {exception}{escape}[0m"
             )
+
+    async def ensure_snipe_infrastructure(self) -> None:
+        """Create tables required for snipe analytics if they are missing."""
+
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS snipe_retention_settings (
+                guild_id BIGINT PRIMARY KEY,
+                retention_days INTEGER NOT NULL DEFAULT 30,
+                anonymize_attachments BOOLEAN NOT NULL DEFAULT FALSE,
+                analytics_opt_out BOOLEAN NOT NULL DEFAULT FALSE,
+                attachment_opt_out BOOLEAN NOT NULL DEFAULT FALSE
+            )
+            """
+        )
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS snipe_metrics (
+                guild_id BIGINT NOT NULL,
+                captured_on DATE NOT NULL,
+                total_messages BIGINT NOT NULL DEFAULT 0,
+                delete_count BIGINT NOT NULL DEFAULT 0,
+                edit_count BIGINT NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, captured_on)
+            )
+            """
+        )
 
     # load extensions
     async def load_all_extensions(self):
@@ -282,6 +314,9 @@ class BaseBot(commands.Bot):
         )
         prefix_data = await self.db.fetch("SELECT guild_id, prefixes FROM prefix")
         guild_settings = await self.db.fetch("SELECT * FROM guild_settings")
+        retention_settings = await self.db.fetch(
+            "SELECT * FROM snipe_retention_settings"
+        )
         highlight_data = await self.db.fetch("SELECT * FROM highlight")
         ticket_init_data = await self.db.fetch("SELECT * FROM ticket_init")
         verification_data = await self.db.fetch("SELECT * FROM verification")
@@ -289,6 +324,12 @@ class BaseBot(commands.Bot):
         ticket_kernel_data = await self.db.fetch("SELECT * FROM ticket_kernel")
         highlight_blocked_data = await self.db.fetch("SELECT * FROM highlight_blocked")
         locked_objects_ids_data = await self.db.fetch("SELECT * FROM channel_lock")
+        try:
+            highlight_preferences_data = await self.db.fetch(
+                "SELECT * FROM highlight_preferences"
+            )
+        except asyncpg.UndefinedTableError:
+            highlight_preferences_data = []
 
         self.afk = {
             data["user_id"]: (data["reason"], data["queried_at"])
@@ -327,10 +368,29 @@ class BaseBot(commands.Bot):
             for data in guild_settings
         }
 
+        default_retention = {
+            "retention_days": 30,
+            "anonymize_attachments": False,
+            "analytics_opt_out": False,
+            "attachment_opt_out": False,
+        }
+        self.snipe_retention_settings = {
+            data["guild_id"]: {
+                "retention_days": data["retention_days"],
+                "anonymize_attachments": data["anonymize_attachments"],
+                "analytics_opt_out": data["analytics_opt_out"],
+                "attachment_opt_out": data["attachment_opt_out"],
+            }
+            for data in retention_settings
+        }
+
         self.snipe_counter = {
             data["guild_id"]: {"delete": 0, "edit": 0, "total_messages": 0}
             for data in snipe_data
         }
+
+        for guild_id in self.settings.keys():
+            self.snipe_retention_settings.setdefault(guild_id, default_retention.copy())
 
         self.blacklists.update(
             int(record["snowflake_id"]) for record in blacklisted_objects
@@ -344,11 +404,22 @@ class BaseBot(commands.Bot):
             self.ticket_kernel = self.generate_dict_cache(ticket_kernel_list)
 
         if highlight_data:
-            highlight_data_list: List[Tuple] = [
-                (data["guild_id"], data["user_id"], data["trigger"])
-                for data in highlight_data
-            ]
+            highlight_data_list: List[Tuple[int, int, Dict[str, Any]]] = []
+            for data in highlight_data:
+                highlight_record = dict(data)
+                trigger_payload: Dict[str, Any] = {
+                    "trigger": highlight_record.get("trigger"),
+                    "scope_type": highlight_record.get("scope_type"),
+                    "scope_id": highlight_record.get("scope_id"),
+                    "snooze_until": highlight_record.get("snooze_until"),
+                    "digest": highlight_record.get("digest"),
+                }
+                highlight_data_list.append(
+                    (data["guild_id"], data["user_id"], trigger_payload)
+                )
             self.highlight = self.generate_dict_cache(highlight_data_list)
+        else:
+            self.highlight = {}
 
         if highlight_blocked_data:
             highlight_blocked_data: List[Tuple] = [
@@ -356,6 +427,21 @@ class BaseBot(commands.Bot):
                 for data in highlight_blocked_data
             ]
             self.highlight_blocked = self.generate_dict_cache(highlight_blocked_data)
+        else:
+            self.highlight_blocked = {}
+
+        if highlight_preferences_data:
+            preference_cache: Dict[int, Dict[int, Dict[str, Any]]] = {}
+            for record in highlight_preferences_data:
+                preference_record = dict(record)
+                guild_dict = preference_cache.setdefault(record["guild_id"], {})
+                guild_dict[record["user_id"]] = {
+                    "digest": preference_record.get("digest", "immediate"),
+                    "next_dispatch": preference_record.get("next_dispatch"),
+                }
+            self.highlight_preferences = preference_cache
+        else:
+            self.highlight_preferences = {}
 
         self.locked_objects_ids.extend(
             int(data["object_id"]) for data in locked_objects_ids_data
@@ -376,6 +462,7 @@ class BaseBot(commands.Bot):
         self.git = GitHub(self.github_token)
 
         await self.connect_to_database()
+        await self.ensure_snipe_infrastructure()
         await self.load_all_extensions()
         await self.load_cache()
 

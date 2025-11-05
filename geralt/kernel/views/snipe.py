@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Optional
+from typing import Awaitable, Callable, Iterable, List, Optional
 
 import discord
 from discord import NotFound
@@ -96,3 +96,55 @@ class EditSnipeAttachmentView(discord.ui.View):
             await self.from_message
         except NotFound:
             return
+
+
+class SnipeAnalyticsView(discord.ui.View):
+    def __init__(
+        self,
+        ctx: BaseContext,
+        refresh: Callable[[int], Awaitable[discord.Embed]],
+        initial_days: int,
+        available_windows: Iterable[int],
+    ):
+        super().__init__(timeout=180)
+        self.ctx = ctx
+        self.refresh = refresh
+        self.days = initial_days
+        self.message: Optional[discord.Message] = None
+
+        options = [
+            discord.SelectOption(
+                label=f"Last {value} day{'s' if value != 1 else ''}",
+                value=str(value),
+                default=value == initial_days,
+            )
+            for value in available_windows
+        ]
+        self.window_select.options = options
+
+    @discord.ui.select(placeholder="Change analytics window", min_values=1, max_values=1)
+    async def window_select(
+        self, interaction: discord.Interaction, select: discord.ui.Select
+    ) -> None:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message(
+                "Only the command invoker can modify this dashboard.",
+                ephemeral=True,
+            )
+            return
+
+        self.days = int(select.values[0])
+        for option in select.options:
+            option.default = option.value == select.values[0]
+
+        embed = await self.refresh(self.days)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            child.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
