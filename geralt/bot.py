@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List, Set, Tuple
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 import asyncpg
@@ -24,6 +24,7 @@ from .kernel.utilities import override_jsk
 from .kernel.utilities.crucial import WebhookManager
 from .kernel.utilities.extensions import COGS_EXTENSIONS
 from .kernel.views.meta import Info
+from .kernel.web import DashboardAPI
 
 dotenv.load_dotenv()
 os.environ["JISHAKU_HIDE"] = "True"
@@ -123,6 +124,7 @@ class BaseBot(commands.Bot):
         self.webhook_manager = WebhookManager()
         self.developer_mode: bool = False
         self.add_persistent_views = False
+        self.dashboard_api: DashboardAPI | None = None
 
         # Attributes for caching.
         self.afk: Dict[int, Tuple[str, datetime.datetime]] = {}
@@ -379,6 +381,16 @@ class BaseBot(commands.Bot):
         await self.load_all_extensions()
         await self.load_cache()
 
+        api_host = CONFIG.get("DASHBOARD_API_HOST") or "0.0.0.0"
+        raw_port = CONFIG.get("DASHBOARD_API_PORT")
+        try:
+            api_port = int(raw_port) if raw_port else 8080
+        except (TypeError, ValueError):
+            api_port = 8080
+
+        self.dashboard_api = DashboardAPI(self)
+        await self.dashboard_api.start(host=api_host, port=api_port)
+
         if not hasattr(self, "uptime"):
             self.uptime = discord.utils.utcnow()
 
@@ -493,6 +505,74 @@ class BaseBot(commands.Bot):
         if after.content != before.content:
             ctx: BaseContext = await self.get_context(after)
             await self.invoke(ctx)
+
+    def dashboard_url(self, guild: discord.Guild | None = None) -> str:
+        base = CONFIG.get("DASHBOARD_BASE_URL") or "https://bsod2528.github.io/pages/projects/geralt/geralt.html"
+        base = base.rstrip("/")
+        if guild is not None:
+            return f"{base}/guilds/{guild.id}/settings"
+        return base
+
+    def guild_configuration_snapshot(self, guild_id: int) -> Dict[str, Any]:
+        prefixes = sorted(self.prefixes.get(guild_id, {".g"}))
+
+        highlight_map = self.highlight.get(guild_id, {})
+        highlight = [
+            {"user_id": user_id, "triggers": sorted(set(triggers))}
+            for user_id, triggers in highlight_map.items()
+        ]
+
+        highlight_blocked_map = self.highlight_blocked.get(guild_id, {})
+        highlight_blocked = [
+            {"user_id": user_id, "object_ids": sorted({*object_ids})}
+            for user_id, object_ids in highlight_blocked_map.items()
+        ]
+
+        ticket_cache = self.ticket_init.get(guild_id)
+        ticket_panel: Optional[Dict[str, Any]] = None
+        if ticket_cache:
+            ticket_panel = {
+                "category_id": ticket_cache[0],
+                "sent_channel_id": ticket_cache[1],
+                "sent_message_id": ticket_cache[2],
+                "jump_url": ticket_cache[3],
+                "panel_description": ticket_cache[4],
+                "id": ticket_cache[5] if len(ticket_cache) > 5 else None,
+            }
+
+        verification_cache = self.verification.get(guild_id)
+        verification_panel: Optional[Dict[str, Any]] = None
+        if verification_cache:
+            verification_panel = {
+                "question": verification_cache[0],
+                "answer": verification_cache[1],
+                "role_id": verification_cache[2],
+                "channel_id": verification_cache[3],
+                "message_id": verification_cache[4],
+            }
+
+        flags = self.settings.get(
+            guild_id,
+            {"convert_url_to_webhook": False, "snipe": False},
+        )
+
+        return {
+            "guild_id": guild_id,
+            "prefixes": prefixes,
+            "highlight": highlight,
+            "highlight_blocked": highlight_blocked,
+            "ticket_panel": ticket_panel,
+            "verification_panel": verification_panel,
+            "flags": flags,
+        }
+
+    async def close(self) -> None:
+        if self.dashboard_api is not None:
+            await self.dashboard_api.stop()
+            self.dashboard_api = None
+        if hasattr(self, "session") and not self.session.closed:
+            await self.session.close()
+        await super().close()
 
 
 geralts_instance = BaseBot()

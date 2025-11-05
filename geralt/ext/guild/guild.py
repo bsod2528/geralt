@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import asyncpg
 import discord
@@ -97,6 +97,102 @@ class Guild(commands.Cog):
             names.append(emote.name)
         names.sort()
         return [app_commands.Choice(name=names, value=names) for names in names][:25]
+
+    @commands.hybrid_command(
+        name="settings",
+        brief="Show the current guild configuration snapshot.",
+        with_app_command=True,
+    )
+    @commands.guild_only()
+    @commands.cooldown(2, 10, commands.BucketType.user)
+    @commands.has_guild_permissions(manage_guild=True)
+    async def settings_overview(self, ctx: BaseContext) -> Optional[discord.Message]:
+        """Summarise the guild configuration cached on the dashboard API."""
+
+        snapshot = self.bot.guild_configuration_snapshot(ctx.guild.id)
+
+        prefixes_display = ", ".join(snapshot["prefixes"]) or "`<none>`"
+        flags = snapshot["flags"]
+        flag_lines = [
+            f"Convert URL Emotes: {'✅' if flags.get('convert_url_to_webhook') else '❌'}",
+            f"Message Sniping: {'✅' if flags.get('snipe') else '❌'}",
+        ]
+
+        def _format_highlight(entries: List[Dict[str, Any]], *, blocked: bool = False) -> str:
+            if not entries:
+                return "No entries configured."
+            lines: List[str] = []
+            limit = 5
+            for entry in entries[:limit]:
+                user = ctx.guild.get_member(entry["user_id"])
+                user_label = user.mention if user else f"`{entry['user_id']}`"
+                values = entry.get("object_ids" if blocked else "triggers", [])
+                display_values = ", ".join(map(str, values[:5])) or "<none>"
+                extra = len(values) - 5
+                if extra > 0:
+                    display_values += f" (+{extra})"
+                lines.append(f"{user_label}: {display_values}")
+            remaining = len(entries) - limit
+            if remaining > 0:
+                lines.append(f"…and {remaining} more entries")
+            return "\n".join(lines)
+
+        highlight_value = _format_highlight(snapshot["highlight"], blocked=False)
+        highlight_blocked_value = _format_highlight(
+            snapshot["highlight_blocked"], blocked=True
+        )
+
+        ticket_panel = snapshot["ticket_panel"]
+        if ticket_panel:
+            ticket_lines = [
+                f"Category: <#{ticket_panel['category_id']}>",
+                f"Channel: <#{ticket_panel['sent_channel_id']}>",
+                f"Message: https://discord.com/channels/{ctx.guild.id}/{ticket_panel['sent_channel_id']}/{ticket_panel['sent_message_id']}",
+            ]
+        else:
+            ticket_lines = ["No active ticket panel."]
+
+        verification_panel = snapshot["verification_panel"]
+        if verification_panel:
+            verification_lines = [
+                f"Question: {verification_panel['question']}",
+                f"Answer: ||{verification_panel['answer']}||",
+                f"Role: <@&{verification_panel['role_id']}>",
+                f"Channel: <#{verification_panel['channel_id']}>",
+            ]
+        else:
+            verification_lines = ["No verification panel configured."]
+
+        embed = BaseEmbed(
+            title=f"{ctx.guild.name} configuration",
+            colour=self.bot.colour,
+            description=f"**Prefixes:** {prefixes_display}",
+        )
+        embed.add_field(name="Feature Flags", value="\n".join(flag_lines), inline=False)
+        embed.add_field(name="Highlight Triggers", value=highlight_value, inline=False)
+        embed.add_field(
+            name="Highlight Blocks", value=highlight_blocked_value, inline=False
+        )
+        embed.add_field(name="Ticket Panel", value="\n".join(ticket_lines), inline=False)
+        embed.add_field(
+            name="Verification Panel",
+            value="\n".join(verification_lines),
+            inline=False,
+        )
+        embed.set_footer(text="Snapshot provided by the dashboard API")
+        if ctx.guild.icon:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        view = discord.ui.View()
+        view.add_item(
+            discord.ui.Button(
+                label="Open Dashboard",
+                emoji="<:AkkoComfy:907104936368685106>",
+                url=self.bot.dashboard_url(ctx.guild),
+            )
+        )
+
+        return await ctx.reply(embed=embed, view=view, mention_author=False)
 
     @commands.hybrid_group(
         name="prefix",
