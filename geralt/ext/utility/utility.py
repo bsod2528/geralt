@@ -1,5 +1,5 @@
 import asyncio
-import asyncio
+
 import datetime
 import imghdr
 import random
@@ -19,7 +19,13 @@ from ...embed import BaseEmbed
 from ...kernel.views.history import SelectUserLogEvents, UserHistory
 from ...kernel.views.meta import Confirmation
 from ...kernel.views.paginator import Paginator
-from ...kernel.views.todo import SeeTask
+from ...kernel.views.todo import (
+    SeeTask,
+    build_task_embed,
+    format_dt,
+    format_priority,
+    format_status,
+)
 
 
 class HighlightBlockDashboard(discord.ui.View):
@@ -432,6 +438,181 @@ class Utility(commands.Cog):
     async def before_weekly_digest(self) -> None:
         await self.bot.wait_until_ready()
 
+    async def cog_load(self) -> None:
+        if not self.todo_due_notifier.is_running():
+            self.todo_due_notifier.start()
+
+    def cog_unload(self) -> None:
+        self.todo_due_notifier.cancel()
+
+    @staticmethod
+    def _minutes_since_midnight(moment: datetime.datetime) -> int:
+        return moment.hour * 60 + moment.minute
+
+    @staticmethod
+    def _within_quiet_hours(
+        start: Optional[int], end: Optional[int], minutes: int
+    ) -> bool:
+        if start is None or end is None:
+            return False
+        if start == end:
+            return False
+        if start < end:
+            return start <= minutes < end
+        return minutes >= start or minutes < end
+
+    async def _send_task_notification(
+        self,
+        row: asyncpg.Record,
+        *,
+        due: bool,
+    ) -> None:
+        row_map = dict(row)
+        user_id: int = row_map["user_id"]
+        user = self.bot.get_user(user_id)
+        if user is None:
+            try:
+                user = await self.bot.fetch_user(user_id)
+            except discord.HTTPException:
+                user = None
+
+        title = "Task Due" if due else "Task Reminder"
+        embed = BaseEmbed(
+            title=title,
+            description=(
+                f"Task **{row_map['task']}** (`ID {row_map['task_id']}`)\n"
+                f"Priority: {format_priority(row_map.get('priority'))}"
+            ),
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Status", value=format_status(row_map.get("status")))
+        embed.add_field(name="Due", value=format_dt(row_map.get("due_at")), inline=False)
+        embed.add_field(
+            name="Reminder",
+            value=format_dt(row_map.get("remind_at")),
+            inline=False,
+        )
+        if row_map.get("jump_url"):
+            embed.add_field(
+                name="Jump to Context",
+                value=f"[Open Message]({row_map['jump_url']})",
+                inline=False,
+            )
+        embed.set_footer(text="Use /todo to update or snooze this task.")
+
+        channel_id: Optional[int] = row_map.get("notify_channel_id")
+        sent = False
+
+        if channel_id is not None:
+            channel = self.bot.get_channel(channel_id)
+            if channel is None:
+                try:
+                    channel = await self.bot.fetch_channel(channel_id)
+                except discord.HTTPException:
+                    channel = None
+            if isinstance(channel, discord.abc.Messageable):
+                content = (
+                    f"{user.mention if user else f'<@{user_id}>'} — "
+                    f"{'is due now' if due else 'here is your reminder'} for `{row_map['task']}`"
+                )
+                try:
+                    await channel.send(
+                        content,
+                        embed=embed,
+                        allowed_mentions=discord.AllowedMentions(users=True),
+                    )
+                    sent = True
+                except (discord.Forbidden, discord.HTTPException):
+                    sent = False
+
+        if not sent and user is not None:
+            try:
+                await user.send(
+                    content=(
+                        f"Your task `{row_map['task']}` is {'due' if due else 'approaching'}."
+                    ),
+                    embed=embed,
+                )
+                sent = True
+            except (discord.Forbidden, discord.HTTPException):
+                sent = False
+
+        if not sent:
+            # As a last resort, log to console.
+            print(
+                f"[TodoNotifier] Failed to deliver notification for task {row_map['task_id']} (user {user_id})."
+            )
+
+    @tasks.loop(minutes=1)
+    async def todo_due_notifier(self) -> None:
+        if not getattr(self.bot, "db", None):
+            return
+        if not self.bot.is_ready():
+            return
+
+        now = discord.utils.utcnow()
+        current_minutes = self._minutes_since_midnight(now)
+
+        reminders = await self.bot.db.fetch(
+            """
+            SELECT t.*, p.quiet_start_minutes AS quiet_start,
+                   p.quiet_end_minutes AS quiet_end,
+                   p.notify_channel_id
+              FROM todo AS t
+         LEFT JOIN todo_preferences AS p
+                ON p.user_id = t.user_id
+             WHERE t.remind_at IS NOT NULL
+               AND t.remind_at <= $1
+               AND t.status != 'completed'
+            """,
+            now,
+        )
+
+        for row in reminders:
+            row_map = dict(row)
+            if self._within_quiet_hours(
+                row_map.get("quiet_start"), row_map.get("quiet_end"), current_minutes
+            ):
+                continue
+            await self._send_task_notification(row, due=False)
+            await self.bot.db.execute(
+                "UPDATE todo SET remind_at = NULL WHERE task_id = $1 AND user_id = $2",
+                row_map["task_id"],
+                row_map["user_id"],
+            )
+
+        due_tasks = await self.bot.db.fetch(
+            """
+            SELECT t.*, p.quiet_start_minutes AS quiet_start,
+                   p.quiet_end_minutes AS quiet_end,
+                   p.notify_channel_id
+              FROM todo AS t
+         LEFT JOIN todo_preferences AS p
+                ON p.user_id = t.user_id
+             WHERE t.due_at IS NOT NULL
+               AND t.due_at <= $1
+               AND t.status NOT IN ('completed', 'cancelled', 'overdue')
+            """,
+            now,
+        )
+
+        for row in due_tasks:
+            row_map = dict(row)
+            if self._within_quiet_hours(
+                row_map.get("quiet_start"), row_map.get("quiet_end"), current_minutes
+            ):
+                continue
+            await self._send_task_notification(row, due=True)
+            await self.bot.db.execute(
+                "UPDATE todo SET status = 'overdue' WHERE task_id = $1 AND user_id = $2",
+                row_map["task_id"],
+                row_map["user_id"],
+            )
+
+    @todo_due_notifier.before_loop
+    async def before_todo_due_notifier(self) -> None:
+        await self.bot.wait_until_ready()
+
     @property
     def emote(self) -> discord.PartialEmoji:
         return discord.PartialEmoji(name="Tools", id=1026029046146007050, animated=True)
@@ -839,20 +1020,43 @@ class Utility(commands.Cog):
             )
         else:
             cleaned_task = task.strip()
+            message = getattr(ctx, "message", None)
+            created_at = getattr(message, "created_at", discord.utils.utcnow())
+            jump_url = getattr(message, "jump_url", None)
             inserted_row = await self.bot.db.fetchrow(
-                "INSERT INTO todo (user_id, task, created_at, jump_url) VALUES ($1, $2, $3, $4) "
-                "RETURNING task_id, created_at",
+                """
+                INSERT INTO todo (
+                    user_id,
+                    task,
+                    created_at,
+                    jump_url,
+                    due_at,
+                    remind_at,
+                    priority,
+                    status
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING task_id, created_at
+                """,
                 ctx.author.id,
                 cleaned_task,
-                ctx.message.created_at,
-                ctx.message.jump_url,
+                created_at,
+                jump_url,
+                None,
+                None,
+                2,
+                "pending",
             )
             todo_add_emb = BaseEmbed(
-                title=f"\U00002728 Todo Added",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{inserted_row['task_id']}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(inserted_row['created_at'], style='D')}",
+                title="\U00002728 Todo Added",
+                description=(
+                    f"<:ReplyContinued:930634770004725821> **Task ID**: `{inserted_row['task_id']}`\n"
+                    f"<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(inserted_row['created_at'], style='F')}"
+                ),
                 colour=self.bot.colour,
             )
-            todo_add_emb.add_field(name="Task :", value=f">>> {cleaned_task}")
+            todo_add_emb.add_field(name="Task", value=f">>> {cleaned_task}")
+            todo_add_emb.add_field(name="Priority", value=format_priority(2))
             todo_add_emb.set_thumbnail(url=ctx.author.display_avatar.url)
 
             await ctx.reply(embed=todo_add_emb)
@@ -877,26 +1081,17 @@ class Utility(commands.Cog):
             return await ctx.reply(
                 f"**{ctx.author}** - Give me a task id for me to fetch details."
             )
-        fetch_task = await self.bot.db.fetch(
+        record = await self.bot.db.fetchrow(
             "SELECT * FROM todo WHERE task_id = $1 AND user_id = $2",
             task_id,
             ctx.author.id,
         )
-        if not fetch_task:
+        if record is None:
             return await ctx.reply(
                 f"Couldn't find a task id of `{task_id}`. Try running another one."
             )
-        for data in fetch_task:
-            todo_show_emb = BaseEmbed(
-                title=f"\U0001f4dc {ctx.author}'s Task Info",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{data[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url** : [**Click Here**]({data[4]})\n<:Reply:930634822865547294> **Noted On** : {self.bot.timestamp(data[3], style='D')}\n────",
-                colour=self.bot.colour,
-            )
-            todo_show_emb.add_field(
-                name="<:Join:932976724235395072> Task :", value=f">>> {data[2]}"
-            )
-            todo_show_emb.set_thumbnail(url=ctx.author.display_avatar.url)
-        todo_see_view = SeeTask(self.bot, ctx, task_id)
+        todo_show_emb = build_task_embed(self.bot, ctx, record)
+        todo_see_view = SeeTask(self.bot, ctx, task_id, task_data=dict(record))
         todo_see_view.message = await ctx.reply(embed=todo_show_emb, view=todo_see_view)
 
     @todo.command(
@@ -906,7 +1101,15 @@ class Utility(commands.Cog):
     async def todo_list(self, ctx: BaseContext) -> Optional[discord.Message]:
         """See your entire todo list."""
         fetch_tasks = await self.bot.db.fetch(
-            f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id
+            """
+            SELECT * FROM todo
+             WHERE user_id = $1
+          ORDER BY (status = 'completed') ASC,
+                   COALESCE(due_at, created_at) ASC,
+                   priority DESC,
+                   task_id ASC
+            """,
+            ctx.author.id,
         )
         if not fetch_tasks:
             return await ctx.reply(
@@ -914,33 +1117,32 @@ class Utility(commands.Cog):
             )
 
         if len(fetch_tasks) == 1:
-            for alpha in fetch_tasks:
-                todo_show_emb = BaseEmbed(
-                    title=f"\U0001f4dc {ctx.author}'s Task Info",
-                    description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{alpha[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url**: [**Click Here**]({alpha[4]})\n<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(alpha[3], style='D')}\n────",
-                    colour=self.bot.colour,
+            record = dict(fetch_tasks[0])
+            embed = build_task_embed(self.bot, ctx, record)
+            embed.title = f"\U0001f4dc {ctx.author}'s Task #{record['task_id']}"
+            embed.set_footer(
+                text=(
+                    f"Status: {format_status(record.get('status'))} | "
+                    f"Priority: {format_priority(record.get('priority'))}"
                 )
-                todo_show_emb.add_field(
-                    name="<:Join:932976724235395072> Task:", value=f">>> {alpha[2]}"
-                )
-                todo_show_emb.set_thumbnail(url=ctx.author.display_avatar.url)
-            return await ctx.reply(embed=todo_show_emb, mention_author=False)
+            )
+            return await ctx.reply(embed=embed, mention_author=False)
 
         serial_no: int = 0
         embed_list: List = []
         for beta in fetch_tasks:
             serial_no += 1
-            todo_embs = BaseEmbed(
-                title=f"\U0001f4dc {ctx.author}'s Todo List",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{beta[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url**: [**Click Here**]({beta[4]})\n<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(beta[3], style='D')}\n────",
-                colour=self.bot.colour,
+            record = dict(beta)
+            todo_embed = build_task_embed(self.bot, ctx, record)
+            todo_embed.title = (
+                f"\U0001f4dc Task #{record['task_id']} — {format_status(record.get('status'))}"
             )
-            todo_embs.add_field(name="Task :", value=f">>> {beta[2]}")
-            todo_embs.set_thumbnail(url=ctx.author.display_avatar.url)
-            todo_embs.set_footer(
-                text=f"Task Index: {serial_no} | Run {ctx.clean_prefix}todo for more help"
+            todo_embed.set_footer(
+                text=(
+                    f"Task Index: {serial_no} | Priority: {format_priority(record.get('priority'))}"
+                )
             )
-            embed_list.append(todo_embs)
+            embed_list.append(todo_embed)
         await Paginator(self.bot, ctx, embed_list).send(ctx)
 
     @todo.command(name="edit", brief="Edit task", with_app_command=True)
@@ -971,15 +1173,173 @@ class Utility(commands.Cog):
             )
         else:
             cleaned_edited = edited.strip()
+            message = getattr(ctx, "message", None)
+            created_at = getattr(message, "created_at", discord.utils.utcnow())
+            jump_url = getattr(message, "jump_url", None)
             await self.bot.db.execute(
                 "UPDATE todo SET task = $1, jump_url = $2, created_at = $3 WHERE task_id = $4 AND user_id = $5",
                 cleaned_edited,
-                ctx.message.jump_url,
-                ctx.message.created_at,
+                jump_url,
+                created_at,
                 task_id,
                 ctx.author.id,
             )
             await ctx.reply(f"Successfully edited **Task ID -** `{task_id}`")
+
+    @todo.group(
+        name="settings",
+        invoke_without_command=True,
+        with_app_command=True,
+    )
+    async def todo_settings(self, ctx: BaseContext) -> Optional[discord.Message]:
+        """Show or configure todo notification preferences."""
+        if ctx.invoked_subcommand is not None:
+            return None
+
+        preferences = await self.bot.db.fetchrow(
+            """
+            SELECT quiet_start_minutes,
+                   quiet_end_minutes,
+                   notify_channel_id
+              FROM todo_preferences
+             WHERE user_id = $1
+            """,
+            ctx.author.id,
+        )
+
+        if preferences is None:
+            description = "No notification preferences configured yet."
+            quiet_hours = "Not set"
+            notify_channel = "DMs"
+        else:
+            pref_map = dict(preferences)
+            start = pref_map.get("quiet_start_minutes")
+            end = pref_map.get("quiet_end_minutes")
+            if start is None or end is None:
+                quiet_hours = "Not set"
+            else:
+                start_dt = datetime.time(hour=start // 60, minute=start % 60)
+                end_dt = datetime.time(hour=end // 60, minute=end % 60)
+                quiet_hours = f"{start_dt.strftime('%H:%M')} → {end_dt.strftime('%H:%M')}"
+
+            channel_id = pref_map.get("notify_channel_id")
+            if channel_id:
+                notify_channel = f"<#{channel_id}>"
+            else:
+                notify_channel = "DMs"
+
+            description = (
+                "Use the subcommands to configure quiet hours or a delivery channel."
+            )
+
+        embed = BaseEmbed(
+            title="\U0001f527 Todo Settings",
+            description=description,
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Quiet Hours", value=quiet_hours, inline=False)
+        embed.add_field(name="Delivery", value=notify_channel, inline=False)
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+
+        return await ctx.reply(embed=embed)
+
+    @todo_settings.command(
+        name="quiet",
+        with_app_command=True,
+    )
+    @app_commands.describe(
+        start="Quiet hours start time in 24h HH:MM format (use 'off' to disable)",
+        end="Quiet hours end time in 24h HH:MM format",
+    )
+    async def todo_settings_quiet(
+        self,
+        ctx: BaseContext,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+    ) -> Optional[discord.Message]:
+        """Configure quiet hours for todo notifications."""
+
+        if start is None and end is None:
+            return await ctx.reply(
+                "Provide `start` and `end` in HH:MM format or pass `off` to disable quiet hours."
+            )
+
+        start_minutes: Optional[int]
+        end_minutes: Optional[int]
+
+        if start and start.lower() in {"off", "none", "disable", "clear"}:
+            start_minutes = None
+            end_minutes = None
+        else:
+            if start is None or end is None:
+                return await ctx.reply(
+                    "Both `start` and `end` times are required to enable quiet hours."
+                )
+            try:
+                start_dt = datetime.datetime.strptime(start, "%H:%M")
+                end_dt = datetime.datetime.strptime(end, "%H:%M")
+            except ValueError:
+                return await ctx.reply(
+                    "Time values must be supplied in 24h HH:MM format."
+                )
+            start_minutes = start_dt.hour * 60 + start_dt.minute
+            end_minutes = end_dt.hour * 60 + end_dt.minute
+
+        await self.bot.db.execute(
+            """
+            INSERT INTO todo_preferences (user_id, quiet_start_minutes, quiet_end_minutes)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id)
+            DO UPDATE SET quiet_start_minutes = EXCLUDED.quiet_start_minutes,
+                          quiet_end_minutes = EXCLUDED.quiet_end_minutes
+            """,
+            ctx.author.id,
+            start_minutes,
+            end_minutes,
+        )
+
+        if start_minutes is None or end_minutes is None:
+            message = "Quiet hours disabled."
+        else:
+            message = (
+                "Quiet hours updated to "
+                f"{start_dt.strftime('%H:%M')} → {end_dt.strftime('%H:%M')} (UTC)."
+            )
+        return await ctx.reply(message)
+
+    @todo_settings.command(
+        name="channel",
+        with_app_command=True,
+    )
+    @app_commands.describe(
+        channel="Channel to ping when tasks are due (leave empty to revert to DMs)",
+    )
+    async def todo_settings_channel(
+        self,
+        ctx: BaseContext,
+        channel: Optional[discord.TextChannel] = None,
+    ) -> Optional[discord.Message]:
+        """Choose where todo notifications should be delivered."""
+
+        channel_id = channel.id if channel else None
+        await self.bot.db.execute(
+            """
+            INSERT INTO todo_preferences (user_id, notify_channel_id)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id)
+            DO UPDATE SET notify_channel_id = EXCLUDED.notify_channel_id
+            """,
+            ctx.author.id,
+            channel_id,
+        )
+
+        if channel is None:
+            return await ctx.reply(
+                "Notifications will now be sent via direct messages."
+            )
+        return await ctx.reply(
+            f"Notifications will now be sent in {channel.mention}."
+        )
 
     @todo.command(
         name="remove",
