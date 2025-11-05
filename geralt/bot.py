@@ -136,6 +136,7 @@ class BaseBot(commands.Bot):
         self.highlight_blocked: Dict[int, Dict[int, List]] = {}
         self.locked_objects_ids: List[int] = []
         self.settings: Dict[int, Dict[str, bool]] = {}
+        self.snipe_retention_settings: Dict[int, Dict[str, Any]] = {}
 
     def __repr__(self) -> str:
         return "BaseBot"
@@ -250,6 +251,33 @@ class BaseBot(commands.Bot):
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0;1;31m{time.strftime('%c', time.localtime())}{escape}[0;1;31m ─ Couldnt connect due to : {exception}{escape}[0m"
             )
 
+    async def ensure_snipe_infrastructure(self) -> None:
+        """Create tables required for snipe analytics if they are missing."""
+
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS snipe_retention_settings (
+                guild_id BIGINT PRIMARY KEY,
+                retention_days INTEGER NOT NULL DEFAULT 30,
+                anonymize_attachments BOOLEAN NOT NULL DEFAULT FALSE,
+                analytics_opt_out BOOLEAN NOT NULL DEFAULT FALSE,
+                attachment_opt_out BOOLEAN NOT NULL DEFAULT FALSE
+            )
+            """
+        )
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS snipe_metrics (
+                guild_id BIGINT NOT NULL,
+                captured_on DATE NOT NULL,
+                total_messages BIGINT NOT NULL DEFAULT 0,
+                delete_count BIGINT NOT NULL DEFAULT 0,
+                edit_count BIGINT NOT NULL DEFAULT 0,
+                PRIMARY KEY (guild_id, captured_on)
+            )
+            """
+        )
+
     # load extensions
     async def load_all_extensions(self):
         """Load every extension listed in :data:`COGS_EXTENSIONS`."""
@@ -282,6 +310,9 @@ class BaseBot(commands.Bot):
         )
         prefix_data = await self.db.fetch("SELECT guild_id, prefixes FROM prefix")
         guild_settings = await self.db.fetch("SELECT * FROM guild_settings")
+        retention_settings = await self.db.fetch(
+            "SELECT * FROM snipe_retention_settings"
+        )
         highlight_data = await self.db.fetch("SELECT * FROM highlight")
         ticket_init_data = await self.db.fetch("SELECT * FROM ticket_init")
         verification_data = await self.db.fetch("SELECT * FROM verification")
@@ -327,10 +358,29 @@ class BaseBot(commands.Bot):
             for data in guild_settings
         }
 
+        default_retention = {
+            "retention_days": 30,
+            "anonymize_attachments": False,
+            "analytics_opt_out": False,
+            "attachment_opt_out": False,
+        }
+        self.snipe_retention_settings = {
+            data["guild_id"]: {
+                "retention_days": data["retention_days"],
+                "anonymize_attachments": data["anonymize_attachments"],
+                "analytics_opt_out": data["analytics_opt_out"],
+                "attachment_opt_out": data["attachment_opt_out"],
+            }
+            for data in retention_settings
+        }
+
         self.snipe_counter = {
             data["guild_id"]: {"delete": 0, "edit": 0, "total_messages": 0}
             for data in snipe_data
         }
+
+        for guild_id in self.settings.keys():
+            self.snipe_retention_settings.setdefault(guild_id, default_retention.copy())
 
         self.blacklists.update(
             int(record["snowflake_id"]) for record in blacklisted_objects
@@ -376,6 +426,7 @@ class BaseBot(commands.Bot):
         self.git = GitHub(self.github_token)
 
         await self.connect_to_database()
+        await self.ensure_snipe_infrastructure()
         await self.load_all_extensions()
         await self.load_cache()
 

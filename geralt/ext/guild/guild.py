@@ -739,14 +739,38 @@ class Guild(commands.Cog):
         if ctx.invoked_subcommand is None:
             return await ctx.command_help()
 
-    @guild.command(
+    async def ensure_retention_defaults(self, guild_id: int) -> None:
+        if guild_id in self.bot.snipe_retention_settings:
+            return
+
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id)
+            VALUES ($1)
+            ON CONFLICT (guild_id) DO NOTHING
+            """,
+            guild_id,
+        )
+        self.bot.snipe_retention_settings[guild_id] = {
+            "retention_days": 30,
+            "anonymize_attachments": False,
+            "analytics_opt_out": False,
+            "attachment_opt_out": False,
+        }
+
+    @guild.group(
         name="snipe",
         brief="Opt - in/out for sniping.",
         aliases=["s"],
         with_app_command=True,
+        invoke_without_command=True,
     )
     async def guild_snipe(self, ctx: BaseContext) -> Optional[discord.Message]:
-        """Opt - in/out for sniping messages!"""
+        """Manage guild snipe settings."""
+
+        if ctx.invoked_subcommand is not None:
+            return None
+
         query: str = (
             "INSERT INTO guild_settings (guild_id, snipe) VALUES ($1, $2) "
             "ON CONFLICT (guild_id) "
@@ -755,7 +779,7 @@ class Guild(commands.Cog):
         data = await self.bot.db.fetchval(
             "SELECT snipe FROM guild_settings WHERE guild_id = $1", ctx.guild.id
         )
-        if data == True:
+        if data is True:
             await ctx.reply(
                 f"I will hereby `not snipe` all edited & deleted messages in **{ctx.guild.name}** \U0001f91d"
             )
@@ -769,6 +793,7 @@ class Guild(commands.Cog):
                 }
             return await self.bot.db.execute(query, ctx.guild.id, False)
 
+        await self.ensure_retention_defaults(ctx.guild.id)
         await ctx.reply(
             f"I will hereby `snipe` all edited & deleted messages in **{ctx.guild.name}** \U0001f91d"
         )
@@ -782,6 +807,124 @@ class Guild(commands.Cog):
             }
         self.bot.snipe_counter.update({"delete": 0, "edit": 0, "total_messages": 0})
         return await self.bot.db.execute(query, ctx.guild.id, True)
+
+    @guild_snipe.command(
+        name="retention",
+        brief="Set how long snipes are retained.",
+        with_app_command=True,
+    )
+    @app_commands.describe(days="Number of days to retain snipes.")
+    async def guild_snipe_retention(
+        self, ctx: BaseContext, days: app_commands.Range[int, 1, 90]
+    ) -> Optional[discord.Message]:
+        """Configure how many days snipe entries are kept."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, retention_days)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET retention_days = EXCLUDED.retention_days
+            """,
+            ctx.guild.id,
+            days,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id]["retention_days"] = days
+        return await ctx.reply(
+            f"Sniped messages will now be retained for **{days}** day{'s' if days != 1 else ''}."
+        )
+
+    @guild_snipe.command(
+        name="anonymise",
+        aliases=["anonymize"],
+        brief="Toggle attachment anonymisation.",
+        with_app_command=True,
+    )
+    @app_commands.describe(enabled="Whether attachment data should be anonymised.")
+    async def guild_snipe_anonymise(
+        self, ctx: BaseContext, enabled: bool
+    ) -> Optional[discord.Message]:
+        """Control whether attachment metadata is anonymised for snipes."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, anonymize_attachments)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET anonymize_attachments = EXCLUDED.anonymize_attachments
+            """,
+            ctx.guild.id,
+            enabled,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id][
+            "anonymize_attachments"
+        ] = enabled
+        state = "anonymised" if enabled else "stored with original metadata"
+        return await ctx.reply(
+            f"Attachments associated with snipes will now be {state}."
+        )
+
+    @guild_snipe.command(
+        name="analytics",
+        brief="Opt in or out of analytics aggregation.",
+        with_app_command=True,
+    )
+    @app_commands.describe(opt_out="Disable analytics collection for this guild.")
+    async def guild_snipe_analytics(
+        self, ctx: BaseContext, opt_out: bool
+    ) -> Optional[discord.Message]:
+        """Enable or disable analytics aggregation for this guild."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, analytics_opt_out)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET analytics_opt_out = EXCLUDED.analytics_opt_out
+            """,
+            ctx.guild.id,
+            opt_out,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id]["analytics_opt_out"] = opt_out
+        message = (
+            "Analytics collection has been disabled."
+            if opt_out
+            else "Analytics collection has been enabled."
+        )
+        return await ctx.reply(message)
+
+    @guild_snipe.command(
+        name="attachments",
+        brief="Opt out of attachment storage entirely.",
+        with_app_command=True,
+    )
+    @app_commands.describe(opt_out="Do not store attachment payloads for snipes.")
+    async def guild_snipe_attachments(
+        self, ctx: BaseContext, opt_out: bool
+    ) -> Optional[discord.Message]:
+        """Opt out of storing attachment payloads for snipes."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, attachment_opt_out)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET attachment_opt_out = EXCLUDED.attachment_opt_out
+            """,
+            ctx.guild.id,
+            opt_out,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id]["attachment_opt_out"] = opt_out
+        message = (
+            "Attachment payloads will no longer be stored."
+            if opt_out
+            else "Attachment payloads will now be stored for snipes."
+        )
+        return await ctx.reply(message)
 
     @guild.command(
         name="auditlog",
