@@ -1,14 +1,16 @@
-from typing import Literal, Optional, Union
+import datetime
+from typing import Dict, Literal, Optional, Union
 
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from ...bot import BaseBot
 from ...context import BaseContext
 from ...embed import BaseEmbed
 from ...kernel.views.meta import Confirmation
 from ...kernel.views.paginator import Paginator
+from .cases import CaseManager, ModerationCase
 
 
 class Moderation(commands.Cog):
@@ -16,6 +18,11 @@ class Moderation(commands.Cog):
 
     def __init__(self, bot: BaseBot):
         self.bot = bot
+        self.case_manager = CaseManager(bot)
+        self._table_initialiser = bot.loop.create_task(
+            self.case_manager.ensure_tables()
+        )
+        self.weekly_summary_dispatcher.start()
 
     async def cog_check(self, ctx: BaseContext) -> Literal[True]:
         if not ctx.guild:
@@ -40,8 +47,47 @@ class Moderation(commands.Cog):
             elif user.top_role > ctx.guild.me.top_role:
                 raise commands.BadArgument(
                     f"{user} has a higher role than me. Raise my powers."
-                )
+            )
             return
+
+    def cog_unload(self) -> None:
+        if not self._table_initialiser.done():
+            self._table_initialiser.cancel()
+        self.weekly_summary_dispatcher.cancel()
+
+    async def _log_case_and_apply_embed(
+        self,
+        ctx: BaseContext,
+        *,
+        target: discord.abc.Snowflake,
+        action: str,
+        reason: Optional[str],
+        embed: BaseEmbed,
+        expires_at: Optional[datetime.datetime] = None,
+        metadata: Optional[Dict[str, Union[str, int, float, bool]]] = None,
+    ) -> ModerationCase:
+        case = await self.case_manager.log_case(
+            ctx.guild,
+            target,
+            ctx.author,
+            action,
+            reason=reason,
+            evidence=self.case_manager.collect_evidence(ctx),
+            expires_at=expires_at,
+            metadata=metadata,
+        )
+        self.case_manager.decorate_embed_with_case(embed, case)
+        return case
+
+    @tasks.loop(hours=1)
+    async def weekly_summary_dispatcher(self) -> None:
+        await self.case_manager.dispatch_weekly_summaries()
+
+    @weekly_summary_dispatcher.before_loop
+    async def before_weekly_summary_dispatcher(self) -> None:
+        if not self._table_initialiser.done():
+            await self._table_initialiser
+        await self.bot.wait_until_ready()
 
     @commands.hybrid_command(name="kick", brief="Kicks User")
     @app_commands.checks.cooldown(5, 3)
@@ -68,6 +114,13 @@ class Moderation(commands.Cog):
             )
             kick_emb.add_field(name="Reason :", value=f"```prolog\n{reason}\n```")
             kick_emb.set_thumbnail(url=user.display_avatar.url)
+            await self._log_case_and_apply_embed(
+                ctx,
+                target=user,
+                action="kick",
+                reason=reason,
+                embed=kick_emb,
+            )
             for view in ui.children:
                 view.disabled = True
             await interaction.response.edit_message(
@@ -118,6 +171,13 @@ class Moderation(commands.Cog):
             )
             ban_emb.add_field(name="Reason :", value=f"```prolog\n{reason}\n```")
             ban_emb.set_thumbnail(url=user.display_avatar.url)
+            await self._log_case_and_apply_embed(
+                ctx,
+                target=user,
+                action="ban",
+                reason=reason,
+                embed=ban_emb,
+            )
             for view in ui.children:
                 view.disabled = True
             await interaction.response.edit_message(
@@ -168,6 +228,13 @@ class Moderation(commands.Cog):
             )
             unban_emb.add_field(name="Reason :", value=f"```prolog\n{reason}\n```")
             unban_emb.set_thumbnail(url=user.display_avatar.url)
+            await self._log_case_and_apply_embed(
+                ctx,
+                target=user,
+                action="unban",
+                reason=reason,
+                embed=unban_emb,
+            )
             for view in ui.children:
                 view.disabled = True
             await interaction.response.edit_message(
@@ -246,6 +313,13 @@ class Moderation(commands.Cog):
                 )
                 mute_emb.add_field(name="Reason :", value=f"```prolog\n{reason}\n```")
                 mute_emb.set_thumbnail(url=user.display_avatar.url)
+                await self._log_case_and_apply_embed(
+                    ctx,
+                    target=user,
+                    action="mute",
+                    reason=reason,
+                    embed=mute_emb,
+                )
                 await user.send(embed=mute_emb)
                 await interaction.response.edit_message(
                     content=f"\u2001", embed=mute_emb, view=ui
@@ -318,6 +392,13 @@ class Moderation(commands.Cog):
             )
             unmute_emb.add_field(name=f"Reason :", value=f"```prolog\n{reason}\n```")
             unmute_emb.set_thumbnail(url=user.display_avatar.url)
+            await self._log_case_and_apply_embed(
+                ctx,
+                target=user,
+                action="unmute",
+                reason=reason,
+                embed=unmute_emb,
+            )
             await user.send(embed=unmute_emb)
             await interaction.response.edit_message(
                 content=f"\u2001", embed=unmute_emb, view=ui
@@ -391,6 +472,156 @@ class Moderation(commands.Cog):
         await ctx.channel.purge(limit=limit, bulk=False)
         return await ctx.send(
             f"Deleted a total of `{limit}` messages.", delete_after=2.5
+        )
+
+    @commands.hybrid_group(
+        name="case",
+        brief="Review and manage moderation cases",
+        with_app_command=True,
+        invoke_without_command=True,
+    )
+    @commands.guild_only()
+    async def case(self, ctx: BaseContext) -> Optional[discord.Message]:
+        """Provide quick access to moderation case utilities."""
+
+        if ctx.invoked_subcommand is not None:
+            return None
+
+        summary_channel_id = await self.case_manager.get_summary_channel(
+            ctx.guild.id
+        )
+        description = [
+            "<:GeraltRightArrow:904740634982760459> `/case review <id>` — Review the stored audit details.",
+            "<:GeraltRightArrow:904740634982760459> `/case appeal <id>` — Submit additional context or request reconsideration.",
+            "<:GeraltRightArrow:904740634982760459> `/case export` — Export logged actions to CSV for auditing.",
+        ]
+        if summary_channel_id:
+            description.append(
+                f"<:GeraltRightArrow:904740634982760459> Weekly summaries post to <#{summary_channel_id}>."
+            )
+        embed = BaseEmbed(
+            title="Moderation Casebook",
+            description="\n".join(description),
+            colour=self.bot.colour,
+        )
+        embed.set_footer(text="Use the sub-commands to interact with logged actions.")
+        return await ctx.reply(embed=embed, mention_author=False)
+
+    @case.command(name="review", with_app_command=True)
+    @app_commands.describe(case_id="The case identifier to review.")
+    @commands.has_guild_permissions(moderate_members=True)
+    async def case_review(self, ctx: BaseContext, case_id: int) -> None:
+        """Display a detailed embed for a stored moderation case."""
+
+        case = await self.case_manager.fetch_case(ctx.guild.id, case_id)
+        if case is None:
+            await ctx.reply(
+                f"No moderation case found for id `#{case_id}`.",
+                mention_author=False,
+            )
+            return
+
+        embed = self.case_manager.render_case_embed(ctx.guild, case)
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @case.command(name="appeal", with_app_command=True)
+    @app_commands.describe(
+        case_id="The case identifier you would like to appeal.",
+        reason="Explain why the action should be reconsidered.",
+    )
+    async def case_appeal(self, ctx: BaseContext, case_id: int, *, reason: str) -> None:
+        """Attach an appeal note to a moderation case."""
+
+        case = await self.case_manager.fetch_case(ctx.guild.id, case_id)
+        if case is None:
+            await ctx.reply(
+                f"No moderation case found for id `#{case_id}`.",
+                mention_author=False,
+            )
+            return
+
+        permissions = ctx.author.guild_permissions
+        if ctx.author.id != case.target_id and not permissions.manage_guild:
+            await ctx.reply(
+                "Only the affected user or guild staff may submit an appeal for this case.",
+                mention_author=False,
+            )
+            return
+
+        updated_case, _ = await self.case_manager.append_appeal(
+            case,
+            ctx.author,
+            reason,
+            self.case_manager.collect_evidence(ctx),
+        )
+        embed = self.case_manager.render_case_embed(ctx.guild, updated_case)
+        await ctx.reply(
+            f"Appeal recorded for case `#{case_id}`.",
+            embed=embed,
+            mention_author=False,
+        )
+
+        summary_channel = await self.case_manager.get_summary_destination(
+            ctx.guild.id
+        )
+        if summary_channel is not None:
+            try:
+                await summary_channel.send(
+                    f"New appeal submitted by {ctx.author.mention} for case `#{case_id}`:",
+                    embed=embed,
+                    allowed_mentions=self.bot.mentions,
+                )
+            except discord.HTTPException:
+                pass
+
+    @case.command(name="export", with_app_command=True)
+    @app_commands.describe(
+        member="Optionally limit the export to a specific member's cases."
+    )
+    @commands.has_guild_permissions(moderate_members=True)
+    async def case_export(
+        self, ctx: BaseContext, member: Optional[Union[discord.Member, discord.User]] = None
+    ) -> None:
+        """Export stored cases as a CSV attachment."""
+
+        file = await self.case_manager.export_cases(
+            ctx.guild.id, target_id=getattr(member, "id", None)
+        )
+        if file is None:
+            await ctx.reply(
+                "There are no cases recorded for the requested scope.",
+                mention_author=False,
+            )
+            return
+
+        await ctx.reply(
+            "Here is the exported moderation case data.",
+            file=file,
+            mention_author=False,
+        )
+
+    @case.command(name="summary_channel", with_app_command=True)
+    @app_commands.describe(
+        channel="Staff channel that should receive weekly summaries. Leave empty to disable."
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    async def case_summary_channel(
+        self, ctx: BaseContext, channel: Optional[discord.TextChannel] = None
+    ) -> None:
+        """Configure the destination channel for weekly moderation summaries."""
+
+        channel_id = channel.id if channel is not None else None
+        await self.case_manager.set_summary_channel(ctx.guild.id, channel_id)
+        if channel_id is None:
+            await ctx.reply(
+                "Weekly moderation summaries have been disabled for this guild.",
+                mention_author=False,
+            )
+            return
+
+        await ctx.reply(
+            f"Weekly moderation summaries will now post in {channel.mention}.",
+            mention_author=False,
         )
 
     @commands.hybrid_group(
