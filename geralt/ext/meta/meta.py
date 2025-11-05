@@ -191,9 +191,13 @@ class Meta(commands.Cog):
     @commands.cooldown(2, 10, commands.BucketType.user)
     async def info(self, ctx: BaseContext) -> Optional[discord.Message]:
         """Receive full information regarding me."""
+        dashboard_url = self.bot.dashboard_url(ctx.guild)
         description: str = (
             f"Hi <a:Waves:920726389869641748> I am [**Geralt**](https://bsod2528.github.io/pages/projects/geralt/geralt.html) Da Bot ! I am a locally hosted **open source** bot made for fun as my dev has no idea what he's doing. "
             f"Since I'm locally hosted, I suck. Made with love by **thebluescreenofdeath**\n\n>>> <:GeraltRightArrow:904740634982760459> Came to Discord on <t:{round(ctx.me.created_at.timestamp())}:f>\n<:GeraltRightArrow:904740634982760459> You can check out my [**Dashboard**](https://bsod2528.github.io/Posts/Geralt) or by clicking the `Dashboard` button :D"
+        )
+        description = description.replace(
+            "https://bsod2528.github.io/Posts/Geralt", dashboard_url
         )
         info_emb = BaseEmbed(
             title="<:WinGIT:898591166864441345> __Geralt : Da Bot__",

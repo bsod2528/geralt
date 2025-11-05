@@ -148,11 +148,13 @@ class Info(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
         self.ctx = ctx
+        guild = getattr(ctx, "guild", None)
+        dashboard_url = bot.dashboard_url(guild if isinstance(guild, discord.Guild) else None)
         self.add_item(
             discord.ui.Button(
-                label="Dashboard",
+                label="Open Dashboard",
                 emoji="<:AkkoComfy:907104936368685106>",
-                url="https://bsod2528.me/pages/projects/geralt/geralt.html",
+                url=dashboard_url,
             )
         )
         self.add_item(
