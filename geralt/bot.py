@@ -23,6 +23,7 @@ from .embed import BaseEmbed
 from .kernel.utilities import override_jsk
 from .kernel.utilities.crucial import WebhookManager
 from .kernel.utilities.extensions import COGS_EXTENSIONS
+from .kernel.utilities.reports import ensure_report_tables
 from .kernel.views.meta import Info
 
 dotenv.load_dotenv()
@@ -236,6 +237,7 @@ class BaseBot(commands.Bot):
                 DB_URL,
                 init=init,
             )
+            await ensure_report_tables(self.db)
             print(
                 f"{escape}[0;1;37;40m > {escape}[0m {escape}[0;1;35m──{escape}[0m {escape}[0;1;32m{time.strftime('%c', time.localtime())}{escape}[0;1;32m ─ Connection established successfully.{escape}[0m"
             )
