@@ -1,4 +1,6 @@
 import asyncio
+
+import datetime
 import imghdr
 import random
 from io import BytesIO
@@ -9,7 +11,7 @@ import asyncpg
 import discord
 import humanize
 from discord import NotFound, app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
@@ -17,7 +19,113 @@ from ...embed import BaseEmbed
 from ...kernel.views.history import SelectUserLogEvents, UserHistory
 from ...kernel.views.meta import Confirmation
 from ...kernel.views.paginator import Paginator
-from ...kernel.views.todo import SeeTask
+from ...kernel.views.todo import (
+    SeeTask,
+    build_task_embed,
+    format_dt,
+    format_priority,
+    format_status,
+)
+
+
+class HighlightBlockDashboard(discord.ui.View):
+    """Interactive dashboard view for highlight block management."""
+
+    def __init__(
+        self,
+        bot: BaseBot,
+        guild: discord.Guild,
+        blocked_map: Dict[int, List[int]],
+    ) -> None:
+        super().__init__(timeout=180)
+        self.bot = bot
+        self.guild = guild
+        self.blocked_map = blocked_map
+        self.mode: str = "all"
+        self.message: Optional[discord.Message] = None
+
+    async def start(self, ctx: BaseContext) -> None:
+        embed = self._build_embed()
+        self.message = await ctx.reply(
+            embed=embed,
+            view=self,
+            mention_author=False,
+        )
+
+    def _build_embed(self) -> BaseEmbed:
+        description: List[str] = []
+        serial = 1
+        for user_id, objects in self.blocked_map.items():
+            if not objects:
+                continue
+            actor = self.guild.get_member(user_id)
+            if actor is None:
+                continue
+            for object_id in objects:
+                entry_object = (
+                    self.guild.get_member(object_id)
+                    or self.guild.get_role(object_id)
+                )
+                if entry_object is None:
+                    continue
+                if self.mode == "members" and not isinstance(
+                    entry_object, discord.Member
+                ):
+                    continue
+                if self.mode == "roles" and not isinstance(
+                    entry_object, discord.Role
+                ):
+                    continue
+                description.append(
+                    f"**{serial}.** {actor.mention} blocked {entry_object.mention}"
+                )
+                serial += 1
+
+        if not description:
+            description.append("No entries match the current filter.")
+
+        embed = BaseEmbed(
+            title="Highlight Block Dashboard",
+            description="\n".join(description[:25]),
+            colour=self.bot.colour,
+        )
+        embed.set_footer(text=f"Viewing: {self.mode.title()} entries")
+        return embed
+
+    async def _update_view(self, interaction: discord.Interaction) -> None:
+        if not self.message:
+            return
+        await interaction.response.edit_message(
+            embed=self._build_embed(),
+            view=self,
+        )
+
+    @discord.ui.button(label="All", style=discord.ButtonStyle.secondary)
+    async def show_all(
+        self,
+        interaction: discord.Interaction,
+        _: discord.ui.Button,
+    ) -> None:
+        self.mode = "all"
+        await self._update_view(interaction)
+
+    @discord.ui.button(label="Members", style=discord.ButtonStyle.primary)
+    async def show_members(
+        self,
+        interaction: discord.Interaction,
+        _: discord.ui.Button,
+    ) -> None:
+        self.mode = "members"
+        await self._update_view(interaction)
+
+    @discord.ui.button(label="Roles", style=discord.ButtonStyle.success)
+    async def show_roles(
+        self,
+        interaction: discord.Interaction,
+        _: discord.ui.Button,
+    ) -> None:
+        self.mode = "roles"
+        await self._update_view(interaction)
 
 
 class Utility(commands.Cog):
@@ -30,6 +138,480 @@ class Utility(commands.Cog):
             callback=self.highlight_block_context_menu,
         )
         self.bot.tree.add_command(self.context_menu)
+        self.digest_dispatch_lock = asyncio.Lock()
+        self.daily_digest_dispatch.start()
+        self.weekly_digest_dispatch.start()
+
+    def cog_unload(self) -> None:
+        self.daily_digest_dispatch.cancel()
+        self.weekly_digest_dispatch.cancel()
+
+    @staticmethod
+    def _parse_duration(duration: Optional[str]) -> Optional[datetime.timedelta]:
+        if not duration:
+            return None
+
+        duration = duration.strip().lower()
+        if duration in {"0", "off", "none"}:
+            return datetime.timedelta()
+
+        total_seconds = 0
+        current = ""
+        for char in duration:
+            if char.isdigit():
+                current += char
+                continue
+            if not current:
+                return None
+            multiplier = {
+                "s": 1,
+                "m": 60,
+                "h": 3600,
+                "d": 86400,
+            }.get(char)
+            if multiplier is None:
+                return None
+            total_seconds += int(current) * multiplier
+            current = ""
+
+        if current:
+            total_seconds += int(current)
+
+        if total_seconds <= 0:
+            return None
+        return datetime.timedelta(seconds=total_seconds)
+
+    @staticmethod
+    def _trigger_matches_scope(
+        scope_type: Optional[str],
+        scope_id: Optional[int],
+        message: discord.Message,
+    ) -> bool:
+        if not scope_type or not scope_id:
+            return True
+
+        if scope_type == "channel":
+            return message.channel.id == scope_id
+        if scope_type == "category":
+            return getattr(message.channel, "category_id", None) == scope_id
+        return True
+
+    @staticmethod
+    def _is_snoozed(
+        snooze_until: Optional[datetime.datetime],
+    ) -> bool:
+        if snooze_until is None:
+            return False
+        if isinstance(snooze_until, datetime.datetime):
+            if snooze_until.tzinfo is None:
+                snooze_until = snooze_until.replace(tzinfo=datetime.timezone.utc)
+            return snooze_until > discord.utils.utcnow()
+        return False
+
+    def _get_digest_preference(
+        self,
+        guild_id: int,
+        user_id: int,
+        trigger_digest: Optional[str],
+    ) -> str:
+        if trigger_digest and trigger_digest != "inherit":
+            return trigger_digest
+
+        guild_preferences = self.bot.highlight_preferences.get(guild_id, {})
+        preference = guild_preferences.get(user_id, {})
+        return preference.get("digest", "immediate")
+
+    async def _queue_digest(
+        self,
+        guild: discord.Guild,
+        user: discord.Member,
+        trigger: str,
+        message: discord.Message,
+        preference: str,
+    ) -> None:
+        async with self.digest_dispatch_lock:
+            guild_queue = self.bot.highlight_digest_cache.setdefault(guild.id, {})
+            user_queue = guild_queue.setdefault(user.id, [])
+            user_queue.append(
+                {
+                    "trigger": trigger,
+                    "content": message.content[:1000],
+                    "channel_id": message.channel.id,
+                    "message_url": message.jump_url,
+                    "created_at": discord.utils.utcnow(),
+                }
+            )
+
+            guild_preferences = self.bot.highlight_preferences.setdefault(guild.id, {})
+            user_preferences = guild_preferences.setdefault(
+                user.id,
+                {
+                    "digest": preference,
+                    "next_dispatch": None,
+                },
+            )
+            user_preferences["digest"] = preference
+            next_dispatch = user_preferences.get("next_dispatch")
+            now = discord.utils.utcnow()
+            delta = datetime.timedelta(days=1 if preference == "daily" else 7)
+            if not next_dispatch or next_dispatch <= now:
+                user_preferences["next_dispatch"] = now + delta
+
+            try:
+                await self.bot.db.execute(
+                    """
+                    INSERT INTO highlight_preferences (user_id, guild_id, digest, next_dispatch)
+                    VALUES ($1, $2, $3, $4)
+                    ON CONFLICT (user_id, guild_id)
+                    DO UPDATE SET digest = EXCLUDED.digest, next_dispatch = EXCLUDED.next_dispatch
+                    """,
+                    user.id,
+                    guild.id,
+                    user_preferences["digest"],
+                    user_preferences["next_dispatch"],
+                )
+            except Exception:
+                pass
+
+    async def _refresh_highlight_cache(self) -> None:
+        highlight_data = await self.bot.db.fetch("SELECT * FROM highlight")
+        if not highlight_data:
+            self.bot.highlight = {}
+            return
+
+        highlight_data_list: List[Tuple[int, int, Dict[str, Union[str, int, None]]]] = []
+        for record in highlight_data:
+            record_dict = dict(record)
+            highlight_data_list.append(
+                (
+                    record["guild_id"],
+                    record["user_id"],
+                    {
+                        "trigger": record_dict.get("trigger"),
+                        "scope_type": record_dict.get("scope_type"),
+                        "scope_id": record_dict.get("scope_id"),
+                        "snooze_until": record_dict.get("snooze_until"),
+                        "digest": record_dict.get("digest"),
+                    },
+                )
+            )
+        self.bot.highlight = self.bot.generate_dict_cache(highlight_data_list)
+
+    async def log_highlight_audit(
+        self,
+        guild_id: int,
+        actor_id: int,
+        target_id: int,
+        action: str,
+        scope: str,
+    ) -> None:
+        timestamp = discord.utils.utcnow()
+        try:
+            await self.bot.db.execute(
+                "INSERT INTO highlight_audit VALUES ($1, $2, $3, $4, $5, $6)",
+                guild_id,
+                actor_id,
+                target_id,
+                action,
+                scope,
+                timestamp,
+            )
+        except Exception:
+            pass
+
+        channel_id = CONFIG.get("HIGHLIGHT_AUDIT_CHANNEL")
+        if not channel_id:
+            return
+        channel = self.bot.get_channel(int(channel_id))
+        if channel is None:
+            return
+
+        embed = BaseEmbed(
+            title="Highlight Audit Log",
+            description=(
+                f"Action: **{action.title()}**\n"
+                f"Actor: <@{actor_id}>\n"
+                f"Target: <@{target_id}>\n"
+                f"Scope: `{scope}`"
+            ),
+            colour=self.bot.colour,
+        )
+        embed.set_footer(text=f"Logged at {self.bot.timestamp(timestamp, style='F')}")
+        try:
+            await channel.send(embed=embed)
+        except Exception:
+            pass
+
+    async def _dispatch_digests(self, frequency: str) -> None:
+        now = discord.utils.utcnow()
+        delta = datetime.timedelta(days=1 if frequency == "daily" else 7)
+
+        async with self.digest_dispatch_lock:
+            queue_snapshot = {
+                guild_id: {user_id: list(entries) for user_id, entries in users.items()}
+                for guild_id, users in self.bot.highlight_digest_cache.items()
+            }
+
+        for guild_id, user_entries in queue_snapshot.items():
+            guild = self.bot.get_guild(guild_id)
+            if guild is None:
+                continue
+
+            for user_id, entries in user_entries.items():
+                if not entries:
+                    continue
+
+                preference = (
+                    self.bot.highlight_preferences.get(guild_id, {}).get(user_id, {})
+                )
+                if preference.get("digest") != frequency:
+                    continue
+
+                next_dispatch = preference.get("next_dispatch")
+                if (
+                    isinstance(next_dispatch, datetime.datetime)
+                    and next_dispatch > now
+                ):
+                    continue
+
+                member = guild.get_member(user_id)
+                user: Optional[discord.abc.User] = member or self.bot.get_user(user_id)
+                if user is None:
+                    continue
+
+                lines: List[str] = []
+                for entry in entries[:15]:
+                    channel = guild.get_channel(entry.get("channel_id"))
+                    channel_mention = channel.mention if channel else "a deleted channel"
+                    lines.append(
+                        (
+                            f"> `{entry.get('trigger')}` in {channel_mention}\n"
+                            f"> [Jump to message]({entry.get('message_url')}) • {self.bot.timestamp(entry.get('created_at'), style='R') if entry.get('created_at') else 'Recently'}"
+                        )
+                    )
+
+                digest_embed = BaseEmbed(
+                    title=f"{guild.name} — {frequency.title()} Highlight Digest",
+                    description="\n".join(lines) or "No highlights recorded during this window.",
+                    colour=self.bot.colour,
+                )
+
+                try:
+                    await user.send(embed=digest_embed)
+                except discord.HTTPException:
+                    continue
+
+                async with self.digest_dispatch_lock:
+                    if guild_id in self.bot.highlight_digest_cache:
+                        self.bot.highlight_digest_cache[guild_id][user_id] = []
+
+                preference["next_dispatch"] = now + delta
+                try:
+                    await self.bot.db.execute(
+                        """
+                        INSERT INTO highlight_preferences (user_id, guild_id, digest, next_dispatch)
+                        VALUES ($1, $2, $3, $4)
+                        ON CONFLICT (user_id, guild_id)
+                        DO UPDATE SET digest = EXCLUDED.digest, next_dispatch = EXCLUDED.next_dispatch
+                        """,
+                        user_id,
+                        guild_id,
+                        frequency,
+                        preference["next_dispatch"],
+                    )
+                except Exception:
+                    pass
+
+    @tasks.loop(minutes=30)
+    async def daily_digest_dispatch(self) -> None:
+        await self._dispatch_digests("daily")
+
+    @tasks.loop(hours=1)
+    async def weekly_digest_dispatch(self) -> None:
+        await self._dispatch_digests("weekly")
+
+    @daily_digest_dispatch.before_loop
+    async def before_daily_digest(self) -> None:
+        await self.bot.wait_until_ready()
+
+    @weekly_digest_dispatch.before_loop
+    async def before_weekly_digest(self) -> None:
+        await self.bot.wait_until_ready()
+
+    async def cog_load(self) -> None:
+        if not self.todo_due_notifier.is_running():
+            self.todo_due_notifier.start()
+
+    def cog_unload(self) -> None:
+        self.todo_due_notifier.cancel()
+
+    @staticmethod
+    def _minutes_since_midnight(moment: datetime.datetime) -> int:
+        return moment.hour * 60 + moment.minute
+
+    @staticmethod
+    def _within_quiet_hours(
+        start: Optional[int], end: Optional[int], minutes: int
+    ) -> bool:
+        if start is None or end is None:
+            return False
+        if start == end:
+            return False
+        if start < end:
+            return start <= minutes < end
+        return minutes >= start or minutes < end
+
+    async def _send_task_notification(
+        self,
+        row: asyncpg.Record,
+        *,
+        due: bool,
+    ) -> None:
+        row_map = dict(row)
+        user_id: int = row_map["user_id"]
+        user = self.bot.get_user(user_id)
+        if user is None:
+            try:
+                user = await self.bot.fetch_user(user_id)
+            except discord.HTTPException:
+                user = None
+
+        title = "Task Due" if due else "Task Reminder"
+        embed = BaseEmbed(
+            title=title,
+            description=(
+                f"Task **{row_map['task']}** (`ID {row_map['task_id']}`)\n"
+                f"Priority: {format_priority(row_map.get('priority'))}"
+            ),
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Status", value=format_status(row_map.get("status")))
+        embed.add_field(name="Due", value=format_dt(row_map.get("due_at")), inline=False)
+        embed.add_field(
+            name="Reminder",
+            value=format_dt(row_map.get("remind_at")),
+            inline=False,
+        )
+        if row_map.get("jump_url"):
+            embed.add_field(
+                name="Jump to Context",
+                value=f"[Open Message]({row_map['jump_url']})",
+                inline=False,
+            )
+        embed.set_footer(text="Use /todo to update or snooze this task.")
+
+        channel_id: Optional[int] = row_map.get("notify_channel_id")
+        sent = False
+
+        if channel_id is not None:
+            channel = self.bot.get_channel(channel_id)
+            if channel is None:
+                try:
+                    channel = await self.bot.fetch_channel(channel_id)
+                except discord.HTTPException:
+                    channel = None
+            if isinstance(channel, discord.abc.Messageable):
+                content = (
+                    f"{user.mention if user else f'<@{user_id}>'} — "
+                    f"{'is due now' if due else 'here is your reminder'} for `{row_map['task']}`"
+                )
+                try:
+                    await channel.send(
+                        content,
+                        embed=embed,
+                        allowed_mentions=discord.AllowedMentions(users=True),
+                    )
+                    sent = True
+                except (discord.Forbidden, discord.HTTPException):
+                    sent = False
+
+        if not sent and user is not None:
+            try:
+                await user.send(
+                    content=(
+                        f"Your task `{row_map['task']}` is {'due' if due else 'approaching'}."
+                    ),
+                    embed=embed,
+                )
+                sent = True
+            except (discord.Forbidden, discord.HTTPException):
+                sent = False
+
+        if not sent:
+            # As a last resort, log to console.
+            print(
+                f"[TodoNotifier] Failed to deliver notification for task {row_map['task_id']} (user {user_id})."
+            )
+
+    @tasks.loop(minutes=1)
+    async def todo_due_notifier(self) -> None:
+        if not getattr(self.bot, "db", None):
+            return
+        if not self.bot.is_ready():
+            return
+
+        now = discord.utils.utcnow()
+        current_minutes = self._minutes_since_midnight(now)
+
+        reminders = await self.bot.db.fetch(
+            """
+            SELECT t.*, p.quiet_start_minutes AS quiet_start,
+                   p.quiet_end_minutes AS quiet_end,
+                   p.notify_channel_id
+              FROM todo AS t
+         LEFT JOIN todo_preferences AS p
+                ON p.user_id = t.user_id
+             WHERE t.remind_at IS NOT NULL
+               AND t.remind_at <= $1
+               AND t.status != 'completed'
+            """,
+            now,
+        )
+
+        for row in reminders:
+            row_map = dict(row)
+            if self._within_quiet_hours(
+                row_map.get("quiet_start"), row_map.get("quiet_end"), current_minutes
+            ):
+                continue
+            await self._send_task_notification(row, due=False)
+            await self.bot.db.execute(
+                "UPDATE todo SET remind_at = NULL WHERE task_id = $1 AND user_id = $2",
+                row_map["task_id"],
+                row_map["user_id"],
+            )
+
+        due_tasks = await self.bot.db.fetch(
+            """
+            SELECT t.*, p.quiet_start_minutes AS quiet_start,
+                   p.quiet_end_minutes AS quiet_end,
+                   p.notify_channel_id
+              FROM todo AS t
+         LEFT JOIN todo_preferences AS p
+                ON p.user_id = t.user_id
+             WHERE t.due_at IS NOT NULL
+               AND t.due_at <= $1
+               AND t.status NOT IN ('completed', 'cancelled', 'overdue')
+            """,
+            now,
+        )
+
+        for row in due_tasks:
+            row_map = dict(row)
+            if self._within_quiet_hours(
+                row_map.get("quiet_start"), row_map.get("quiet_end"), current_minutes
+            ):
+                continue
+            await self._send_task_notification(row, due=True)
+            await self.bot.db.execute(
+                "UPDATE todo SET status = 'overdue' WHERE task_id = $1 AND user_id = $2",
+                row_map["task_id"],
+                row_map["user_id"],
+            )
+
+    @todo_due_notifier.before_loop
+    async def before_todo_due_notifier(self) -> None:
+        await self.bot.wait_until_ready()
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -47,6 +629,14 @@ class Utility(commands.Cog):
                 member.id,
                 "member",
                 discord.utils.utcnow(),
+            )
+
+            await self.log_highlight_audit(
+                interaction.guild.id,
+                interaction.user.id,
+                member.id,
+                "block",
+                "member",
             )
 
             # Regenerate the cache after the insert
@@ -77,6 +667,14 @@ class Utility(commands.Cog):
                 interaction.user.id,
                 interaction.guild.id,
                 member.id,
+            )
+
+            await self.log_highlight_audit(
+                interaction.guild.id,
+                interaction.user.id,
+                member.id,
+                "unblock",
+                "member",
             )
 
             # Regenerate the cache after the delete
@@ -136,19 +734,31 @@ class Utility(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         try:
-            cached_names = self.bot.highlight[interaction.guild.id][interaction.user.id]
-            return [
-                app_commands.Choice(name=cached_names, value=cached_names)
-                for cached_names in cached_names
-                if current.lower() in cached_names
+            cached_entries = self.bot.highlight[interaction.guild.id][
+                interaction.user.id
             ]
+            choices = []
+            seen: set[str] = set()
+            for entry in cached_entries:
+                trigger_word = entry.get("trigger")
+                if not trigger_word:
+                    continue
+                if current.lower() not in trigger_word:
+                    continue
+                if trigger_word in seen:
+                    continue
+                seen.add(trigger_word)
+                choices.append(
+                    app_commands.Choice(name=trigger_word, value=trigger_word)
+                )
+            return choices
         except KeyError:
             trigger_list = await self.bot.db.fetch(
                 "SELECT * FROM highlight WHERE user_id = $1 AND guild_id = $2",
                 interaction.user.id,
                 interaction.guild.id,
             )
-            names = [f"{data[2]}" for data in trigger_list]
+            names = [str(data["trigger"]) for data in trigger_list]
         try:
             return [
                 app_commands.Choice(name=names, value=names)
@@ -186,40 +796,103 @@ class Utility(commands.Cog):
             pass
 
         if self.bot.highlight:
-            for key, value in self.bot.highlight.items():
-                if message.guild.id == key:
-                    for user_id, trigger_list in value.items():
-                        for trigger in trigger_list:
-                            if trigger in message.content.lower():
-                                user = message.guild.get_member(user_id)
-                                if user is None or message.author.id == user.id:
-                                    continue
-                                highlight_emb = await self.generate_highlight_emb(
-                                    message, str(user.id)
-                                )
-                                if not highlight_emb:
-                                    return
+            guild_cache = self.bot.highlight.get(message.guild.id, {})
+            if not guild_cache:
+                return
 
-                                emotes: List[discord.Emoji] = [
-                                    "<a:Jump:1024989069157077062>",
-                                    "<a:Click:973748305416835102>",
-                                    "<a:ChainLink:936158619030941706>",
-                                    "<a:WumpusVibe:905457020575031358>",
-                                ]
+            content_lower = message.content.lower()
+            now = discord.utils.utcnow()
+            for user_id, trigger_entries in guild_cache.items():
+                user = message.guild.get_member(user_id)
+                if user is None or message.author.id == user.id:
+                    continue
 
-                                jump_url_component = discord.ui.View()
-                                jump_url_component.add_item(
-                                    discord.ui.Button(
-                                        label="Jump to Message",
-                                        emoji=random.choice(emotes),
-                                        url=message.jump_url,
-                                    )
+                for entry in trigger_entries:
+                    trigger_word = entry.get("trigger")
+                    if not trigger_word:
+                        continue
+                    if trigger_word not in content_lower:
+                        continue
+                    scope_type = entry.get("scope_type")
+                    scope_id = entry.get("scope_id")
+                    snooze_until = entry.get("snooze_until")
+
+                    if not self._trigger_matches_scope(scope_type, scope_id, message):
+                        continue
+
+                    if snooze_until and isinstance(snooze_until, datetime.datetime):
+                        if snooze_until <= now:
+                            try:
+                                await self.bot.db.execute(
+                                    """
+                                    UPDATE highlight
+                                    SET snooze_until = NULL
+                                    WHERE user_id = $1 AND guild_id = $2 AND trigger = $3
+                                      AND COALESCE(scope_type, '') = COALESCE($4, '')
+                                      AND COALESCE(scope_id, 0) = COALESCE($5, 0)
+                                    """,
+                                    user.id,
+                                    message.guild.id,
+                                    trigger_word,
+                                    scope_type,
+                                    scope_id,
                                 )
-                                return await user.send(
-                                    content=f"In {message.channel.mention} for **{message.guild}** you were highlighted with the word `{trigger}`!",
-                                    embed=highlight_emb,
-                                    view=jump_url_component,
-                                )
+                                entry["snooze_until"] = None
+                            except Exception:
+                                pass
+                        elif self._is_snoozed(snooze_until):
+                            continue
+
+                    digest_preference = self._get_digest_preference(
+                        message.guild.id,
+                        user.id,
+                        entry.get("digest"),
+                    )
+
+                    highlight_emb = await self.generate_highlight_emb(
+                        message, str(user.id)
+                    )
+                    if not highlight_emb:
+                        continue
+
+                    emotes: List[str] = [
+                        "<a:Jump:1024989069157077062>",
+                        "<a:Click:973748305416835102>",
+                        "<a:ChainLink:936158619030941706>",
+                        "<a:WumpusVibe:905457020575031358>",
+                    ]
+
+                    jump_url_component = discord.ui.View()
+                    jump_url_component.add_item(
+                        discord.ui.Button(
+                            label="Jump to Message",
+                            emoji=random.choice(emotes),
+                            url=message.jump_url,
+                        )
+                    )
+
+                    if digest_preference == "immediate":
+                        try:
+                            await user.send(
+                                content=(
+                                    f"In {message.channel.mention} for **{message.guild}** "
+                                    f"you were highlighted with the word `{trigger_word}`!"
+                                ),
+                                embed=highlight_emb,
+                                view=jump_url_component,
+                            )
+                        except discord.HTTPException:
+                            pass
+                    else:
+                        await self._queue_digest(
+                            message.guild,
+                            user,
+                            trigger_word,
+                            message,
+                            digest_preference,
+                        )
+
+                    break
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
@@ -347,20 +1020,43 @@ class Utility(commands.Cog):
             )
         else:
             cleaned_task = task.strip()
+            message = getattr(ctx, "message", None)
+            created_at = getattr(message, "created_at", discord.utils.utcnow())
+            jump_url = getattr(message, "jump_url", None)
             inserted_row = await self.bot.db.fetchrow(
-                "INSERT INTO todo (user_id, task, created_at, jump_url) VALUES ($1, $2, $3, $4) "
-                "RETURNING task_id, created_at",
+                """
+                INSERT INTO todo (
+                    user_id,
+                    task,
+                    created_at,
+                    jump_url,
+                    due_at,
+                    remind_at,
+                    priority,
+                    status
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING task_id, created_at
+                """,
                 ctx.author.id,
                 cleaned_task,
-                ctx.message.created_at,
-                ctx.message.jump_url,
+                created_at,
+                jump_url,
+                None,
+                None,
+                2,
+                "pending",
             )
             todo_add_emb = BaseEmbed(
-                title=f"\U00002728 Todo Added",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{inserted_row['task_id']}`\n<:Reply:930634822865547294> **Noted On **: {self.bot.timestamp(inserted_row['created_at'], style='D')}",
+                title="\U00002728 Todo Added",
+                description=(
+                    f"<:ReplyContinued:930634770004725821> **Task ID**: `{inserted_row['task_id']}`\n"
+                    f"<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(inserted_row['created_at'], style='F')}"
+                ),
                 colour=self.bot.colour,
             )
-            todo_add_emb.add_field(name="Task :", value=f">>> {cleaned_task}")
+            todo_add_emb.add_field(name="Task", value=f">>> {cleaned_task}")
+            todo_add_emb.add_field(name="Priority", value=format_priority(2))
             todo_add_emb.set_thumbnail(url=ctx.author.display_avatar.url)
 
             await ctx.reply(embed=todo_add_emb)
@@ -385,26 +1081,17 @@ class Utility(commands.Cog):
             return await ctx.reply(
                 f"**{ctx.author}** - Give me a task id for me to fetch details."
             )
-        fetch_task = await self.bot.db.fetch(
+        record = await self.bot.db.fetchrow(
             "SELECT * FROM todo WHERE task_id = $1 AND user_id = $2",
             task_id,
             ctx.author.id,
         )
-        if not fetch_task:
+        if record is None:
             return await ctx.reply(
                 f"Couldn't find a task id of `{task_id}`. Try running another one."
             )
-        for data in fetch_task:
-            todo_show_emb = BaseEmbed(
-                title=f"\U0001f4dc {ctx.author}'s Task Info",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID** : `{data[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url** : [**Click Here**]({data[4]})\n<:Reply:930634822865547294> **Noted On** : {self.bot.timestamp(data[3], style='D')}\n────",
-                colour=self.bot.colour,
-            )
-            todo_show_emb.add_field(
-                name="<:Join:932976724235395072> Task :", value=f">>> {data[2]}"
-            )
-            todo_show_emb.set_thumbnail(url=ctx.author.display_avatar.url)
-        todo_see_view = SeeTask(self.bot, ctx, task_id)
+        todo_show_emb = build_task_embed(self.bot, ctx, record)
+        todo_see_view = SeeTask(self.bot, ctx, task_id, task_data=dict(record))
         todo_see_view.message = await ctx.reply(embed=todo_show_emb, view=todo_see_view)
 
     @todo.command(
@@ -414,7 +1101,15 @@ class Utility(commands.Cog):
     async def todo_list(self, ctx: BaseContext) -> Optional[discord.Message]:
         """See your entire todo list."""
         fetch_tasks = await self.bot.db.fetch(
-            f"SELECT * FROM todo WHERE user_id = $1 ORDER BY task_id", ctx.author.id
+            """
+            SELECT * FROM todo
+             WHERE user_id = $1
+          ORDER BY (status = 'completed') ASC,
+                   COALESCE(due_at, created_at) ASC,
+                   priority DESC,
+                   task_id ASC
+            """,
+            ctx.author.id,
         )
         if not fetch_tasks:
             return await ctx.reply(
@@ -422,33 +1117,32 @@ class Utility(commands.Cog):
             )
 
         if len(fetch_tasks) == 1:
-            for alpha in fetch_tasks:
-                todo_show_emb = BaseEmbed(
-                    title=f"\U0001f4dc {ctx.author}'s Task Info",
-                    description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{alpha[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url**: [**Click Here**]({alpha[4]})\n<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(alpha[3], style='D')}\n────",
-                    colour=self.bot.colour,
+            record = dict(fetch_tasks[0])
+            embed = build_task_embed(self.bot, ctx, record)
+            embed.title = f"\U0001f4dc {ctx.author}'s Task #{record['task_id']}"
+            embed.set_footer(
+                text=(
+                    f"Status: {format_status(record.get('status'))} | "
+                    f"Priority: {format_priority(record.get('priority'))}"
                 )
-                todo_show_emb.add_field(
-                    name="<:Join:932976724235395072> Task:", value=f">>> {alpha[2]}"
-                )
-                todo_show_emb.set_thumbnail(url=ctx.author.display_avatar.url)
-            return await ctx.reply(embed=todo_show_emb, mention_author=False)
+            )
+            return await ctx.reply(embed=embed, mention_author=False)
 
         serial_no: int = 0
         embed_list: List = []
         for beta in fetch_tasks:
             serial_no += 1
-            todo_embs = BaseEmbed(
-                title=f"\U0001f4dc {ctx.author}'s Todo List",
-                description=f"<:ReplyContinued:930634770004725821> **Task ID**: `{beta[0]}`\n<:ReplyContinued:930634770004725821> **Jump Url**: [**Click Here**]({beta[4]})\n<:Reply:930634822865547294> **Noted On**: {self.bot.timestamp(beta[3], style='D')}\n────",
-                colour=self.bot.colour,
+            record = dict(beta)
+            todo_embed = build_task_embed(self.bot, ctx, record)
+            todo_embed.title = (
+                f"\U0001f4dc Task #{record['task_id']} — {format_status(record.get('status'))}"
             )
-            todo_embs.add_field(name="Task :", value=f">>> {beta[2]}")
-            todo_embs.set_thumbnail(url=ctx.author.display_avatar.url)
-            todo_embs.set_footer(
-                text=f"Task Index: {serial_no} | Run {ctx.clean_prefix}todo for more help"
+            todo_embed.set_footer(
+                text=(
+                    f"Task Index: {serial_no} | Priority: {format_priority(record.get('priority'))}"
+                )
             )
-            embed_list.append(todo_embs)
+            embed_list.append(todo_embed)
         await Paginator(self.bot, ctx, embed_list).send(ctx)
 
     @todo.command(name="edit", brief="Edit task", with_app_command=True)
@@ -479,15 +1173,173 @@ class Utility(commands.Cog):
             )
         else:
             cleaned_edited = edited.strip()
+            message = getattr(ctx, "message", None)
+            created_at = getattr(message, "created_at", discord.utils.utcnow())
+            jump_url = getattr(message, "jump_url", None)
             await self.bot.db.execute(
                 "UPDATE todo SET task = $1, jump_url = $2, created_at = $3 WHERE task_id = $4 AND user_id = $5",
                 cleaned_edited,
-                ctx.message.jump_url,
-                ctx.message.created_at,
+                jump_url,
+                created_at,
                 task_id,
                 ctx.author.id,
             )
             await ctx.reply(f"Successfully edited **Task ID -** `{task_id}`")
+
+    @todo.group(
+        name="settings",
+        invoke_without_command=True,
+        with_app_command=True,
+    )
+    async def todo_settings(self, ctx: BaseContext) -> Optional[discord.Message]:
+        """Show or configure todo notification preferences."""
+        if ctx.invoked_subcommand is not None:
+            return None
+
+        preferences = await self.bot.db.fetchrow(
+            """
+            SELECT quiet_start_minutes,
+                   quiet_end_minutes,
+                   notify_channel_id
+              FROM todo_preferences
+             WHERE user_id = $1
+            """,
+            ctx.author.id,
+        )
+
+        if preferences is None:
+            description = "No notification preferences configured yet."
+            quiet_hours = "Not set"
+            notify_channel = "DMs"
+        else:
+            pref_map = dict(preferences)
+            start = pref_map.get("quiet_start_minutes")
+            end = pref_map.get("quiet_end_minutes")
+            if start is None or end is None:
+                quiet_hours = "Not set"
+            else:
+                start_dt = datetime.time(hour=start // 60, minute=start % 60)
+                end_dt = datetime.time(hour=end // 60, minute=end % 60)
+                quiet_hours = f"{start_dt.strftime('%H:%M')} → {end_dt.strftime('%H:%M')}"
+
+            channel_id = pref_map.get("notify_channel_id")
+            if channel_id:
+                notify_channel = f"<#{channel_id}>"
+            else:
+                notify_channel = "DMs"
+
+            description = (
+                "Use the subcommands to configure quiet hours or a delivery channel."
+            )
+
+        embed = BaseEmbed(
+            title="\U0001f527 Todo Settings",
+            description=description,
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Quiet Hours", value=quiet_hours, inline=False)
+        embed.add_field(name="Delivery", value=notify_channel, inline=False)
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+
+        return await ctx.reply(embed=embed)
+
+    @todo_settings.command(
+        name="quiet",
+        with_app_command=True,
+    )
+    @app_commands.describe(
+        start="Quiet hours start time in 24h HH:MM format (use 'off' to disable)",
+        end="Quiet hours end time in 24h HH:MM format",
+    )
+    async def todo_settings_quiet(
+        self,
+        ctx: BaseContext,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+    ) -> Optional[discord.Message]:
+        """Configure quiet hours for todo notifications."""
+
+        if start is None and end is None:
+            return await ctx.reply(
+                "Provide `start` and `end` in HH:MM format or pass `off` to disable quiet hours."
+            )
+
+        start_minutes: Optional[int]
+        end_minutes: Optional[int]
+
+        if start and start.lower() in {"off", "none", "disable", "clear"}:
+            start_minutes = None
+            end_minutes = None
+        else:
+            if start is None or end is None:
+                return await ctx.reply(
+                    "Both `start` and `end` times are required to enable quiet hours."
+                )
+            try:
+                start_dt = datetime.datetime.strptime(start, "%H:%M")
+                end_dt = datetime.datetime.strptime(end, "%H:%M")
+            except ValueError:
+                return await ctx.reply(
+                    "Time values must be supplied in 24h HH:MM format."
+                )
+            start_minutes = start_dt.hour * 60 + start_dt.minute
+            end_minutes = end_dt.hour * 60 + end_dt.minute
+
+        await self.bot.db.execute(
+            """
+            INSERT INTO todo_preferences (user_id, quiet_start_minutes, quiet_end_minutes)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id)
+            DO UPDATE SET quiet_start_minutes = EXCLUDED.quiet_start_minutes,
+                          quiet_end_minutes = EXCLUDED.quiet_end_minutes
+            """,
+            ctx.author.id,
+            start_minutes,
+            end_minutes,
+        )
+
+        if start_minutes is None or end_minutes is None:
+            message = "Quiet hours disabled."
+        else:
+            message = (
+                "Quiet hours updated to "
+                f"{start_dt.strftime('%H:%M')} → {end_dt.strftime('%H:%M')} (UTC)."
+            )
+        return await ctx.reply(message)
+
+    @todo_settings.command(
+        name="channel",
+        with_app_command=True,
+    )
+    @app_commands.describe(
+        channel="Channel to ping when tasks are due (leave empty to revert to DMs)",
+    )
+    async def todo_settings_channel(
+        self,
+        ctx: BaseContext,
+        channel: Optional[discord.TextChannel] = None,
+    ) -> Optional[discord.Message]:
+        """Choose where todo notifications should be delivered."""
+
+        channel_id = channel.id if channel else None
+        await self.bot.db.execute(
+            """
+            INSERT INTO todo_preferences (user_id, notify_channel_id)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id)
+            DO UPDATE SET notify_channel_id = EXCLUDED.notify_channel_id
+            """,
+            ctx.author.id,
+            channel_id,
+        )
+
+        if channel is None:
+            return await ctx.reply(
+                "Notifications will now be sent via direct messages."
+            )
+        return await ctx.reply(
+            f"Notifications will now be sent in {channel.mention}."
+        )
 
     @todo.command(
         name="remove",
@@ -942,91 +1794,332 @@ class Utility(commands.Cog):
     )
     @app_commands.autocomplete(trigger=trigger_list_autocomplete)
     @app_commands.describe(
-        trigger="Add a trigger word. Make sure it's not in the list above"
+        trigger="Add a trigger word. Make sure it's not in the list above",
+        channel="Only alert when the trigger happens in this channel",
+        category="Only alert when the trigger happens in this category",
+        snooze="Optional snooze window like 30m, 2h, 1d",
+        digest="Override how highlight notifications are delivered",
     )
-    async def highlight_add(self, ctx: BaseContext, *, trigger: str = None):
-        """Add trigger words to notify you."""
+    @app_commands.choices(
+        digest=[
+            app_commands.Choice(name="Immediate DM", value="immediate"),
+            app_commands.Choice(name="Daily Digest", value="daily"),
+            app_commands.Choice(name="Weekly Digest", value="weekly"),
+            app_commands.Choice(name="Inherit Preference", value="inherit"),
+        ]
+    )
+    async def highlight_add(
+        self,
+        ctx: BaseContext,
+        trigger: Optional[str] = None,
+        channel: Optional[discord.TextChannel] = None,
+        category: Optional[discord.CategoryChannel] = None,
+        snooze: Optional[str] = None,
+        digest: Optional[app_commands.Choice[str]] = None,
+    ):
+        """Add trigger words with optional scoping and snoozing."""
+
         if not trigger:
             return await ctx.reply(
                 f"**{ctx.author}** - Please mention something for me to add it to your `highlight list` <:RageKill:917007995571961866>"
             )
 
+        trigger = trigger.strip().lower()
         if len(trigger) > 25:
             return await ctx.reply(
                 f"**{ctx.author}** - this is not an essay writing competition! Trigger should be less than 15 characters <:SarahPout:990514983978827796>"
             )
 
+        if channel and category:
+            return await ctx.reply(
+                "Please choose either a `channel` or a `category` scope, not both."
+            )
+
+        scope_type: Optional[str] = None
+        scope_id: Optional[int] = None
+        if channel:
+            scope_type, scope_id = "channel", channel.id
+        elif category:
+            scope_type, scope_id = "category", category.id
+
+        snooze_delta = self._parse_duration(snooze)
+        if snooze and snooze_delta is None:
+            return await ctx.reply(
+                "I couldn't understand that snooze duration. Try formats like `30m`, `2h`, or `1d`."
+            )
+
+        snooze_until: Optional[datetime.datetime]
+        if snooze_delta:
+            snooze_until = discord.utils.utcnow() + snooze_delta
+        else:
+            snooze_until = None
+
+        digest_value = (
+            digest.value if isinstance(digest, app_commands.Choice) else digest
+        ) or "inherit"
+        if digest_value not in {"immediate", "daily", "weekly", "inherit"}:
+            return await ctx.reply("Invalid digest preference provided.")
+
+        existing = self.bot.highlight.get(ctx.guild.id, {}).get(ctx.author.id, [])
+        for entry in existing:
+            if (
+                entry.get("trigger") == trigger
+                and entry.get("scope_type") == scope_type
+                and entry.get("scope_id") == scope_id
+            ):
+                return await ctx.reply(
+                    "You've already added that trigger with the same scope."
+                )
+
         try:
-            query: str = "INSERT INTO highlight VALUES ($1, $2, $3, $4)"
             await self.bot.db.execute(
-                query,
+                """
+                INSERT INTO highlight (
+                    user_id,
+                    guild_id,
+                    trigger,
+                    scope_type,
+                    scope_id,
+                    snooze_until,
+                    digest,
+                    created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                """,
                 ctx.author.id,
                 ctx.guild.id,
-                trigger.strip().lower(),
+                trigger,
+                scope_type,
+                scope_id,
+                snooze_until,
+                None if digest_value == "inherit" else digest_value,
                 discord.utils.utcnow(),
             )
-            await ctx.reply(
-                f"**{ctx.author}** - I have added `{trigger}` to your highlight list <a:AnimeSmile:915132366094209054>",
-                delete_after=5,
-            )
-            highlight_data = await self.bot.db.fetch("SELECT * FROM highlight")
-            if highlight_data:
-                highlight_data_list: List[Tuple] = [
-                    (data["guild_id"], data["user_id"], data["trigger"])
-                    for data in highlight_data
-                ]
-                self.bot.highlight = self.bot.generate_dict_cache(highlight_data_list)
         except asyncpg.UniqueViolationError:
             return await ctx.reply(
-                f"`{trigger.strip()}` - is a trigger word which is already set. Please set another word <:ICool:940786050681425931>"
+                f"`{trigger}` - is a trigger word which is already set. Please set another word <:ICool:940786050681425931>"
             )
+        except Exception as error:
+            return await ctx.reply(f"```py\n{error}\n```")
+
+        await self._refresh_highlight_cache()
+
+        scope_fragment = "anywhere"
+        if scope_type == "channel" and scope_id:
+            channel_obj = ctx.guild.get_channel(scope_id)
+            if channel_obj:
+                scope_fragment = f"{channel_obj.mention}"
+        elif scope_type == "category" and scope_id:
+            category_obj = ctx.guild.get_channel(scope_id)
+            if category_obj:
+                scope_fragment = f"the `{category_obj.name}` category"
+
+        snooze_fragment = (
+            f" and snoozed until {self.bot.timestamp(snooze_until, style='R')}"
+            if snooze_until
+            else ""
+        )
+
+        digest_fragment = {
+            "immediate": "with instant DMs",
+            "daily": "with daily digests",
+            "weekly": "with weekly digests",
+            "inherit": "using your default digest settings",
+        }[digest_value]
+
+        await ctx.reply(
+            f"**{ctx.author}** - Added `{trigger}` scoped to {scope_fragment}{snooze_fragment} {digest_fragment}.",
+            delete_after=10,
+        )
 
     @highlight.command(
         name="remove", brief="Remove triggers", aliases=["del"], with_app_command=True
     )
     @app_commands.autocomplete(trigger=trigger_list_autocomplete)
     @app_commands.describe(
-        trigger="Remove a trigger word. Make sure it's in the list above"
+        trigger="Remove a trigger word. Make sure it's in the list above",
+        channel="Specify the channel scope if the trigger is scoped",
+        category="Specify the category scope if the trigger is scoped",
     )
-    async def highlight_remove(self, ctx: BaseContext, *, trigger: str = None):
+    async def highlight_remove(
+        self,
+        ctx: BaseContext,
+        trigger: Optional[str] = None,
+        channel: Optional[discord.TextChannel] = None,
+        category: Optional[discord.CategoryChannel] = None,
+    ):
         """Remove trigger words to notify you."""
+
         if not trigger:
-            return ctx.reply(
-                f"**{ctx.author}** - Please mention something for me to remove it to your `highlight list`!"
+            return await ctx.reply(
+                f"**{ctx.author}** - Please mention something for me to remove it from your `highlight list`!"
+            )
+
+        if channel and category:
+            return await ctx.reply(
+                "Please choose either a `channel` or a `category` scope when removing a trigger."
+            )
+
+        trigger = trigger.strip().lower()
+        scope_type = None
+        scope_id = None
+        if channel:
+            scope_type, scope_id = "channel", channel.id
+        elif category:
+            scope_type, scope_id = "category", category.id
+
+        existing = self.bot.highlight.get(ctx.guild.id, {}).get(ctx.author.id, [])
+        target_entry = None
+        for entry in existing:
+            if (
+                entry.get("trigger") == trigger
+                and (scope_type or entry.get("scope_type") is None)
+                and (scope_id or entry.get("scope_id") is None)
+            ):
+                if scope_type and entry.get("scope_type") != scope_type:
+                    continue
+                if scope_id and entry.get("scope_id") != scope_id:
+                    continue
+                target_entry = entry
+                break
+
+        if target_entry is None:
+            return await ctx.reply(
+                f"**{trigger}** - is not present with the supplied scope. Use `{ctx.clean_prefix}highlight list` to view your triggers."
             )
 
         try:
-            for triggers in self.bot.highlight[ctx.guild.id][ctx.author.id]:
-                if trigger.strip() not in triggers:
-                    return await ctx.reply(
-                        f"**{trigger}** - is a word which is not present in your `highlight trigger list`. Run `{ctx.clean_prefix}highlight list` to check triggers present <:KeanuCool:910026122383728671>"
-                    )
-            query = "DELETE FROM highlight WHERE user_id = $1 AND guild_id = $2 AND trigger = $3"
             await self.bot.db.execute(
-                query, ctx.author.id, ctx.guild.id, trigger.strip().lower()
-            )
-            await ctx.reply(
-                f"**{ctx.author}** - Removed `{trigger}` from your list <a:IEat:940413722537644033>",
-                delete_after=5,
-            )
-            highlight_data = await self.bot.db.fetch("SELECT * FROM highlight")
-            highlight_data_list: List = [
-                (data["guild_id"], data["user_id"], data["trigger"])
-                for data in highlight_data
-            ]
-            self.bot.highlight = self.bot.generate_dict_cache(highlight_data_list)
-        except KeyError:
-            return await ctx.reply(
-                f"**{ctx.author}** - You have not set any `triggers` <a:IWait:948253556190904371> Please run `{ctx.clean_prefix}highlight add` <:KeanuCool:910026122383728671>"
+                """
+                DELETE FROM highlight
+                WHERE user_id = $1
+                  AND guild_id = $2
+                  AND trigger = $3
+                  AND COALESCE(scope_type, '') = COALESCE($4, '')
+                  AND COALESCE(scope_id, 0) = COALESCE($5, 0)
+                """,
+                ctx.author.id,
+                ctx.guild.id,
+                trigger,
+                scope_type,
+                scope_id,
             )
         except Exception as error:
-            await ctx.send(error)
+            return await ctx.reply(f"```py\n{error}\n```")
+
+        await self._refresh_highlight_cache()
+
+        await ctx.reply(
+            f"**{ctx.author}** - Removed `{trigger}` from your list <a:IEat:940413722537644033>",
+            delete_after=5,
+        )
+
+    @highlight.command(
+        name="snooze",
+        brief="Temporarily pause a trigger",
+        with_app_command=True,
+    )
+    @app_commands.autocomplete(trigger=trigger_list_autocomplete)
+    @app_commands.describe(
+        trigger="Choose the trigger you wish to snooze",
+        duration="Duration such as 30m, 2h, 1d, or off",
+        channel="Optional channel scope if the trigger is scoped",
+        category="Optional category scope if the trigger is scoped",
+    )
+    async def highlight_snooze(
+        self,
+        ctx: BaseContext,
+        trigger: Optional[str] = None,
+        duration: Optional[str] = None,
+        channel: Optional[discord.TextChannel] = None,
+        category: Optional[discord.CategoryChannel] = None,
+    ):
+        """Allow members to snooze highlight triggers on demand."""
+
+        if not trigger or not duration:
+            return await ctx.reply(
+                "Please specify both a trigger and a duration. Example: `highlight snooze raid 2h`."
+            )
+
+        if channel and category:
+            return await ctx.reply(
+                "Please choose either a `channel` or a `category` scope when snoozing a trigger."
+            )
+
+        trigger = trigger.strip().lower()
+        scope_type = None
+        scope_id = None
+        if channel:
+            scope_type, scope_id = "channel", channel.id
+        elif category:
+            scope_type, scope_id = "category", category.id
+
+        snooze_delta = self._parse_duration(duration)
+        if snooze_delta is None:
+            return await ctx.reply(
+                "I couldn't understand that snooze duration. Try formats like `30m`, `2h`, or `1d`."
+            )
+
+        snooze_until = None
+        if snooze_delta.total_seconds() > 0:
+            snooze_until = discord.utils.utcnow() + snooze_delta
+
+        existing = self.bot.highlight.get(ctx.guild.id, {}).get(ctx.author.id, [])
+        match = None
+        for entry in existing:
+            if (
+                entry.get("trigger") == trigger
+                and (scope_type or entry.get("scope_type") is None)
+                and (scope_id or entry.get("scope_id") is None)
+            ):
+                if scope_type and entry.get("scope_type") != scope_type:
+                    continue
+                if scope_id and entry.get("scope_id") != scope_id:
+                    continue
+                match = entry
+                break
+
+        if match is None:
+            return await ctx.reply(
+                f"I couldn't find `{trigger}` with that scope. Use `{ctx.clean_prefix}highlight list` to review your triggers."
+            )
+
+        try:
+            await self.bot.db.execute(
+                """
+                UPDATE highlight
+                SET snooze_until = $1
+                WHERE user_id = $2
+                  AND guild_id = $3
+                  AND trigger = $4
+                  AND COALESCE(scope_type, '') = COALESCE($5, '')
+                  AND COALESCE(scope_id, 0) = COALESCE($6, 0)
+                """,
+                snooze_until,
+                ctx.author.id,
+                ctx.guild.id,
+                trigger,
+                scope_type,
+                scope_id,
+            )
+        except Exception as error:
+            return await ctx.reply(f"```py\n{error}\n```")
+
+        await self._refresh_highlight_cache()
+
+        if snooze_until is None:
+            message = f"Removed the snooze from `{trigger}`."
+        else:
+            message = (
+                f"Snoozed `{trigger}` until {self.bot.timestamp(snooze_until, style='R')}."
+            )
+        await ctx.reply(message)
 
     @highlight.command(
         name="list", brief="List Your Triggers", aliases=["all"], with_app_command=True
     )
     async def highlight_list_triggers(self, ctx: BaseContext):
         """See all of your trigger words."""
+
         trigger_data = await self.bot.db.fetch(
             "SELECT * FROM highlight WHERE user_id = $1 AND guild_id = $2",
             ctx.author.id,
@@ -1036,17 +2129,126 @@ class Utility(commands.Cog):
             return await ctx.reply(
                 f"**{ctx.author}** - You have not set any `triggers` <a:IWait:948253556190904371> Please run `{ctx.clean_prefix}highlight add` <:KeanuCool:910026122383728671>"
             )
-        trigger_list: List = [
-            f"> <:GeraltRightArrow:904740634982760459> {data[2]}\n"
-            for data in trigger_data
-        ]
+
+        now = discord.utils.utcnow()
+        entries: List[str] = []
+        for record in trigger_data:
+            data = dict(record)
+            trigger_word = data.get("trigger")
+            scope_type = data.get("scope_type")
+            scope_id = data.get("scope_id")
+            snooze_until = data.get("snooze_until")
+            digest = data.get("digest") or self._get_digest_preference(
+                ctx.guild.id,
+                ctx.author.id,
+                None,
+            )
+
+            scope_fragment = "anywhere"
+            if scope_type == "channel" and scope_id:
+                channel = ctx.guild.get_channel(scope_id)
+                if channel:
+                    scope_fragment = channel.mention
+            elif scope_type == "category" and scope_id:
+                category = ctx.guild.get_channel(scope_id)
+                if category:
+                    scope_fragment = f"`{category.name}`"
+
+            snooze_fragment = ""
+            if snooze_until and isinstance(snooze_until, datetime.datetime):
+                if snooze_until > now:
+                    snooze_fragment = (
+                        f" (snoozed until {self.bot.timestamp(snooze_until, style='R')})"
+                    )
+
+            digest_fragment = {
+                "immediate": "Immediate",
+                "daily": "Daily digest",
+                "weekly": "Weekly digest",
+            }.get(digest or "immediate", "Immediate")
+
+            entries.append(
+                f"> <:GeraltRightArrow:904740634982760459> `{trigger_word}` in {scope_fragment} — {digest_fragment}{snooze_fragment}"
+            )
 
         trigger_list_emb = BaseEmbed(
             title=f"{ctx.author}'s Trigger List",
-            description="".join(trigger_list),
+            description="\n".join(entries[:15]),
             colour=self.bot.colour,
         )
-        await ctx.reply(embed=trigger_list_emb, delete_after=5)
+        trigger_list_emb.set_footer(
+            text="Use highlight remove to delete or highlight snooze to pause alerts."
+        )
+        await ctx.reply(embed=trigger_list_emb, delete_after=10)
+
+    @highlight.command(
+        name="digest",
+        brief="Control highlight digests",
+        with_app_command=True,
+    )
+    @app_commands.describe(
+        frequency="Choose how often you'd like to receive highlight notifications",
+    )
+    @app_commands.choices(
+        frequency=[
+            app_commands.Choice(name="Immediate DM", value="immediate"),
+            app_commands.Choice(name="Daily Digest", value="daily"),
+            app_commands.Choice(name="Weekly Digest", value="weekly"),
+        ]
+    )
+    async def highlight_digest(
+        self,
+        ctx: BaseContext,
+        frequency: Union[str, app_commands.Choice[str]],
+    ):
+        """Configure the cadence of highlight notifications."""
+
+        choice = frequency.value if isinstance(frequency, app_commands.Choice) else frequency
+        choice = choice.lower()
+        if choice not in {"immediate", "daily", "weekly"}:
+            return await ctx.reply(
+                "Please choose between `immediate`, `daily`, or `weekly` delivery."
+            )
+
+        now = discord.utils.utcnow()
+        next_dispatch = None
+        if choice == "daily":
+            next_dispatch = now + datetime.timedelta(days=1)
+        elif choice == "weekly":
+            next_dispatch = now + datetime.timedelta(days=7)
+
+        try:
+            await self.bot.db.execute(
+                """
+                INSERT INTO highlight_preferences (user_id, guild_id, digest, next_dispatch)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (user_id, guild_id)
+                DO UPDATE SET digest = EXCLUDED.digest, next_dispatch = EXCLUDED.next_dispatch
+                """,
+                ctx.author.id,
+                ctx.guild.id,
+                choice,
+                next_dispatch,
+            )
+        except Exception as error:
+            return await ctx.reply(f"```py\n{error}\n```")
+
+        guild_preferences = self.bot.highlight_preferences.setdefault(ctx.guild.id, {})
+        guild_preferences[ctx.author.id] = {
+            "digest": choice,
+            "next_dispatch": next_dispatch,
+        }
+
+        if choice == "immediate":
+            async with self.digest_dispatch_lock:
+                guild_queue = self.bot.highlight_digest_cache.get(ctx.guild.id, {})
+                if ctx.author.id in guild_queue:
+                    guild_queue.pop(ctx.author.id, None)
+
+        await ctx.reply(
+            f"We'll deliver your highlight notifications `{choice}`.",
+            delete_after=6,
+        )
 
     @highlight.command(
         name="block",
@@ -1088,6 +2290,13 @@ class Utility(commands.Cog):
                     "role",
                     discord.utils.utcnow(),
                 )
+                await self.log_highlight_audit(
+                    ctx.guild.id,
+                    ctx.author.id,
+                    object.id,
+                    "block",
+                    "role",
+                )
                 await ctx.reply(
                     f"**{object.mention}** - Has now been blocked from highlighting you in **{ctx.guild}** <:SarahPray:907109950248067154>",
                     allowed_mentions=self.bot.mentions,
@@ -1109,6 +2318,13 @@ class Utility(commands.Cog):
                     object.id,
                     "member",
                     discord.utils.utcnow(),
+                )
+                await self.log_highlight_audit(
+                    ctx.guild.id,
+                    ctx.author.id,
+                    object.id,
+                    "block",
+                    "member",
                 )
                 await ctx.reply(
                     f"**{object.mention}** - Has now been blocked from highlighting you in **{ctx.guild}** <:SarahPray:907109950248067154>",
@@ -1159,6 +2375,13 @@ class Utility(commands.Cog):
         query = "DELETE FROM highlight_blocked WHERE user_id = $1 AND guild_id = $2 AND object_id = $3"
         try:
             await self.bot.db.execute(query, ctx.author.id, ctx.guild.id, object.id)
+            await self.log_highlight_audit(
+                ctx.guild.id,
+                ctx.author.id,
+                object.id,
+                "unblock",
+                "role" if isinstance(object, discord.Role) else "member",
+            )
             await ctx.reply(
                 f"Successfully removed {object.mention} from your `highlight blocked` list. {object.mention} will now be able to highlight you <:RavenPray:914410353155244073>",
                 allowed_mentions=self.bot.mentions,
@@ -1232,3 +2455,105 @@ class Utility(commands.Cog):
                 blacklisted_embs.set_thumbnail(url=ctx.author.display_avatar.url)
                 embed_list.append(blacklisted_embs)
             return await Paginator(self.bot, ctx, embeds=embed_list).send(ctx)
+
+    @highlight.command(
+        name="blocked-review",
+        brief="Staff review of highlight blocks",
+        with_app_command=True,
+    )
+    @commands.has_permissions(manage_guild=True)
+    async def highlight_blocked_review(self, ctx: BaseContext):
+        """Surface an overview of highlight block relationships for staff."""
+
+        blocked_entries = await self.bot.db.fetch(
+            "SELECT * FROM highlight_blocked WHERE guild_id = $1",
+            ctx.guild.id,
+        )
+        if not blocked_entries:
+            return await ctx.reply(
+                "No highlight blocks are recorded for this server right now."
+            )
+
+        aggregates: Dict[int, List[int]] = {}
+        for entry in blocked_entries:
+            aggregates.setdefault(entry["user_id"], []).append(entry["object_id"])
+
+        lines: List[str] = []
+        for user_id, objects in aggregates.items():
+            member = ctx.guild.get_member(user_id)
+            if member is None:
+                continue
+            lines.append(
+                f"**{member}** → {len(objects)} block{'s' if len(objects) != 1 else ''}"
+            )
+
+        review_embed = BaseEmbed(
+            title="Highlight Block Overview",
+            description="\n".join(lines[:15]) or "No active data to display.",
+            colour=self.bot.colour,
+        )
+        review_embed.set_footer(
+            text="Use highlight blocked-dashboard for an interactive view."
+        )
+        if getattr(ctx, "interaction", None):
+            await ctx.reply(embed=review_embed, ephemeral=True)
+        else:
+            await ctx.reply(embed=review_embed)
+
+    @highlight.command(
+        name="blocked-dashboard",
+        brief="Interactive highlight block dashboard",
+        with_app_command=True,
+    )
+    @commands.has_permissions(manage_guild=True)
+    async def highlight_blocked_dashboard(self, ctx: BaseContext):
+        """Launch an interactive dashboard for highlight blocks."""
+
+        blocked_map = self.bot.highlight_blocked.get(ctx.guild.id)
+        if not blocked_map:
+            return await ctx.reply("There are no highlight blocks cached right now.")
+
+        view = HighlightBlockDashboard(self.bot, ctx.guild, blocked_map)
+        await view.start(ctx)
+
+    @highlight.command(
+        name="blocked-audit",
+        brief="Audit log for highlight moderation",
+        with_app_command=True,
+    )
+    @commands.has_permissions(manage_guild=True)
+    async def highlight_blocked_audit(self, ctx: BaseContext):
+        """Display recent highlight block and unblock events to staff."""
+
+        try:
+            records = await self.bot.db.fetch(
+                "SELECT * FROM highlight_audit WHERE guild_id = $1 ORDER BY occurred_at DESC LIMIT 10",
+                ctx.guild.id,
+            )
+        except asyncpg.UndefinedTableError:
+            return await ctx.reply(
+                "No audit history is available yet. The audit table will be created automatically after the next action."
+            )
+
+        if not records:
+            return await ctx.reply("No recent highlight moderation events found.")
+
+        lines = []
+        for entry in records:
+            timestamp = entry.get("occurred_at")
+            lines.append(
+                (
+                    f"> {self.bot.timestamp(timestamp, style='R') if timestamp else 'Recently'} — "
+                    f"<@{entry['actor_id']}> {entry['action']}ed <@{entry['target_id']}> (scope: {entry['scope']})"
+                )
+            )
+
+        audit_embed = BaseEmbed(
+            title="Highlight Audit Trail",
+            description="\n".join(lines),
+            colour=self.bot.colour,
+        )
+        if getattr(ctx, "interaction", None):
+            await ctx.reply(embed=audit_embed, ephemeral=True)
+        else:
+            await ctx.reply(embed=audit_embed)

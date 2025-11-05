@@ -5,14 +5,15 @@ import json
 import os
 import time
 import urllib
-from typing import List, Optional
+from collections import Counter
+from typing import List, Optional, Tuple
 
 import aiohttp
 import discord
 import humanize
 from aiogithub.exceptions import HttpException
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from ...bot import CONFIG, BaseBot
 from ...context import BaseContext
@@ -20,7 +21,19 @@ from ...embed import BaseEmbed
 from ...kernel.help import BaseHelp
 from ...kernel.utilities.crucial import total_lines
 from ...kernel.views.meta import Bug, Confirmation, Feedback, Info
+from ...kernel.utilities.reports import (
+    REPORT_SEVERITY_CHOICES,
+    REPORT_STATUS_CHOICES,
+    ReportRecord,
+    fetch_report,
+    fetch_unresolved_reports,
+    update_report,
+)
 from ...kernel.views.paginator import Paginator
+
+
+def _format_ticket_value(value: str) -> str:
+    return value.replace("_", " ").title()
 
 
 class Meta(commands.Cog):
@@ -32,6 +45,87 @@ class Meta(commands.Cog):
         help_command = BaseHelp()
         help_command.cog = self
         bot.help_command = help_command
+
+    async def cog_load(self) -> None:
+        self.report_digest.start()
+
+    async def cog_unload(self) -> None:
+        self.report_digest.cancel()
+
+    def _normalise_choice(self, value: str, *, choices: Tuple[str, ...]) -> str:
+        normalised = value.lower().replace(" ", "_")
+        if normalised not in choices:
+            raise ValueError(
+                f"Invalid value `{value}`. Valid options: {', '.join(_format_ticket_value(choice) for choice in choices)}"
+            )
+        return normalised
+
+    def _parse_status(self, value: str) -> str:
+        return self._normalise_choice(value, choices=REPORT_STATUS_CHOICES)
+
+    def _parse_severity(self, value: str) -> str:
+        return self._normalise_choice(value, choices=REPORT_SEVERITY_CHOICES)
+
+    async def _get_report(self, ctx: BaseContext, report_id: int) -> Optional[ReportRecord]:
+        record = await fetch_report(self.bot.db, report_id)
+        if not record:
+            await ctx.reply(
+                f"Couldn't find a ticket with the id `#{report_id}`.",
+                mention_author=False,
+                ephemeral=True,
+            )
+        return record
+
+    async def _maybe_defer(self, ctx: BaseContext, *, ephemeral: bool = True) -> None:
+        if ctx.interaction and not ctx.interaction.response.is_done():
+            await ctx.interaction.response.defer(ephemeral=ephemeral)
+
+    def _resolve_repository(
+        self, repository: Optional[str], record: Optional[ReportRecord]
+    ) -> Optional[str]:
+        if repository:
+            candidate = repository
+        elif record and record.github_repository:
+            candidate = record.github_repository
+        else:
+            candidate = CONFIG.get("REPORT_DEFAULT_REPO")
+
+        if not candidate:
+            return None
+
+        parts = candidate.split("/")
+        if len(parts) != 2 or not all(parts):
+            return None
+        return candidate
+
+    async def _notify_reporter_issue(
+        self, record: ReportRecord, issue_number: int, issue_url: str
+    ) -> None:
+        user = self.bot.get_user(record.reporter_id)
+        if user is None:
+            try:
+                user = await self.bot.fetch_user(record.reporter_id)
+            except discord.HTTPException:
+                return
+
+        if user is None:
+            return
+
+        embed = BaseEmbed(
+            title="Your report is now being tracked",
+            description=(
+                f"Ticket `#{record.id}` has been escalated to GitHub issue "
+                f"[`#{issue_number}`]({issue_url})."
+            ),
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Status", value=_format_ticket_value(record.status))
+        embed.add_field(name="Severity", value=_format_ticket_value(record.severity))
+
+        try:
+            await user.send(embed=embed)
+        except (discord.Forbidden, discord.HTTPException):
+            return
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -164,6 +258,429 @@ class Meta(commands.Cog):
             view=feedback,
         )
         await feedback.wait()
+
+    @report.command(name="view", brief="View a stored ticket", with_app_command=True)
+    @commands.has_guild_permissions(manage_guild=True)
+    async def report_view(
+        self, ctx: BaseContext, report_id: int
+    ) -> Optional[discord.Message]:
+        """Display full details for a stored report."""
+
+        record = await self._get_report(ctx, report_id)
+        if not record:
+            return None
+
+        preview = discord.utils.escape_markdown(record.preview(limit=400))
+        embed = BaseEmbed(
+            title=f"Ticket #{record.id} — {record.subject}",
+            description=f"```{preview}```",
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Type", value=record.report_type.title())
+        embed.add_field(name="Status", value=_format_ticket_value(record.status))
+        embed.add_field(name="Severity", value=_format_ticket_value(record.severity))
+        assignee = (
+            f"<@{record.assignee_id}>" if record.assignee_id else "Unassigned"
+        )
+        embed.add_field(name="Assignee", value=assignee)
+        embed.add_field(name="Reporter", value=f"<@{record.reporter_id}>")
+        if record.message_jump_url:
+            embed.add_field(
+                name="Context",
+                value=f"[Jump to message]({record.message_jump_url})",
+                inline=False,
+            )
+        if record.github_issue_url:
+            issue_label = record.github_issue_number or "link"
+            embed.add_field(
+                name="GitHub",
+                value=f"[Issue #{issue_label}]({record.github_issue_url})",
+                inline=False,
+            )
+        embed.set_footer(
+            text=(
+                f"Last updated {discord.utils.format_dt(record.updated_at, style='R')}"
+            )
+        )
+
+        return await ctx.reply(embed=embed, mention_author=False, ephemeral=True)
+
+    @report.command(
+        name="status",
+        brief="Update a ticket's status",
+        with_app_command=True,
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    async def report_status(
+        self, ctx: BaseContext, report_id: int, *, status: str
+    ) -> Optional[discord.Message]:
+        try:
+            normalised = self._parse_status(status)
+        except ValueError as error:
+            return await ctx.reply(str(error), ephemeral=True, mention_author=False)
+
+        record = await update_report(self.bot.db, report_id, status=normalised)
+        if not record:
+            return await ctx.reply(
+                f"Couldn't find a ticket with the id `#{report_id}`.",
+                mention_author=False,
+                ephemeral=True,
+            )
+
+        return await ctx.reply(
+            f"Ticket `#{record.id}` status is now **{_format_ticket_value(record.status)}**.",
+            mention_author=False,
+            ephemeral=True,
+        )
+
+    @report.command(
+        name="severity",
+        brief="Update a ticket's severity",
+        with_app_command=True,
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    async def report_severity(
+        self, ctx: BaseContext, report_id: int, *, severity: str
+    ) -> Optional[discord.Message]:
+        try:
+            normalised = self._parse_severity(severity)
+        except ValueError as error:
+            return await ctx.reply(str(error), ephemeral=True, mention_author=False)
+
+        record = await update_report(self.bot.db, report_id, severity=normalised)
+        if not record:
+            return await ctx.reply(
+                f"Couldn't find a ticket with the id `#{report_id}`.",
+                mention_author=False,
+                ephemeral=True,
+            )
+
+        return await ctx.reply(
+            f"Ticket `#{record.id}` severity is now **{_format_ticket_value(record.severity)}**.",
+            mention_author=False,
+            ephemeral=True,
+        )
+
+    @report.command(
+        name="assign",
+        brief="Assign a ticket to a staff member",
+        with_app_command=True,
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    async def report_assign(
+        self, ctx: BaseContext, report_id: int, member: discord.Member
+    ) -> Optional[discord.Message]:
+        record = await update_report(self.bot.db, report_id, assignee_id=member.id)
+        if not record:
+            return await ctx.reply(
+                f"Couldn't find a ticket with the id `#{report_id}`.",
+                mention_author=False,
+                ephemeral=True,
+            )
+
+        return await ctx.reply(
+            f"Ticket `#{record.id}` is now assigned to {member.mention}.",
+            mention_author=False,
+            ephemeral=True,
+        )
+
+    @report.command(
+        name="unassign",
+        brief="Clear a ticket assignment",
+        with_app_command=True,
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    async def report_unassign(
+        self, ctx: BaseContext, report_id: int
+    ) -> Optional[discord.Message]:
+        record = await update_report(self.bot.db, report_id, assignee_id=None)
+        if not record:
+            return await ctx.reply(
+                f"Couldn't find a ticket with the id `#{report_id}`.",
+                mention_author=False,
+                ephemeral=True,
+            )
+
+        return await ctx.reply(
+            f"Ticket `#{record.id}` is now unassigned.",
+            mention_author=False,
+            ephemeral=True,
+        )
+
+    @report.command(
+        name="open_issue",
+        brief="Create a GitHub issue for a ticket",
+        with_app_command=True,
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    @app_commands.describe(
+        repository="Repository in owner/repo format. Falls back to REPORT_DEFAULT_REPO.",
+        labels="Comma separated labels to add to the issue.",
+    )
+    async def report_open_issue(
+        self,
+        ctx: BaseContext,
+        report_id: int,
+        repository: Optional[str] = None,
+        labels: Optional[str] = None,
+    ) -> Optional[discord.Message]:
+        await self._maybe_defer(ctx)
+        if self.bot.git is None:
+            return await ctx.reply(
+                "GitHub integration is not configured.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        record = await self._get_report(ctx, report_id)
+        if not record:
+            return None
+
+        resolved_repository = self._resolve_repository(repository, record)
+        if not resolved_repository:
+            return await ctx.reply(
+                "Provide a repository as `owner/repo` or set `REPORT_DEFAULT_REPO` in the configuration.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        owner, repo_name = resolved_repository.split("/")
+        label_list = (
+            [label.strip() for label in labels.split(",") if label.strip()]
+            if labels
+            else []
+        )
+
+        lines = [
+            f"**Ticket:** #{record.id} ({record.report_type.title()})",
+            f"**Status:** {_format_ticket_value(record.status)}",
+            f"**Severity:** {_format_ticket_value(record.severity)}",
+            f"**Reporter:** <@{record.reporter_id}>",
+        ]
+        if record.assignee_id:
+            lines.append(f"**Assigned:** <@{record.assignee_id}>")
+        if record.message_jump_url:
+            lines.append(f"**Context:** {record.message_jump_url}")
+        body = "\n".join(lines) + f"\n\n{record.body}"
+
+        payload = {"title": record.subject, "body": body}
+        if label_list:
+            payload["labels"] = label_list
+
+        url = f"https://api.github.com/repos/{owner}/{repo_name}/issues"
+        try:
+            async with self.bot.git._client.post(url, json=payload) as response:
+                data = await response.json()
+                if response.status >= 400:
+                    raise HttpException(response.status, url)
+        except HttpException as exception:
+            return await ctx.reply(
+                f"GitHub responded with HTTP {exception.status} while creating the issue.",
+                ephemeral=True,
+                mention_author=False,
+            )
+        except aiohttp.ClientError as error:
+            return await ctx.reply(
+                f"Failed to reach GitHub: {error}.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        issue_number = data.get("number")
+        issue_url = data.get("html_url")
+
+        update_kwargs = {
+            "status": "in_progress",
+            "github_repository": resolved_repository,
+        }
+        if issue_url:
+            update_kwargs["github_issue_url"] = issue_url
+        if issue_number is not None:
+            update_kwargs["github_issue_number"] = issue_number
+
+        updated = await update_report(self.bot.db, report_id, **update_kwargs)
+
+        if updated and issue_number and issue_url:
+            await self._notify_reporter_issue(updated, issue_number, issue_url)
+
+        issue_number_text = issue_number if issue_number is not None else "?"
+        issue_url_text = issue_url or "https://github.com"
+
+        return await ctx.reply(
+            f"Opened GitHub issue [`#{issue_number_text}`]({issue_url_text}) for ticket `#{report_id}`.",
+            mention_author=False,
+            ephemeral=True,
+        )
+
+    @report.command(
+        name="update_labels",
+        brief="Update labels on a linked GitHub issue",
+        with_app_command=True,
+    )
+    @commands.has_guild_permissions(manage_guild=True)
+    @app_commands.describe(
+        labels="Comma separated list of labels to set.",
+        repository="Repository in owner/repo format. Defaults to the stored repository.",
+        issue_number="GitHub issue number. Defaults to the stored number.",
+    )
+    async def report_update_labels(
+        self,
+        ctx: BaseContext,
+        report_id: int,
+        labels: str,
+        repository: Optional[str] = None,
+        issue_number: Optional[int] = None,
+    ) -> Optional[discord.Message]:
+        await self._maybe_defer(ctx)
+        if self.bot.git is None:
+            return await ctx.reply(
+                "GitHub integration is not configured.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        record = await self._get_report(ctx, report_id)
+        if not record:
+            return None
+
+        resolved_repository = self._resolve_repository(repository, record)
+        if not resolved_repository:
+            return await ctx.reply(
+                "Provide a repository as `owner/repo` or set `REPORT_DEFAULT_REPO` in the configuration.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        target_issue = issue_number or record.github_issue_number
+        if not target_issue:
+            return await ctx.reply(
+                "This ticket is not linked to a GitHub issue yet. Provide an issue number to continue.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        owner, repo_name = resolved_repository.split("/")
+        label_list = [label.strip() for label in labels.split(",") if label.strip()]
+        if not label_list:
+            return await ctx.reply(
+                "Provide at least one label.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        url = f"https://api.github.com/repos/{owner}/{repo_name}/issues/{target_issue}"
+        try:
+            async with self.bot.git._client.patch(url, json={"labels": label_list}) as response:
+                data = await response.json()
+                if response.status >= 400:
+                    raise HttpException(response.status, url)
+        except HttpException as exception:
+            return await ctx.reply(
+                f"GitHub responded with HTTP {exception.status} while updating labels.",
+                ephemeral=True,
+                mention_author=False,
+            )
+        except aiohttp.ClientError as error:
+            return await ctx.reply(
+                f"Failed to reach GitHub: {error}.",
+                ephemeral=True,
+                mention_author=False,
+            )
+
+        if not record.github_issue_url or not record.github_repository:
+            await update_report(
+                self.bot.db,
+                report_id,
+                github_repository=resolved_repository,
+                github_issue_url=data.get("html_url", record.github_issue_url),
+                github_issue_number=target_issue,
+            )
+
+        return await ctx.reply(
+            f"Updated labels for issue `#{target_issue}` ({resolved_repository}).",
+            mention_author=False,
+            ephemeral=True,
+        )
+
+    @tasks.loop(hours=168)
+    async def report_digest(self) -> None:
+        if not self.bot.db:
+            return
+
+        channel_id = CONFIG.get("REPORT_DIGEST_CHANNEL")
+        if not channel_id:
+            return
+
+        try:
+            channel_id_int = int(channel_id)
+        except (TypeError, ValueError):
+            return
+
+        channel = self.bot.get_channel(channel_id_int)
+        if channel is None:
+            try:
+                channel = await self.bot.fetch_channel(channel_id_int)
+            except (discord.HTTPException, discord.NotFound):
+                return
+
+        unresolved = await fetch_unresolved_reports(self.bot.db)
+
+        embed = BaseEmbed(
+            title="Weekly feedback digest",
+            colour=self.bot.colour,
+        )
+
+        if not unresolved:
+            embed.description = "🎉 No unresolved tickets this week!"
+        else:
+            lines = []
+            severity_counter = Counter(report.severity for report in unresolved)
+            for record in unresolved[:20]:
+                assignee = (
+                    f" · Assigned: <@{record.assignee_id}>"
+                    if record.assignee_id
+                    else ""
+                )
+                jump = (
+                    f" [jump]({record.message_jump_url})"
+                    if record.message_jump_url
+                    else ""
+                )
+                lines.append(
+                    "• `#{id}` {type} — **{severity}** • {status} · Reporter: <@{reporter}>{assignee}{jump}".format(
+                        id=record.id,
+                        type=record.report_type.title(),
+                        severity=_format_ticket_value(record.severity),
+                        status=_format_ticket_value(record.status),
+                        reporter=record.reporter_id,
+                        assignee=assignee,
+                        jump=jump,
+                    )
+                )
+            embed.description = "\n".join(lines)
+
+            summary = "\n".join(
+                f"{_format_ticket_value(severity)}: {count}"
+                for severity, count in severity_counter.most_common()
+            )
+            if summary:
+                embed.add_field(name="By severity", value=summary, inline=False)
+
+            footer_text = (
+                f"Showing 20 of {len(unresolved)} unresolved tickets."
+                if len(unresolved) > 20
+                else f"Total unresolved: {len(unresolved)}"
+            )
+            embed.set_footer(text=footer_text)
+
+        try:
+            await channel.send(embed=embed)
+        except discord.HTTPException:
+            return
+
+    @report_digest.before_loop
+    async def before_report_digest(self) -> None:
+        await self.bot.wait_until_ready()
 
     @commands.command(name="json", brief="Sends JSON Data", aliases=["raw"])
     @commands.cooldown(1, 20, commands.BucketType.user)
