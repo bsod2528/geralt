@@ -129,13 +129,15 @@ class BaseBot(commands.Bot):
         self.meta: Dict[int, List[int]] = {}
         self.prefixes: DefaultDict[int, Set[str]] = defaultdict(set)
         self.blacklists: Set[discord.Object.id] = set()  # type: ignore
-        self.highlight: Dict[int, Dict[int, List[str]]] = {}
+        self.highlight: Dict[int, Dict[int, List[Dict[str, Any]]]] = {}
         self.ticket_init: Dict[int, List[Any]] = {}
         self.verification: Dict[int, List] = {}
         self.ticket_kernel: Dict[int, List] = {}
         self.highlight_blocked: Dict[int, Dict[int, List]] = {}
         self.locked_objects_ids: List[int] = []
         self.settings: Dict[int, Dict[str, bool]] = {}
+        self.highlight_preferences: Dict[int, Dict[int, Dict[str, Any]]] = {}
+        self.highlight_digest_cache: Dict[int, Dict[int, List[Dict[str, Any]]]] = {}
         self.snipe_retention_settings: Dict[int, Dict[str, Any]] = {}
 
     def __repr__(self) -> str:
@@ -144,12 +146,12 @@ class BaseBot(commands.Bot):
     # Credits to qt_haskell [ Lia Marie ] - *sobs*
     def generate_dict_cache(
         self, entries: List[Tuple]
-    ) -> Dict[int, Dict[int, List[str]]]:
+    ) -> Dict[int, Dict[int, List[Any]]]:
         """Generates a dict with the following structure:
 
         x = {
             int: {
-                int: list[str]
+                int: list[Any]
                 }
             }"""
         cache: Dict = {}
@@ -320,6 +322,12 @@ class BaseBot(commands.Bot):
         ticket_kernel_data = await self.db.fetch("SELECT * FROM ticket_kernel")
         highlight_blocked_data = await self.db.fetch("SELECT * FROM highlight_blocked")
         locked_objects_ids_data = await self.db.fetch("SELECT * FROM channel_lock")
+        try:
+            highlight_preferences_data = await self.db.fetch(
+                "SELECT * FROM highlight_preferences"
+            )
+        except asyncpg.UndefinedTableError:
+            highlight_preferences_data = []
 
         self.afk = {
             data["user_id"]: (data["reason"], data["queried_at"])
@@ -394,11 +402,22 @@ class BaseBot(commands.Bot):
             self.ticket_kernel = self.generate_dict_cache(ticket_kernel_list)
 
         if highlight_data:
-            highlight_data_list: List[Tuple] = [
-                (data["guild_id"], data["user_id"], data["trigger"])
-                for data in highlight_data
-            ]
+            highlight_data_list: List[Tuple[int, int, Dict[str, Any]]] = []
+            for data in highlight_data:
+                highlight_record = dict(data)
+                trigger_payload: Dict[str, Any] = {
+                    "trigger": highlight_record.get("trigger"),
+                    "scope_type": highlight_record.get("scope_type"),
+                    "scope_id": highlight_record.get("scope_id"),
+                    "snooze_until": highlight_record.get("snooze_until"),
+                    "digest": highlight_record.get("digest"),
+                }
+                highlight_data_list.append(
+                    (data["guild_id"], data["user_id"], trigger_payload)
+                )
             self.highlight = self.generate_dict_cache(highlight_data_list)
+        else:
+            self.highlight = {}
 
         if highlight_blocked_data:
             highlight_blocked_data: List[Tuple] = [
@@ -406,6 +425,21 @@ class BaseBot(commands.Bot):
                 for data in highlight_blocked_data
             ]
             self.highlight_blocked = self.generate_dict_cache(highlight_blocked_data)
+        else:
+            self.highlight_blocked = {}
+
+        if highlight_preferences_data:
+            preference_cache: Dict[int, Dict[int, Dict[str, Any]]] = {}
+            for record in highlight_preferences_data:
+                preference_record = dict(record)
+                guild_dict = preference_cache.setdefault(record["guild_id"], {})
+                guild_dict[record["user_id"]] = {
+                    "digest": preference_record.get("digest", "immediate"),
+                    "next_dispatch": preference_record.get("next_dispatch"),
+                }
+            self.highlight_preferences = preference_cache
+        else:
+            self.highlight_preferences = {}
 
         self.locked_objects_ids.extend(
             int(data["object_id"]) for data in locked_objects_ids_data
