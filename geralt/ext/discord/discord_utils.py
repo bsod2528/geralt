@@ -1,10 +1,12 @@
 import asyncio
+import datetime
 import imghdr
 import os
 import textwrap
 import time
+from collections import Counter
 from io import BytesIO
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 import discord
@@ -20,6 +22,7 @@ from ...kernel.views.meta import PFP
 from ...kernel.views.paginator import Paginator
 from ...kernel.views.snipe import (
     EditSnipeAttachmentView,
+    SnipeAnalyticsView,
     SnipeAttachmentViewer,
     SnipeStats,
 )
@@ -33,6 +36,12 @@ class Discord(commands.Cog):
     def __init__(self, bot: BaseBot):
         self.bot = bot
         self.pic_exts = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "svg"]
+        self._default_retention = {
+            "retention_days": 30,
+            "anonymize_attachments": False,
+            "analytics_opt_out": False,
+            "attachment_opt_out": False,
+        }
 
     @property
     def emote(self) -> discord.PartialEmoji:
@@ -44,6 +53,90 @@ class Discord(commands.Cog):
     async def snipe_purge(self):
         self.bot.settings.items()
 
+    @tasks.loop(minutes=30)
+    async def snipe_metrics_sync(self) -> None:
+        """Persist in-memory snipe counters to the metrics table."""
+
+        if not self.bot.is_ready():
+            return
+
+        today = discord.utils.utcnow().date()
+        counters = list(self.bot.snipe_counter.items())
+        for guild_id, counter in counters:
+            if not counter:
+                continue
+
+            if not self.analytics_enabled(guild_id):
+                self.bot.snipe_counter[guild_id] = {
+                    "delete": 0,
+                    "edit": 0,
+                    "total_messages": 0,
+                }
+                continue
+
+            delete_count = counter.get("delete", 0)
+            edit_count = counter.get("edit", 0)
+            total_messages = counter.get("total_messages", 0)
+
+            if delete_count == 0 and edit_count == 0 and total_messages == 0:
+                continue
+
+            await self.bot.db.execute(
+                """
+                INSERT INTO snipe_metrics (guild_id, captured_on, total_messages, delete_count, edit_count)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (guild_id, captured_on)
+                DO UPDATE SET
+                    total_messages = snipe_metrics.total_messages + EXCLUDED.total_messages,
+                    delete_count = snipe_metrics.delete_count + EXCLUDED.delete_count,
+                    edit_count = snipe_metrics.edit_count + EXCLUDED.edit_count
+                """,
+                guild_id,
+                today,
+                total_messages,
+                delete_count,
+                edit_count,
+            )
+
+            self.bot.snipe_counter[guild_id] = {
+                "delete": 0,
+                "edit": 0,
+                "total_messages": 0,
+            }
+
+    @snipe_metrics_sync.before_loop
+    async def before_snipe_metrics_sync(self) -> None:
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(hours=24)
+    async def snipe_retention_purge(self) -> None:
+        """Apply guild retention policies to stored snipes and metrics."""
+
+        now = discord.utils.utcnow()
+        for guild_id, policy in self.bot.snipe_retention_settings.items():
+            days = policy.get("retention_days", 30)
+            days = max(1, days)
+            cutoff = now - datetime.timedelta(days=days)
+            await self.bot.db.execute(
+                "DELETE FROM snipe_delete WHERE guild_id = $1 AND d_m_ts < $2",
+                guild_id,
+                cutoff,
+            )
+            await self.bot.db.execute(
+                "DELETE FROM snipe_edit WHERE guild_id = $1 AND post_ts < $2",
+                guild_id,
+                cutoff,
+            )
+            await self.bot.db.execute(
+                "DELETE FROM snipe_metrics WHERE guild_id = $1 AND captured_on < $2",
+                guild_id,
+                cutoff.date(),
+            )
+
+    @snipe_retention_purge.before_loop
+    async def before_snipe_retention_purge(self) -> None:
+        await self.bot.wait_until_ready()
+
     def return_ext(self, file: discord.File) -> str:
         filename, ext = os.path.splitext(file.filename)
         return ext.lower()[1:] if ext else ""
@@ -52,6 +145,183 @@ class Discord(commands.Cog):
         for threshold, color in thresholds.items():
             if value <= threshold:
                 return f"{escape}[0;1;{color}m{value} ms{escape}[0m"
+
+    def get_retention_policy(self, guild_id: int) -> Dict[str, Any]:
+        policy = self.bot.snipe_retention_settings.get(guild_id)
+        if policy is None:
+            return self._default_retention.copy()
+        return policy
+
+    def analytics_enabled(self, guild_id: int) -> bool:
+        policy = self.get_retention_policy(guild_id)
+        return not policy.get("analytics_opt_out", False)
+
+    def format_channel(self, guild: discord.Guild, channel_id: int) -> str:
+        channel = guild.get_channel(channel_id)
+        if channel is None:
+            return f"<#{channel_id}>"
+        return channel.mention
+
+    async def build_snipe_analytics_embed(
+        self, ctx: BaseContext, window_days: int, max_window: int
+    ) -> BaseEmbed:
+        window_days = max(1, min(window_days, max_window))
+        since_dt = discord.utils.utcnow() - datetime.timedelta(days=window_days)
+        metrics_rows = await self.bot.db.fetch(
+            """
+            SELECT total_messages, delete_count, edit_count
+            FROM snipe_metrics
+            WHERE guild_id = $1 AND captured_on >= $2
+            """,
+            ctx.guild.id,
+            since_dt.date(),
+        )
+
+        totals = {"total_messages": 0, "delete": 0, "edit": 0}
+        for row in metrics_rows:
+            totals["total_messages"] += row["total_messages"]
+            totals["delete"] += row["delete_count"]
+            totals["edit"] += row["edit_count"]
+
+        live_counter = self.bot.snipe_counter.get(
+            ctx.guild.id, {"total_messages": 0, "delete": 0, "edit": 0}
+        )
+        totals["total_messages"] += live_counter.get("total_messages", 0)
+        totals["delete"] += live_counter.get("delete", 0)
+        totals["edit"] += live_counter.get("edit", 0)
+
+        delete_channel_rows = await self.bot.db.fetch(
+            """
+            SELECT d_m_c_id, COUNT(*) AS count
+            FROM snipe_delete
+            WHERE guild_id = $1 AND d_m_ts >= $2
+            GROUP BY d_m_c_id
+            """,
+            ctx.guild.id,
+            since_dt,
+        )
+        edit_channel_rows = await self.bot.db.fetch(
+            """
+            SELECT pre_c_id, COUNT(*) AS count
+            FROM snipe_edit
+            WHERE guild_id = $1 AND post_ts >= $2
+            GROUP BY pre_c_id
+            """,
+            ctx.guild.id,
+            since_dt,
+        )
+
+        delete_channel_counter = Counter()
+        edit_channel_counter = Counter()
+
+        for row in delete_channel_rows:
+            delete_channel_counter[row["d_m_c_id"]] += row["count"]
+
+        for row in edit_channel_rows:
+            edit_channel_counter[row["pre_c_id"]] += row["count"]
+
+        attachment_counter = Counter()
+        try:
+            delete_attachment_rows = await self.bot.db.fetch(
+                "SELECT attachment_exts FROM snipe_delete WHERE guild_id = $1 AND d_m_ts >= $2",
+                ctx.guild.id,
+                since_dt,
+            )
+            for row in delete_attachment_rows:
+                for ext in row["attachment_exts"] or []:
+                    attachment_counter[(ext or "unknown").lower()] += 1
+        except Exception:
+            delete_attachment_rows = await self.bot.db.fetch(
+                "SELECT * FROM snipe_delete WHERE guild_id = $1 AND d_m_ts >= $2",
+                ctx.guild.id,
+                since_dt,
+            )
+            for row in delete_attachment_rows:
+                ext_list = row[9] if len(row) > 9 else []
+                for ext in ext_list or []:
+                    attachment_counter[(ext or "unknown").lower()] += 1
+
+        try:
+            edit_attachment_rows = await self.bot.db.fetch(
+                "SELECT pre_attachment_exts FROM snipe_edit WHERE guild_id = $1 AND post_ts >= $2",
+                ctx.guild.id,
+                since_dt,
+            )
+            for row in edit_attachment_rows:
+                for ext in row["pre_attachment_exts"] or []:
+                    attachment_counter[(ext or "unknown").lower()] += 1
+        except Exception:
+            edit_attachment_rows = await self.bot.db.fetch(
+                "SELECT * FROM snipe_edit WHERE guild_id = $1 AND post_ts >= $2",
+                ctx.guild.id,
+                since_dt,
+            )
+            for row in edit_attachment_rows:
+                ext_list = row[8] if len(row) > 8 else []
+                for ext in ext_list or []:
+                    attachment_counter[(ext or "unknown").lower()] += 1
+
+        total_actions = totals["delete"] + totals["edit"]
+        if total_actions:
+            delete_pct = (totals["delete"] / total_actions) * 100
+            edit_pct = (totals["edit"] / total_actions) * 100
+        else:
+            delete_pct = edit_pct = 0.0
+
+        volume_value = textwrap.dedent(
+            f"""
+            Deleted: `{totals['delete']}` ({delete_pct:.1f}% of actions)
+            Edited: `{totals['edit']}` ({edit_pct:.1f}% of actions)
+            Total messages tracked: `{totals['total_messages']}`
+            """
+        )
+
+        channel_lines: List[str] = []
+        if delete_channel_counter:
+            channel_lines.append("**Deleted**")
+            for channel_id, count in delete_channel_counter.most_common(3):
+                channel_lines.append(f"{self.format_channel(ctx.guild, channel_id)} — {count}")
+        if edit_channel_counter:
+            channel_lines.append("**Edited**")
+            for channel_id, count in edit_channel_counter.most_common(3):
+                channel_lines.append(f"{self.format_channel(ctx.guild, channel_id)} — {count}")
+        if not channel_lines:
+            channel_lines.append("No channel activity recorded.")
+
+        attachment_lines: List[str] = []
+        for ext, count in attachment_counter.most_common(5):
+            label = ext.upper() if ext not in {"", "unknown"} else "Unknown"
+            attachment_lines.append(f"`{label}` — {count}")
+        if not attachment_lines:
+            attachment_lines.append("No attachments captured.")
+
+        embed = BaseEmbed(
+            title=f"Snipe analytics — last {window_days} day{'s' if window_days != 1 else ''}",
+            colour=self.bot.colour,
+        )
+        embed.add_field(name="Volume", value=volume_value, inline=False)
+        embed.add_field(
+            name="Top channels",
+            value="\n".join(channel_lines),
+            inline=False,
+        )
+        embed.add_field(
+            name="Attachment types",
+            value="\n".join(attachment_lines),
+            inline=False,
+        )
+        embed.set_footer(
+            text=f"Retention window maximum: {max_window} day{'s' if max_window != 1 else ''}"
+        )
+        return embed
+
+    async def cog_load(self) -> None:
+        self.snipe_metrics_sync.start()
+        self.snipe_retention_purge.start()
+
+    async def cog_unload(self) -> None:
+        self.snipe_metrics_sync.cancel()
+        self.snipe_retention_purge.cancel()
 
     # Listeners for "snipe" command
     @commands.Cog.listener("on_message")
@@ -64,7 +334,7 @@ class Discord(commands.Cog):
                     "SELECT snipe FROM guild_settings WHERE guild_id = $1",
                     message.guild.id,
                 )
-            if log == True:
+            if log == True and self.analytics_enabled(message.guild.id):
                 if message.guild.id not in self.bot.snipe_counter:
                     self.bot.snipe_counter[message.guild.id] = {  # type: ignore
                         "delete": 0,
@@ -93,31 +363,39 @@ class Discord(commands.Cog):
                 if message.author.bot:
                     return
 
-                embeds = []
-                attachment_exts = []
-                attachment_urls = []
-                attachment_names = []
-                attachment_bytes = []
+                policy = self.get_retention_policy(message.guild.id)
+                anonymize = policy.get("anonymize_attachments", False)
+                attachment_opt_out = policy.get("attachment_opt_out", False)
 
-                if message.attachments:
-                    for file in message.attachments:
+                embeds = []
+                attachment_exts: List[str] = []
+                attachment_urls: List[str] = []
+                attachment_names: List[str] = []
+                attachment_bytes: List[bytes] = []
+
+                if message.attachments and not attachment_opt_out:
+                    for index, file in enumerate(message.attachments, start=1):
                         try:
                             ext = self.return_ext(file)
+                            file_bytes = await file.read()
                             if ext in self.pic_exts:
-                                file_bytes = await file.read()
                                 ext = imghdr.what(BytesIO(file_bytes))
-                                await file.save(BytesIO())
-
-                            attachment_exts.append(ext)
-                            attachment_names.append(file.filename)
-                            attachment_bytes.append(await file.read())
+                            display_name = file.filename
+                            if anonymize:
+                                suffix = f".{ext}" if ext else ""
+                                display_name = f"attachment-{index}{suffix}"
+                            attachment_exts.append(ext or "unknown")
+                            attachment_names.append(display_name)
+                            attachment_bytes.append(file_bytes)
                         except Exception as e:
                             print(e)
 
-                if len(attachment_names) >= 2:
+                if attachment_names and not attachment_opt_out and len(attachment_names) >= 2:
                     attachment_bytes.clear()
                     try:
-                        for attachment in message.attachments:
+                        for index, attachment in enumerate(
+                            message.attachments, start=1
+                        ):
                             async with aiohttp.ClientSession() as session:
                                 wbhk = discord.Webhook.partial(
                                     id=self.bot.config.get("SNIPE_ATTACHMENT_ID"),
@@ -165,18 +443,19 @@ class Discord(commands.Cog):
                     )
 
                     # Update counter
-                    try:
-                        self.bot.snipe_counter[message.guild.id]["delete"] += 1
-                    except KeyError:
-                        # Initialize counter if it doesn't exist
-                        if message.guild.id not in self.bot.snipe_counter:
-                            self.bot.snipe_counter[message.guild.id] = {
-                                "delete": 1,
-                                "edit": 0,
-                                "total_messages": 0,
-                            }
-                        else:
-                            self.bot.snipe_counter[message.guild.id]["delete"] = 1
+                    if self.analytics_enabled(message.guild.id):
+                        try:
+                            self.bot.snipe_counter[message.guild.id]["delete"] += 1
+                        except KeyError:
+                            # Initialize counter if it doesn't exist
+                            if message.guild.id not in self.bot.snipe_counter:
+                                self.bot.snipe_counter[message.guild.id] = {
+                                    "delete": 1,
+                                    "edit": 0,
+                                    "total_messages": 0,
+                                }
+                            else:
+                                self.bot.snipe_counter[message.guild.id]["delete"] = 1
 
                 except Exception as e:
                     print(f"Error inserting into snipe_delete: {e}")
@@ -198,6 +477,9 @@ class Discord(commands.Cog):
             if log == True:
                 if pre.author.bot and post.author.bot:
                     return
+                policy = self.get_retention_policy(pre.guild.id)
+                anonymize = policy.get("anonymize_attachments", False)
+                attachment_opt_out = policy.get("attachment_opt_out", False)
                 pre_attachment_exts: List[str] = []
                 pre_attachment_urls: List[str] = []
                 pre_attachment_names: List[str] = []
@@ -208,16 +490,22 @@ class Discord(commands.Cog):
                 post_attachment_names: List[str] = []
                 post_attachment_bytes: List[bytes] = []
 
-                if pre.attachments:
-                    for file in pre.attachments:
+                if pre.attachments and not attachment_opt_out:
+                    for index, file in enumerate(pre.attachments, start=1):
                         ext = self.return_ext(file)
+                        file_bytes = await file.read()
                         if ext in self.pic_exts:
-                            ext = imghdr.what(BytesIO(await file.read()))
-                        pre_attachment_exts.append(ext)
-                        pre_attachment_names.append(file.filename)
-                        pre_attachment_bytes.append(await file.read())
+                            ext = imghdr.what(BytesIO(file_bytes))
+                        name = file.filename
+                        if anonymize:
+                            suffix = f".{ext}" if ext else ""
+                            name = f"attachment-pre-{index}{suffix}"
+                        pre_attachment_exts.append(ext or "unknown")
+                        pre_attachment_names.append(name)
+                        pre_attachment_bytes.append(file_bytes)
 
-                if len([pre_attachment_names]) >= 2:
+                if pre_attachment_names and not attachment_opt_out and len(pre_attachment_names) >= 2:
+                    pre_attachment_bytes.clear()
                     for attachment in pre.attachments:
                         async with aiohttp.ClientSession() as session:
                             wbhk = discord.Webhook.partial(
@@ -237,16 +525,22 @@ class Discord(commands.Cog):
                                 sent_attachment_message.attachments[0].url
                             )
 
-                if post.attachments:
-                    for _file in post.attachments:
+                if post.attachments and not attachment_opt_out:
+                    for index, _file in enumerate(post.attachments, start=1):
                         ext = self.return_ext(_file)
+                        file_bytes = await _file.read()
                         if ext in self.pic_exts:
-                            ext = imghdr.what(BytesIO(await _file.read()))
-                        post_attachment_exts.append(ext)
-                        post_attachment_names.append(_file.filename)
-                        post_attachment_bytes.append(await _file.read())
+                            ext = imghdr.what(BytesIO(file_bytes))
+                        name = _file.filename
+                        if anonymize:
+                            suffix = f".{ext}" if ext else ""
+                            name = f"attachment-post-{index}{suffix}"
+                        post_attachment_exts.append(ext or "unknown")
+                        post_attachment_names.append(name)
+                        post_attachment_bytes.append(file_bytes)
 
-                if len([post_attachment_names]) >= 2:
+                if post_attachment_names and not attachment_opt_out and len(post_attachment_names) >= 2:
+                    post_attachment_bytes.clear()
                     for _attachment in post.attachments:
                         async with aiohttp.ClientSession() as session:
                             wbhk = discord.Webhook.partial(
@@ -255,14 +549,14 @@ class Discord(commands.Cog):
                                 session=session,
                             )
 
-                            __attachment = await attachment.read()
+                            __attachment = await _attachment.read()
                             _sent_attachment_message = await wbhk.send(
                                 file=discord.File(
                                     BytesIO(__attachment), filename=_attachment.filename
                                 ),
                                 wait=True,
                             )
-                            pre_attachment_urls.append(
+                            post_attachment_urls.append(
                                 _sent_attachment_message.attachments[0].url
                             )
 
@@ -290,10 +584,15 @@ class Discord(commands.Cog):
                     post_attachment_bytes,
                     post.jump_url,
                 )
-                try:
-                    self.bot.snipe_counter[post.guild.id]["edit"] += 1
-                except:
-                    return
+                if self.analytics_enabled(post.guild.id):
+                    try:
+                        self.bot.snipe_counter[post.guild.id]["edit"] += 1
+                    except KeyError:
+                        self.bot.snipe_counter[post.guild.id] = {
+                            "delete": 0,
+                            "edit": 1,
+                            "total_messages": 0,
+                        }
 
     @commands.hybrid_command(name="ping", brief="You ping Me", aliases=["pong"])
     @app_commands.checks.cooldown(2, 10)
@@ -917,18 +1216,151 @@ class Discord(commands.Cog):
         **Example:**
         `.gsnipe stats [--globalstats True]`
         """
-        time = discord.utils.utcnow() - self.bot.uptime
-        if not flag:
-            counter = self.bot.snipe_counter[ctx.guild.id]
-            description: str = (
-                f"Stats from: {humanize.precisedelta(time)}\n<:ReplyContinued:930634770004725821> **Deleted:** `{counter['delete']}` message{'s' if counter['delete'] != 1 else ''}\n<:ReplyContinued:930634770004725821> **Edited:** `{counter['edit']}` message{'s' if counter['edit'] != 1 else ''}\n<:Reply:930634822865547294> **Total Messages:** `{counter['total_messages']}` message{'s' if counter['total_messages'] != 1 else ''}"
+        uptime_window = discord.utils.utcnow() - self.bot.uptime
+
+        if flag and flag.globalstats:
+            row = await self.bot.db.fetchrow(
+                """
+                SELECT
+                    COALESCE(SUM(total_messages), 0) AS total_messages,
+                    COALESCE(SUM(delete_count), 0) AS delete_count,
+                    COALESCE(SUM(edit_count), 0) AS edit_count
+                FROM snipe_metrics
+                """
             )
-            stats_emb = BaseEmbed(
-                title=f"Snipe Stats in {ctx.guild}",
-                description=textwrap.dedent(description),
+            totals = {
+                "total_messages": row["total_messages"] if row else 0,
+                "delete": row["delete_count"] if row else 0,
+                "edit": row["edit_count"] if row else 0,
+            }
+            for guild_id, counter in self.bot.snipe_counter.items():
+                if not self.analytics_enabled(guild_id):
+                    continue
+                totals["total_messages"] += counter.get("total_messages", 0)
+                totals["delete"] += counter.get("delete", 0)
+                totals["edit"] += counter.get("edit", 0)
+
+            description = textwrap.dedent(
+                f"""
+                **Global analytics**
+                <:ReplyContinued:930634770004725821> **Deleted:** `{totals['delete']}`
+                <:ReplyContinued:930634770004725821> **Edited:** `{totals['edit']}`
+                <:Reply:930634822865547294> **Total Messages:** `{totals['total_messages']}`
+                """
+            )
+            embed = BaseEmbed(
+                title="Global snipe statistics",
+                description=description,
                 colour=self.bot.colour,
             )
-            stats_emb.set_footer(
-                icon_url=ctx.author.display_avatar.url, text=f"Invoked By: {ctx.author}"
+            embed.set_footer(text="Includes all guilds with analytics enabled")
+            return await ctx.send(embed=embed)
+
+        policy = self.get_retention_policy(ctx.guild.id)
+        window_days = min(policy.get("retention_days", 30), 90)
+        since = discord.utils.utcnow().date() - datetime.timedelta(days=window_days - 1)
+        rows = await self.bot.db.fetch(
+            """
+            SELECT total_messages, delete_count, edit_count
+            FROM snipe_metrics
+            WHERE guild_id = $1 AND captured_on >= $2
+            """,
+            ctx.guild.id,
+            since,
+        )
+
+        totals = {"total_messages": 0, "delete": 0, "edit": 0}
+        for row in rows:
+            totals["total_messages"] += row["total_messages"]
+            totals["delete"] += row["delete_count"]
+            totals["edit"] += row["edit_count"]
+
+        counter = self.bot.snipe_counter.get(
+            ctx.guild.id, {"total_messages": 0, "delete": 0, "edit": 0}
+        )
+        totals["total_messages"] += counter.get("total_messages", 0)
+        totals["delete"] += counter.get("delete", 0)
+        totals["edit"] += counter.get("edit", 0)
+
+        description = textwrap.dedent(
+            f"""
+            Window: last {window_days} day{'s' if window_days != 1 else ''}
+            <:ReplyContinued:930634770004725821> **Deleted:** `{totals['delete']}`
+            <:ReplyContinued:930634770004725821> **Edited:** `{totals['edit']}`
+            <:Reply:930634822865547294> **Total Messages:** `{totals['total_messages']}`
+            ⏱️ Runtime window: {humanize.precisedelta(uptime_window)}
+            """
+        )
+        stats_emb = BaseEmbed(
+            title=f"Snipe stats for {ctx.guild}",
+            description=description,
+            colour=self.bot.colour,
+        )
+        stats_emb.set_footer(
+            icon_url=ctx.author.display_avatar.url, text=f"Invoked by: {ctx.author}"
+        )
+        return await ctx.send(embed=stats_emb)
+
+    @commands.hybrid_group(
+        name="analytics",
+        brief="Interactive analytics dashboards",
+        with_app_command=True,
+    )
+    @commands.guild_only()
+    async def analytics(self, ctx: BaseContext) -> Optional[discord.Message]:
+        if ctx.invoked_subcommand is None:
+            return await ctx.command_help()
+
+    @analytics.command(
+        name="snipe",
+        brief="Show snipe analytics dashboard",
+        with_app_command=True,
+    )
+    @app_commands.describe(days="Number of days to include in the dashboard.")
+    async def analytics_snipe(
+        self, ctx: BaseContext, days: Optional[app_commands.Range[int, 1, 90]] = None
+    ) -> Optional[discord.Message]:
+        if ctx.guild is None:
+            return None
+
+        if not self.analytics_enabled(ctx.guild.id):
+            return await ctx.reply(
+                "Snipe analytics are disabled for this guild. Use"
+                f" `{ctx.clean_prefix}guild snipe analytics False` to enable data collection.",
+                mention_author=False,
             )
-            return await ctx.send(embed=stats_emb)
+
+        policy = self.get_retention_policy(ctx.guild.id)
+        max_window = min(policy.get("retention_days", 30), 90)
+        if max_window <= 0:
+            max_window = 1
+
+        requested_window = days or min(7, max_window)
+
+        if ctx.interaction and not ctx.interaction.response.is_done():
+            await ctx.defer()
+
+        embed = await self.build_snipe_analytics_embed(ctx, requested_window, max_window)
+
+        available_windows = [
+            value
+            for value in (1, 3, 7, 14, 30, 60, 90)
+            if value <= max_window
+        ]
+        if requested_window not in available_windows:
+            available_windows.append(requested_window)
+        available_windows = sorted(set(available_windows))
+
+        async def refresh(new_days: int) -> BaseEmbed:
+            return await self.build_snipe_analytics_embed(ctx, new_days, max_window)
+
+        view: Optional[SnipeAnalyticsView] = None
+        if len(available_windows) > 1:
+            view = SnipeAnalyticsView(
+                ctx, refresh, requested_window, available_windows
+            )
+
+        message = await ctx.send(embed=embed, view=view)
+        if view is not None:
+            view.message = message
+        return message

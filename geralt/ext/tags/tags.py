@@ -299,11 +299,19 @@ class Tags(commands.Cog):
             await ctx.add_nanotick()
 
     async def tag_remove(self, ctx: BaseContext, name: str):
-        tag_deets = await self.bot.db.fetchval(
-            "SELECT (tag_name) FROM tags WHERE tag_name = $1 AND guild_id = $2",
+        tag_row = await self.bot.db.fetchrow(
+            "SELECT tag_id, tag_name FROM tags WHERE tag_name = $1 AND guild_id = $2",
             name,
             ctx.guild.id,
         )
+
+        if not tag_row:
+            return await ctx.reply(
+                f'"**{name}**" ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>'
+            )
+
+        tag_id = tag_row["tag_id"]
+        tag_deets = tag_row["tag_name"]
 
         async def yes(
             ui: discord.ui.View,
@@ -312,11 +320,13 @@ class Tags(commands.Cog):
         ):
             for view in ui.children:
                 view.disabled = True
-            if id != await self.bot.db.fetchval(
-                "SELECT * FROM tags WHERE tag_name = $1 AND author_id = $2",
-                name,
+            owner_tag_id = await self.bot.db.fetchval(
+                "SELECT tag_id FROM tags WHERE tag_name = $1 AND author_id = $2 AND guild_id = $3",
+                tag_deets,
                 ctx.author.id,
-            ):
+                ctx.guild.id,
+            )
+            if tag_id != owner_tag_id:
                 await interaction.response.defer()
                 await ui.response.edit(
                     content=f'"**{tag_deets}**" ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>',
@@ -327,7 +337,7 @@ class Tags(commands.Cog):
                 await interaction.response.defer()
                 await self.bot.db.execute(
                     "DELETE FROM tags WHERE tag_name = $1 AND guild_id = $2 AND author_id = $3",
-                    name,
+                    tag_deets,
                     ctx.guild.id,
                     ctx.author.id,
                 )
@@ -346,19 +356,19 @@ class Tags(commands.Cog):
                 view.disabled = True
             await interaction.response.defer()
             await ui.response.edit(
-                content=f'"**{tag_deets}**" (`{id}`) ─ will not be deleted from your tag list <:NanoTick:925271358735257651>',
+                content=f'"**{tag_deets}**" (`{tag_id}`) ─ will not be deleted from your tag list <:NanoTick:925271358735257651>',
                 view=ui,
             )
 
         Confirmation.response = await ctx.reply(
-            f'Are you sure you want to remove tag ─ "**{tag_deets}**" (`{id}`) from your list <a:IThink:933315875501641739>',
+            f'Are you sure you want to remove tag ─ "**{tag_deets}**" (`{tag_id}`) from your list <a:IThink:933315875501641739>',
             view=Confirmation(ctx, yes, no),
             mention_author=False,
         )
 
     async def tag_transfer(self, ctx: BaseContext, tag_id: int, user: discord.Member):
         tag_deets = await self.bot.db.fetchval(
-            "SELECT (tag_name) FROM tags WHERE id = $1 AND guild_id = $2",
+            "SELECT (tag_name) FROM tags WHERE tag_id = $1 AND guild_id = $2",
             tag_id,
             ctx.guild.id,
         )
@@ -374,11 +384,12 @@ class Tags(commands.Cog):
         ):
             for view in ui.children:
                 view.disabled = True
-            if id != await self.bot.db.fetchval(
-                "SELECT * FROM tags WHERE id = $1 AND author_id = $2",
+            tag_author_id = await self.bot.db.fetchval(
+                "SELECT author_id FROM tags WHERE tag_id = $1 AND guild_id = $2",
                 tag_id,
-                ctx.author.id,
-            ):
+                ctx.guild.id,
+            )
+            if tag_author_id != ctx.author.id:
                 await interaction.response.defer()
                 return await ui.response.edit(
                     content=f'"**{tag_deets}**" (`{tag_id}`) ─ is a tag which is either not yours or not in the database <a:LifeSucks:932255208044650596>',
@@ -387,7 +398,7 @@ class Tags(commands.Cog):
             else:
                 await interaction.response.defer()
                 await self.bot.db.execute(
-                    "UPDATE tags SET author_id = $1, WHERE id = $3 AND guild_id = $4",
+                    "UPDATE tags SET author_id = $1 WHERE tag_id = $2 AND guild_id = $3",
                     user.id,
                     tag_id,
                     ctx.guild.id,

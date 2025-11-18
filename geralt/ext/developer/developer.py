@@ -111,11 +111,11 @@ class Developer(commands.Cog):
             except Exception:
                 return
             await self.bot.db.execute(query, snowflake.id)
-            return self.bot.blacklists.remove(snowflake)
+            return self.bot.blacklists.discard(snowflake.id)
 
         try:
             await self.bot.db.execute(query, snowflake.id)
-            return self.bot.blacklists.remove(snowflake)
+            return self.bot.blacklists.discard(snowflake.id)
         except Exception as exception:
             await ctx.reply(f"```py\n{exception}\n```")
             await ctx.add_nanocross()
@@ -132,7 +132,7 @@ class Developer(commands.Cog):
             "https://tenor.com/view/i-want-u-to-be-banned-gif-13051109547748519557",
             "https://tenor.com/view/minions-banned-gif-25694197",
             "https://tenor.com/view/bane-no-banned-and-you-are-explode-gif-16047504",
-            "https://tenor.com/view/ur-banned-lil-bro-gif-17281694379108569987"
+            "https://tenor.com/view/ur-banned-lil-bro-gif-17281694379108569987",
             "https://tenor.com/view/c00kie-get-banned-gif-24947485",
             "https://tenor.com/view/good-argument-you-are-banned-gif-24468307",
             "https://tenor.com/view/ur-banned-gif-23742768",

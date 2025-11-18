@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import asyncpg
 import discord
@@ -97,6 +97,102 @@ class Guild(commands.Cog):
             names.append(emote.name)
         names.sort()
         return [app_commands.Choice(name=names, value=names) for names in names][:25]
+
+    @commands.hybrid_command(
+        name="settings",
+        brief="Show the current guild configuration snapshot.",
+        with_app_command=True,
+    )
+    @commands.guild_only()
+    @commands.cooldown(2, 10, commands.BucketType.user)
+    @commands.has_guild_permissions(manage_guild=True)
+    async def settings_overview(self, ctx: BaseContext) -> Optional[discord.Message]:
+        """Summarise the guild configuration cached on the dashboard API."""
+
+        snapshot = self.bot.guild_configuration_snapshot(ctx.guild.id)
+
+        prefixes_display = ", ".join(snapshot["prefixes"]) or "`<none>`"
+        flags = snapshot["flags"]
+        flag_lines = [
+            f"Convert URL Emotes: {'✅' if flags.get('convert_url_to_webhook') else '❌'}",
+            f"Message Sniping: {'✅' if flags.get('snipe') else '❌'}",
+        ]
+
+        def _format_highlight(entries: List[Dict[str, Any]], *, blocked: bool = False) -> str:
+            if not entries:
+                return "No entries configured."
+            lines: List[str] = []
+            limit = 5
+            for entry in entries[:limit]:
+                user = ctx.guild.get_member(entry["user_id"])
+                user_label = user.mention if user else f"`{entry['user_id']}`"
+                values = entry.get("object_ids" if blocked else "triggers", [])
+                display_values = ", ".join(map(str, values[:5])) or "<none>"
+                extra = len(values) - 5
+                if extra > 0:
+                    display_values += f" (+{extra})"
+                lines.append(f"{user_label}: {display_values}")
+            remaining = len(entries) - limit
+            if remaining > 0:
+                lines.append(f"…and {remaining} more entries")
+            return "\n".join(lines)
+
+        highlight_value = _format_highlight(snapshot["highlight"], blocked=False)
+        highlight_blocked_value = _format_highlight(
+            snapshot["highlight_blocked"], blocked=True
+        )
+
+        ticket_panel = snapshot["ticket_panel"]
+        if ticket_panel:
+            ticket_lines = [
+                f"Category: <#{ticket_panel['category_id']}>",
+                f"Channel: <#{ticket_panel['sent_channel_id']}>",
+                f"Message: https://discord.com/channels/{ctx.guild.id}/{ticket_panel['sent_channel_id']}/{ticket_panel['sent_message_id']}",
+            ]
+        else:
+            ticket_lines = ["No active ticket panel."]
+
+        verification_panel = snapshot["verification_panel"]
+        if verification_panel:
+            verification_lines = [
+                f"Question: {verification_panel['question']}",
+                f"Answer: ||{verification_panel['answer']}||",
+                f"Role: <@&{verification_panel['role_id']}>",
+                f"Channel: <#{verification_panel['channel_id']}>",
+            ]
+        else:
+            verification_lines = ["No verification panel configured."]
+
+        embed = BaseEmbed(
+            title=f"{ctx.guild.name} configuration",
+            colour=self.bot.colour,
+            description=f"**Prefixes:** {prefixes_display}",
+        )
+        embed.add_field(name="Feature Flags", value="\n".join(flag_lines), inline=False)
+        embed.add_field(name="Highlight Triggers", value=highlight_value, inline=False)
+        embed.add_field(
+            name="Highlight Blocks", value=highlight_blocked_value, inline=False
+        )
+        embed.add_field(name="Ticket Panel", value="\n".join(ticket_lines), inline=False)
+        embed.add_field(
+            name="Verification Panel",
+            value="\n".join(verification_lines),
+            inline=False,
+        )
+        embed.set_footer(text="Snapshot provided by the dashboard API")
+        if ctx.guild.icon:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+
+        view = discord.ui.View()
+        view.add_item(
+            discord.ui.Button(
+                label="Open Dashboard",
+                emoji="<:AkkoComfy:907104936368685106>",
+                url=self.bot.dashboard_url(ctx.guild),
+            )
+        )
+
+        return await ctx.reply(embed=embed, view=view, mention_author=False)
 
     @commands.hybrid_group(
         name="prefix",
@@ -739,14 +835,38 @@ class Guild(commands.Cog):
         if ctx.invoked_subcommand is None:
             return await ctx.command_help()
 
-    @guild.command(
+    async def ensure_retention_defaults(self, guild_id: int) -> None:
+        if guild_id in self.bot.snipe_retention_settings:
+            return
+
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id)
+            VALUES ($1)
+            ON CONFLICT (guild_id) DO NOTHING
+            """,
+            guild_id,
+        )
+        self.bot.snipe_retention_settings[guild_id] = {
+            "retention_days": 30,
+            "anonymize_attachments": False,
+            "analytics_opt_out": False,
+            "attachment_opt_out": False,
+        }
+
+    @guild.group(
         name="snipe",
         brief="Opt - in/out for sniping.",
         aliases=["s"],
         with_app_command=True,
+        invoke_without_command=True,
     )
     async def guild_snipe(self, ctx: BaseContext) -> Optional[discord.Message]:
-        """Opt - in/out for sniping messages!"""
+        """Manage guild snipe settings."""
+
+        if ctx.invoked_subcommand is not None:
+            return None
+
         query: str = (
             "INSERT INTO guild_settings (guild_id, snipe) VALUES ($1, $2) "
             "ON CONFLICT (guild_id) "
@@ -755,7 +875,7 @@ class Guild(commands.Cog):
         data = await self.bot.db.fetchval(
             "SELECT snipe FROM guild_settings WHERE guild_id = $1", ctx.guild.id
         )
-        if data == True:
+        if data is True:
             await ctx.reply(
                 f"I will hereby `not snipe` all edited & deleted messages in **{ctx.guild.name}** \U0001f91d"
             )
@@ -769,6 +889,7 @@ class Guild(commands.Cog):
                 }
             return await self.bot.db.execute(query, ctx.guild.id, False)
 
+        await self.ensure_retention_defaults(ctx.guild.id)
         await ctx.reply(
             f"I will hereby `snipe` all edited & deleted messages in **{ctx.guild.name}** \U0001f91d"
         )
@@ -782,6 +903,124 @@ class Guild(commands.Cog):
             }
         self.bot.snipe_counter.update({"delete": 0, "edit": 0, "total_messages": 0})
         return await self.bot.db.execute(query, ctx.guild.id, True)
+
+    @guild_snipe.command(
+        name="retention",
+        brief="Set how long snipes are retained.",
+        with_app_command=True,
+    )
+    @app_commands.describe(days="Number of days to retain snipes.")
+    async def guild_snipe_retention(
+        self, ctx: BaseContext, days: app_commands.Range[int, 1, 90]
+    ) -> Optional[discord.Message]:
+        """Configure how many days snipe entries are kept."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, retention_days)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET retention_days = EXCLUDED.retention_days
+            """,
+            ctx.guild.id,
+            days,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id]["retention_days"] = days
+        return await ctx.reply(
+            f"Sniped messages will now be retained for **{days}** day{'s' if days != 1 else ''}."
+        )
+
+    @guild_snipe.command(
+        name="anonymise",
+        aliases=["anonymize"],
+        brief="Toggle attachment anonymisation.",
+        with_app_command=True,
+    )
+    @app_commands.describe(enabled="Whether attachment data should be anonymised.")
+    async def guild_snipe_anonymise(
+        self, ctx: BaseContext, enabled: bool
+    ) -> Optional[discord.Message]:
+        """Control whether attachment metadata is anonymised for snipes."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, anonymize_attachments)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET anonymize_attachments = EXCLUDED.anonymize_attachments
+            """,
+            ctx.guild.id,
+            enabled,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id][
+            "anonymize_attachments"
+        ] = enabled
+        state = "anonymised" if enabled else "stored with original metadata"
+        return await ctx.reply(
+            f"Attachments associated with snipes will now be {state}."
+        )
+
+    @guild_snipe.command(
+        name="analytics",
+        brief="Opt in or out of analytics aggregation.",
+        with_app_command=True,
+    )
+    @app_commands.describe(opt_out="Disable analytics collection for this guild.")
+    async def guild_snipe_analytics(
+        self, ctx: BaseContext, opt_out: bool
+    ) -> Optional[discord.Message]:
+        """Enable or disable analytics aggregation for this guild."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, analytics_opt_out)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET analytics_opt_out = EXCLUDED.analytics_opt_out
+            """,
+            ctx.guild.id,
+            opt_out,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id]["analytics_opt_out"] = opt_out
+        message = (
+            "Analytics collection has been disabled."
+            if opt_out
+            else "Analytics collection has been enabled."
+        )
+        return await ctx.reply(message)
+
+    @guild_snipe.command(
+        name="attachments",
+        brief="Opt out of attachment storage entirely.",
+        with_app_command=True,
+    )
+    @app_commands.describe(opt_out="Do not store attachment payloads for snipes.")
+    async def guild_snipe_attachments(
+        self, ctx: BaseContext, opt_out: bool
+    ) -> Optional[discord.Message]:
+        """Opt out of storing attachment payloads for snipes."""
+
+        await self.ensure_retention_defaults(ctx.guild.id)
+        await self.bot.db.execute(
+            """
+            INSERT INTO snipe_retention_settings (guild_id, attachment_opt_out)
+            VALUES ($1, $2)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET attachment_opt_out = EXCLUDED.attachment_opt_out
+            """,
+            ctx.guild.id,
+            opt_out,
+        )
+        self.bot.snipe_retention_settings[ctx.guild.id]["attachment_opt_out"] = opt_out
+        message = (
+            "Attachment payloads will no longer be stored."
+            if opt_out
+            else "Attachment payloads will now be stored for snipes."
+        )
+        return await ctx.reply(message)
 
     @guild.command(
         name="auditlog",

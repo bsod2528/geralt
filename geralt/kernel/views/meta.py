@@ -20,6 +20,7 @@ from ...context import BaseContext
 from ...embed import BaseEmbed
 from ..utilities.crucial import misc
 from ..utilities.crucial import total_lines as tl
+from ..utilities.reports import ReportRecord, insert_report
 
 dotenv.load_dotenv()
 
@@ -29,6 +30,69 @@ if TYPE_CHECKING:
     from ...bot import BaseBot
 
 COLOUR = discord.Colour.from_rgb(170, 179, 253)
+
+
+def _format_ticket_value(value: str) -> str:
+    return value.replace("_", " ").title()
+
+
+async def _send_ticket_failure(
+    interaction: discord.Interaction, exception: Exception
+) -> None:
+    support_server_link: discord.ui.View = discord.ui.View()
+    support_server_link.add_item(
+        discord.ui.Button(
+            label="Support Server",
+            url="discord.gg\\JXEu2AcV5Y",
+            style=discord.ButtonStyle.url,
+            emoji="<:Geralt:1064214731587604620>",
+        )
+    )
+    content = (
+        "Couldn't process your ticket due to:"
+        f"```py\n{exception}\n```Please report it in the support server."
+        "Click on the link below to gain access to the server!"
+    )
+    if interaction.response.is_done():
+        await interaction.followup.send(
+            content=content, ephemeral=False, view=support_server_link
+        )
+    else:
+        await interaction.response.send_message(
+            content=content, ephemeral=False, view=support_server_link
+        )
+
+
+async def _send_report_acknowledgement(
+    bot: "BaseBot", ctx: BaseContext, record: ReportRecord
+) -> None:
+    embed = BaseEmbed(
+        title=f"Ticket #{record.id} received",
+        description=(
+            f"Thanks for your {record.report_type} submission! "
+            f"It's been logged with status **{_format_ticket_value(record.status)}**."
+        ),
+        colour=bot.colour,
+    )
+    embed.add_field(name="Severity", value=_format_ticket_value(record.severity))
+    subject = discord.utils.escape_markdown(record.subject).strip()
+    embed.add_field(
+        name="Subject",
+        value=subject[:256] or "(no subject provided)",
+        inline=False,
+    )
+    if record.message_jump_url:
+        embed.add_field(
+            name="Context",
+            value=f"[Jump to original message]({record.message_jump_url})",
+            inline=False,
+        )
+    embed.set_footer(text="We'll reach out if we need more details.")
+
+    try:
+        await ctx.author.send(embed=embed)
+    except (discord.Forbidden, discord.HTTPException):
+        pass
 
 
 async def modal_error(self, interaction: discord.Interaction, error: Exception) -> None:
@@ -84,11 +148,13 @@ class Info(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
         self.ctx = ctx
+        guild = getattr(ctx, "guild", None)
+        dashboard_url = bot.dashboard_url(guild if isinstance(guild, discord.Guild) else None)
         self.add_item(
             discord.ui.Button(
-                label="Dashboard",
+                label="Open Dashboard",
                 emoji="<:AkkoComfy:907104936368685106>",
-                url="https://bsod2528.me/pages/projects/geralt/geralt.html",
+                url=dashboard_url,
             )
         )
         self.add_item(
@@ -454,20 +520,59 @@ class FeedbackModal(discord.ui.Modal, title="Feedback Form"):
     )
 
     async def on_submit(self, interaction: discord.Interaction, /) -> None:
+        subject = self.feedback_title.value.strip()
+        feedback_body = self.feedback.value.strip()
+        message = getattr(self.ctx, "message", None)
+
+        try:
+            record = await insert_report(
+                self.bot.db,
+                report_type="feedback",
+                guild_id=getattr(getattr(self.ctx, "guild"), "id", None),
+                channel_id=getattr(getattr(self.ctx, "channel"), "id", None),
+                message_id=getattr(message, "id", None),
+                message_jump_url=getattr(message, "jump_url", None),
+                reporter_id=self.ctx.author.id,
+                subject=subject,
+                body=feedback_body,
+            )
+        except Exception as exception:
+            return await _send_ticket_failure(interaction, exception)
+
+        await _send_report_acknowledgement(self.bot, self.ctx, record)
+
         fb_info = (
             f"- Sent By       :   {self.ctx.author} / {self.ctx.author.id}\n"
-            f"- @ Guild       :   {self.ctx.guild} / {self.ctx.guild.id}\n"
-            f"- @ Channel     :   {self.ctx.channel} / {self.ctx.channel.id}"
+            f"- @ Guild       :   {self.ctx.guild} / {getattr(self.ctx.guild, 'id', 'N/A')}\n"
+            f"- @ Channel     :   {self.ctx.channel} / {getattr(self.ctx.channel, 'id', 'N/A')}"
         )
-        fb_emb = BaseEmbed(
-            title=self.feedback_title.value.strip(),
-            description=f"```yaml\n{fb_info}\n```\n[**Jump to Feedback**]({self.ctx.message.jump_url})\n",
+        feedback_embed = BaseEmbed(
+            title=subject,
+            description="".join(
+                [
+                    f"```yaml\n{fb_info}\n```\n",
+                    (
+                        f"[**Jump to Feedback**]({message.jump_url})\n"
+                        if getattr(message, "jump_url", None)
+                        else ""
+                    ),
+                ]
+            ),
             colour=0x2F3136,
         )
-        fb_emb.add_field(
-            name="Below Holds the Feedback",
-            value=f"```css\n{self.feedback.value.strip()}\n```",
+        feedback_embed.add_field(
+            name="Ticket",
+            value=(
+                f"`#{record.id}` • {_format_ticket_value(record.status)}"
+                f" • {_format_ticket_value(record.severity)}"
+            ),
         )
+        feedback_embed.add_field(
+            name="Below Holds the Feedback",
+            value=f"```css\n{feedback_body}\n```",
+            inline=False,
+        )
+
         try:
             async with aiohttp.ClientSession() as session:
                 feedback_webhook = discord.Webhook.partial(
@@ -475,29 +580,18 @@ class FeedbackModal(discord.ui.Modal, title="Feedback Form"):
                     token=CONFIG.get("FEEDBACK_TOKEN"),
                     session=session,
                 )
-                await feedback_webhook.send(embed=fb_emb)
+                await feedback_webhook.send(embed=feedback_embed)
                 await feedback_webhook.send("||  Break Point  ||")
-                await session.close()
-            return await interaction.response.send_message(
-                content=f"**{self.ctx.author}** - Your feedback form has been sucessfully sent <a:Nod:1064213975031627897>",
-                ephemeral=True,
-            )
         except Exception as exception:
-            support_server_link: discord.ui.View = discord.ui.View()
-            support_server_link.add_item(
-                discord.ui.Button(
-                    label="Support Server",
-                    url="discord.gg\\JXEu2AcV5Y",
-                    style=discord.ButtonStyle.url,
-                    emoji="<:Geralt:1064214731587604620>",
-                )
-            )
-            return await interaction.response.send_message(
-                content=f"Couldn't send your feedback form due to:```py\n{exception}\n```Please report it in the support server."
-                "Click on the link below to gain access to the server!",
-                ephemeral=False,
-                view=support_server_link,
-            )
+            return await _send_ticket_failure(interaction, exception)
+
+        await interaction.response.send_message(
+            content=(
+                f"**{self.ctx.author}** - Your feedback has been logged as ticket `#{record.id}` "
+                "<a:Nod:1064213975031627897>"
+            ),
+            ephemeral=True,
+        )
 
     async def on_error(
         self, interaction: discord.Interaction, error: Exception, /
@@ -526,20 +620,59 @@ class BugModal(discord.ui.Modal, title="Bug Form"):
     )
 
     async def on_submit(self, interaction: discord.Interaction, /) -> None:
-        bug_emb = (
+        subject = self.bug_title.value.strip()
+        bug_body = self.bug_value.value.strip()
+        message = getattr(self.ctx, "message", None)
+
+        try:
+            record = await insert_report(
+                self.bot.db,
+                report_type="bug",
+                guild_id=getattr(getattr(self.ctx, "guild"), "id", None),
+                channel_id=getattr(getattr(self.ctx, "channel"), "id", None),
+                message_id=getattr(message, "id", None),
+                message_jump_url=getattr(message, "jump_url", None),
+                reporter_id=self.ctx.author.id,
+                subject=subject,
+                body=bug_body,
+            )
+        except Exception as exception:
+            return await _send_ticket_failure(interaction, exception)
+
+        await _send_report_acknowledgement(self.bot, self.ctx, record)
+
+        bug_info = (
             f"- Sent By       :   {self.ctx.author} / {self.ctx.author.id}\n"
-            f"- @ Guild       :   {self.ctx.guild} / {self.ctx.guild.id}\n"
-            f"- @ Channel     :   {self.ctx.channel} / {self.ctx.channel.id}"
+            f"- @ Guild       :   {self.ctx.guild} / {getattr(self.ctx.guild, 'id', 'N/A')}\n"
+            f"- @ Channel     :   {self.ctx.channel} / {getattr(self.ctx.channel, 'id', 'N/A')}"
         )
-        bug_emb = BaseEmbed(
-            title=self.bug_title.value.strip(),
-            description=f"```yaml\n{bug_emb}\n```\n[**Jump to Feedback**]({self.ctx.message.jump_url})\n",
+        bug_embed = BaseEmbed(
+            title=subject,
+            description="".join(
+                [
+                    f"```yaml\n{bug_info}\n```\n",
+                    (
+                        f"[**Jump to Report**]({message.jump_url})\n"
+                        if getattr(message, "jump_url", None)
+                        else ""
+                    ),
+                ]
+            ),
             colour=0x2F3136,
         )
-        bug_emb.add_field(
-            name="Below Holds the Bug",
-            value=f"```css\n{self.bug_value.value.strip()}\n```",
+        bug_embed.add_field(
+            name="Ticket",
+            value=(
+                f"`#{record.id}` • {_format_ticket_value(record.status)}"
+                f" • {_format_ticket_value(record.severity)}"
+            ),
         )
+        bug_embed.add_field(
+            name="Below Holds the Bug",
+            value=f"```css\n{bug_body}\n```",
+            inline=False,
+        )
+
         try:
             async with aiohttp.ClientSession() as session:
                 feedback_webhook = discord.Webhook.partial(
@@ -547,29 +680,18 @@ class BugModal(discord.ui.Modal, title="Bug Form"):
                     token=CONFIG.get("BUG_TOKEN"),
                     session=session,
                 )
-                await feedback_webhook.send(embed=bug_emb)
+                await feedback_webhook.send(embed=bug_embed)
                 await feedback_webhook.send("||  Break Point  ||")
-                await session.close()
-            return await interaction.response.send_message(
-                content=f"**{self.ctx.author}** - Your bug form has been sucessfully sent <a:Nod:1064213975031627897>",
-                ephemeral=True,
-            )
         except Exception as exception:
-            support_server_link: discord.ui.View = discord.ui.View()
-            support_server_link.add_item(
-                discord.ui.Button(
-                    label="Support Server",
-                    url="discord.gg\\JXEu2AcV5Y",
-                    style=discord.ButtonStyle.url,
-                    emoji="<:Geralt:1064214731587604620>",
-                )
-            )
-            return await interaction.response.send_message(
-                content=f"Couldn't send your feedback form due to:```py\n{exception}\n```Please report it in the support server."
-                "Click on the link below to gain access to the server!",
-                ephemeral=False,
-                view=support_server_link,
-            )
+            return await _send_ticket_failure(interaction, exception)
+
+        await interaction.response.send_message(
+            content=(
+                f"**{self.ctx.author}** - Your bug has been logged as ticket `#{record.id}` "
+                "<a:Nod:1064213975031627897>"
+            ),
+            ephemeral=True,
+        )
 
     async def on_error(
         self, interaction: discord.Interaction, error: Exception, /
